@@ -5,18 +5,28 @@
   "build": {
     "production": {
       "ios": {
-        "image": "latest"
+        "image": "latest",
+        "node": "20.11.0"
       },
       "android": {
-        "image": "latest"
+        "image": "latest",
+        "node": "20.11.0"
+      },
+      "env": {
+        "npm_config_legacy_peer_deps": "true"
       }
     },
     "preview": {
       "ios": {
-        "image": "latest"
+        "image": "latest",
+        "node": "20.11.0"
       },
       "android": {
-        "image": "latest"
+        "image": "latest",
+        "node": "20.11.0"
+      },
+      "env": {
+        "npm_config_legacy_peer_deps": "true"
       }
     },
     "development": {
