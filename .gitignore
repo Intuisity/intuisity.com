@@ -1,0 +1,10 @@
+node_modules/
+.expo/
+dist/
+.vercel/
+outputs/
+work/
+.env
+.env.*
+npm-debug.log*
+backend/data/*.json

@@ -1,0 +1,251 @@
+import { Horoscope, Origin } from "circular-natal-horoscope-js/dist/index";
+
+type SignProfile = {
+  name: string;
+  element: string;
+  strength: string;
+  focus: string;
+  reminder: string;
+};
+
+type BirthLocation = {
+  label: string;
+  latitude: number;
+  longitude: number;
+};
+
+const signs: SignProfile[] = [
+  { name: "Capricorn", element: "Earth", strength: "steady follow-through", focus: "one meaningful priority", reminder: "rest is part of progress" },
+  { name: "Aquarius", element: "Air", strength: "fresh ideas", focus: "one new way to solve a problem", reminder: "connection matters as much as independence" },
+  { name: "Pisces", element: "Water", strength: "kind imagination", focus: "one quiet creative or caring action", reminder: "protect your emotional energy" },
+  { name: "Aries", element: "Fire", strength: "brave first steps", focus: "one clear action you can start now", reminder: "patience can strengthen action" },
+  { name: "Taurus", element: "Earth", strength: "grounded persistence", focus: "one choice that feels nourishing and sustainable", reminder: "small changes can be safe" },
+  { name: "Gemini", element: "Air", strength: "curious communication", focus: "one conversation worth having", reminder: "clarity comes from slowing down" },
+  { name: "Cancer", element: "Water", strength: "emotional honesty", focus: "one supportive boundary", reminder: "your needs deserve care too" },
+  { name: "Leo", element: "Fire", strength: "warm confidence", focus: "one honest way to express yourself", reminder: "you do not need applause to shine" },
+  { name: "Virgo", element: "Earth", strength: "helpful improvement", focus: "one small fix that makes life easier", reminder: "done can be better than perfect" },
+  { name: "Libra", element: "Air", strength: "balanced thinking", focus: "one fair decision", reminder: "peace does not require self-abandonment" },
+  { name: "Scorpio", element: "Water", strength: "deep honesty", focus: "one truth you are ready to admit to yourself", reminder: "softness and strength can coexist" },
+  { name: "Sagittarius", element: "Fire", strength: "hopeful exploration", focus: "one thing that expands your world", reminder: "freedom grows through wise commitments" }
+];
+
+const questionFrames = [
+  "Where would {strength} help you follow through on {focus} today?",
+  "What decision would become easier if you honored this reminder: {reminder}?",
+  "Which relationship or conversation could benefit from your {element} sign awareness today?",
+  "What small action can turn {focus} into something real before the day ends?",
+  "Where are you being asked to move from reaction into a calmer, wiser response?",
+  "What would feel supportive, honest, and doable for your chart energy today?",
+  "Which choice would let you use your strength without forcing the outcome?",
+  "What is one thing your future self would thank you for doing with this guidance?"
+];
+
+const knownBirthLocations: BirthLocation[] = [
+  { label: "Seattle, Washington, United States", latitude: 47.6062, longitude: -122.3321 },
+  { label: "Miami, Florida, United States", latitude: 25.7617, longitude: -80.1918 },
+  { label: "New York, New York, United States", latitude: 40.7128, longitude: -74.006 },
+  { label: "Los Angeles, California, United States", latitude: 34.0522, longitude: -118.2437 },
+  { label: "San Francisco, California, United States", latitude: 37.7749, longitude: -122.4194 },
+  { label: "Chicago, Illinois, United States", latitude: 41.8781, longitude: -87.6298 },
+  { label: "Houston, Texas, United States", latitude: 29.7604, longitude: -95.3698 },
+  { label: "Phoenix, Arizona, United States", latitude: 33.4484, longitude: -112.074 },
+  { label: "Philadelphia, Pennsylvania, United States", latitude: 39.9526, longitude: -75.1652 },
+  { label: "San Antonio, Texas, United States", latitude: 29.4241, longitude: -98.4936 },
+  { label: "San Diego, California, United States", latitude: 32.7157, longitude: -117.1611 },
+  { label: "Dallas, Texas, United States", latitude: 32.7767, longitude: -96.797 },
+  { label: "Austin, Texas, United States", latitude: 30.2672, longitude: -97.7431 },
+  { label: "Jacksonville, Florida, United States", latitude: 30.3322, longitude: -81.6557 },
+  { label: "Fort Worth, Texas, United States", latitude: 32.7555, longitude: -97.3308 },
+  { label: "Columbus, Ohio, United States", latitude: 39.9612, longitude: -82.9988 },
+  { label: "Charlotte, North Carolina, United States", latitude: 35.2271, longitude: -80.8431 },
+  { label: "Indianapolis, Indiana, United States", latitude: 39.7684, longitude: -86.1581 },
+  { label: "Denver, Colorado, United States", latitude: 39.7392, longitude: -104.9903 },
+  { label: "Boston, Massachusetts, United States", latitude: 42.3601, longitude: -71.0589 },
+  { label: "Nashville, Tennessee, United States", latitude: 36.1627, longitude: -86.7816 },
+  { label: "Portland, Oregon, United States", latitude: 45.5152, longitude: -122.6784 },
+  { label: "Las Vegas, Nevada, United States", latitude: 36.1699, longitude: -115.1398 },
+  { label: "Atlanta, Georgia, United States", latitude: 33.749, longitude: -84.388 },
+  { label: "Minneapolis, Minnesota, United States", latitude: 44.9778, longitude: -93.265 },
+  { label: "Toronto, Ontario, Canada", latitude: 43.6532, longitude: -79.3832 },
+  { label: "Vancouver, British Columbia, Canada", latitude: 49.2827, longitude: -123.1207 },
+  { label: "London, England, United Kingdom", latitude: 51.5072, longitude: -0.1276 },
+  { label: "Paris, France", latitude: 48.8566, longitude: 2.3522 },
+  { label: "Sydney, New South Wales, Australia", latitude: -33.8688, longitude: 151.2093 }
+];
+
+export function getAstrologyReading(
+  birthdate: string,
+  date = new Date(),
+  birthTime = "",
+  birthCity = ""
+) {
+  const parsed = parseBirthdate(birthdate);
+  if (!parsed) return null;
+
+  const sign = getSunSign(parsed.month, parsed.day);
+  const birthContext = `${birthTime.trim()}|${birthCity.trim().toLowerCase()}`;
+  const contextSeed = [...birthContext].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  const daySeed = Math.floor(date.getTime() / 86400000) + sign.name.length + contextSeed;
+  const birthClock = parseBirthTime(birthTime);
+  const birthLocation = resolveBirthLocation(birthCity);
+  const fullChart = birthClock && birthLocation
+    ? calculateFullChart(parsed, birthClock, birthLocation)
+    : null;
+  const questionFrame = questionFrames[daySeed % questionFrames.length];
+  const dailyQuestion = fillFrame(questionFrame, sign, fullChart);
+  const savedBirthTime = birthTime.trim();
+  const savedBirthCity = birthCity.trim();
+  const synopsis = buildDailySynopsis(sign, fullChart, daySeed, savedBirthTime, savedBirthCity);
+
+  return {
+    sign,
+    fullChart,
+    tips: [dailyQuestion],
+    synopsis,
+    dailyQuestion,
+    birthDetailsIncluded: Boolean(fullChart || birthTime.trim() || birthCity.trim()),
+    chartCalculation: fullChart ? "full-birth-chart" : "sun-sign-daily"
+  };
+}
+
+function parseBirthdate(value: string) {
+  const match = value.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!match) return null;
+  const month = Number(match[1]);
+  const day = Number(match[2]);
+  const year = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return { year, month, day };
+}
+
+function parseBirthTime(value: string) {
+  const match = value.trim().toUpperCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/);
+  if (!match) return null;
+  let hour = Number(match[1]);
+  const minute = Number(match[2] || "0");
+  const period = match[3];
+
+  if (period === "AM") {
+    if (hour === 12) hour = 0;
+  } else if (period === "PM") {
+    if (hour < 12) hour += 12;
+  }
+
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return { hour, minute };
+}
+
+function getSunSign(month: number, day: number) {
+  const changeDays = [20, 19, 20, 20, 21, 21, 22, 23, 23, 23, 22, 22];
+  const signIndex = day < changeDays[month - 1] ? month - 1 : month;
+  return signs[signIndex % 12];
+}
+
+function resolveBirthLocation(value: string) {
+  const normalizedValue = normalizeLocation(value);
+  if (!normalizedValue) return null;
+  return knownBirthLocations.find((location) => {
+    const normalizedLabel = normalizeLocation(location.label);
+    const [city] = normalizedLabel.split(",");
+    return normalizedLabel.includes(normalizedValue) || normalizedValue.includes(city);
+  }) || null;
+}
+
+function calculateFullChart(
+  birthdate: { year: number; month: number; day: number },
+  birthTime: { hour: number; minute: number },
+  birthLocation: BirthLocation
+) {
+  try {
+    const origin = new Origin({
+      year: birthdate.year,
+      month: birthdate.month - 1,
+      date: birthdate.day,
+      hour: birthTime.hour,
+      minute: birthTime.minute,
+      latitude: birthLocation.latitude,
+      longitude: birthLocation.longitude
+    });
+    const horoscope = new Horoscope({
+      origin,
+      houseSystem: "whole-sign",
+      zodiac: "tropical",
+      aspectPoints: ["bodies", "points", "angles"],
+      aspectWithPoints: ["bodies", "points", "angles"],
+      aspectTypes: ["major"],
+      customOrbs: {},
+      language: "en"
+    });
+    const strongestAspect = horoscope.Aspects.all[0];
+    return {
+      source: "CircularNatalHoroscopeJS",
+      houseSystem: "Whole Sign",
+      zodiac: "Tropical",
+      locationLabel: birthLocation.label,
+      sunSign: signLabel(horoscope.CelestialBodies.sun?.Sign) || signLabel(horoscope.SunSign),
+      moonSign: signLabel(horoscope.CelestialBodies.moon?.Sign),
+      risingSign: signLabel(horoscope.Ascendant?.Sign),
+      midheavenSign: signLabel(horoscope.Midheaven?.Sign),
+      strongestAspect: strongestAspect
+        ? `${strongestAspect.point1Label} ${strongestAspect.label} ${strongestAspect.point2Label}`
+        : null
+    };
+  } catch {
+    return null;
+  }
+}
+
+function fillFrame(frame: string, sign: SignProfile, fullChart: ReturnType<typeof calculateFullChart> | null) {
+  const fullChartAddition = fullChart?.moonSign && fullChart.risingSign
+    ? ` Consider your ${fullChart.moonSign} Moon and ${fullChart.risingSign} Rising as you answer.`
+    : "";
+  return frame
+    .replace("{strength}", sign.strength)
+    .replace("{focus}", sign.focus)
+    .replace("{element}", sign.element)
+    .replace("{reminder}", sign.reminder) + fullChartAddition;
+}
+
+function buildDailySynopsis(
+  sign: SignProfile,
+  fullChart: ReturnType<typeof calculateFullChart> | null,
+  daySeed: number,
+  birthTime = "",
+  birthCity = ""
+) {
+  const openings = [
+    `Today highlights your ${sign.element} nature through ${sign.strength}.`,
+    `Your ${sign.name} Sun points you toward ${sign.focus} today.`,
+    `The day favors ${sign.strength}, especially when you keep your attention on ${sign.focus}.`
+  ];
+  const hasSavedBirthTime = Boolean(birthTime.trim());
+  const hasSavedBirthCity = Boolean(birthCity.trim());
+  const middle = fullChart?.moonSign && fullChart.risingSign
+    ? `Your ${fullChart.moonSign} Moon describes the emotional tone, while your ${fullChart.risingSign} Rising shows how you may meet the day outwardly.`
+    : hasSavedBirthTime || hasSavedBirthCity
+      ? `Your saved birth details are included; this guidance is still centered on your Sun sign until the app can match your birth city closely enough for Moon and Rising calculations.`
+      : `Because only your birthdate is saved, this guidance is based on your Sun sign; adding birth time and city will make it more personal.`;
+  const aspect = fullChart?.strongestAspect
+    ? `The strongest chart pattern showing today is ${fullChart.strongestAspect}, so notice where that theme appears in choices, conversations, or timing.`
+    : `The most useful reminder is that ${sign.reminder}.`;
+  return `${openings[daySeed % openings.length]} ${middle} ${aspect}`;
+}
+
+function signLabel(sign: { label?: string } | null | undefined) {
+  return typeof sign?.label === "string" ? sign.label : null;
+}
+
+function normalizeLocation(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/\b(usa|u\.s\.a\.|united states of america)\b/g, "united states")
+    .replace(/\s+/g, " ")
+    .trim();
+}
