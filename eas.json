@@ -5,12 +5,12 @@
   "build": {
     "production": {
       "ios": {
-        "image": "latest",
-        "node": "20.11.0"
+        "image": "macos-monterey-12.6.9-xcode-14.1",
+        "node": "20.19.4"
       },
       "android": {
         "image": "latest",
-        "node": "20.11.0"
+        "node": "20.19.4"
       },
       "env": {
         "npm_config_legacy_peer_deps": "true"
@@ -19,11 +19,11 @@
     "preview": {
       "ios": {
         "image": "latest",
-        "node": "20.11.0"
+        "node": "20.19.4"
       },
       "android": {
         "image": "latest",
-        "node": "20.11.0"
+        "node": "20.19.4"
       },
       "env": {
         "npm_config_legacy_peer_deps": "true"
