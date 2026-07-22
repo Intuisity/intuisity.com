@@ -5,7 +5,7 @@
   "build": {
     "production": {
       "ios": {
-        "image": "macos-sonoma-14.6-xcode-16.0",
+        "image": "macos-sonoma-14.5-xcode-15.4",
         "node": "20.19.4"
       },
       "android": {
