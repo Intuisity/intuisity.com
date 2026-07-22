@@ -5,8 +5,8 @@
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
-    "ios": "expo start --ios",
-    "android": "expo start --android",
+    "ios": "expo run:ios",
+    "android": "expo run:android",
     "web": "expo start --web",
     "web:offline": "scripts\\start-web-offline.cmd",
     "backend": "node backend/server.js",
@@ -14,7 +14,7 @@
     "test": "node tests/scoring.test.js && node tests/astrology.test.js && node tests/dailyLessons.test.js"
   },
   "dependencies": {
-    "@expo/metro-runtime": "~4.0.1",
+    "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.3",
     "circular-natal-horoscope-js": "^1.1.0",
     "expo": "~54.0.36",
