@@ -28,12 +28,16 @@
     ],
     "ios": {
       "bundleIdentifier": "com.intuisity.app",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0E141B"
-      }
+      },
+      "package": "com.intuisity.app"
     },
     "web": {
       "bundler": "metro"
