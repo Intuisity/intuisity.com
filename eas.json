@@ -13,6 +13,9 @@
         "node": "20.19.4"
       },
       "env": {
+        "IPHONEOS_DEPLOYMENT_TARGET": "14.4",
+        "SWIFT_VERSION": "5.9",
+        "PODS_ENABLE_DEPLOY_TARGET_SETTING_OVERRIDE": "true"
       }
     },
     "preview": {
