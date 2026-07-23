@@ -1,5 +1,3 @@
-import { Horoscope, Origin } from "circular-natal-horoscope-js/dist/index.js";
-
 type SignProfile = {
   name: string;
   element: string;
