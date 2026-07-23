@@ -1,5 +1,8 @@
 {
   "expo": {
+    "cli": {
+      "appVersionSource": "local"
+    },
     "name": "Intuisity",
     "slug": "intuisity",
     "description": "Intuisity is a daily training platform designed to help you develop intuition, awareness, insight, consciousness, mindfulness, synchronicity recognition, and your natural sixth sense through fun, engaging challenges and real-world experiences. Every day you'll complete five guided activities that help strengthen your inner knowing, improve decision-making, sharpen pattern recognition, and increase your awareness of the opportunities and signals that surround you. Whether you're interested in personal growth, spiritual awakening, consciousness expansion, mindfulness, intuition development, remote viewing, manifestation, or self-discovery, Intuisity provides a structured and measurable path to explore your potential.",
