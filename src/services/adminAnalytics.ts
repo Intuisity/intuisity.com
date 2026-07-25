@@ -189,12 +189,13 @@ export function markAnalyticsActivity() {
 }
 
 export function loadAdminAnalyticsReport(startDate = "", endDate = ""): AdminAnalyticsReport {
-  const allProfiles = loadProfiles().filter((profile) => !isExcludedReportEmail(String(profile.email || "")));
+  const allProfiles = loadProfiles();
+  const trafficProfiles = allProfiles.filter((profile) => !isExcludedReportEmail(String(profile.email || "")));
   const allEvents = loadAnalyticsEvents().filter(
     (event) => !isExcludedReportEmail(event.email) && !isLikelyBotEvent(event)
   );
   const dateRange = normalizeDateRange(startDate, endDate);
-  const visitorEvents = buildLocalVisitorEvents(allEvents, allProfiles);
+  const visitorEvents = buildLocalVisitorEvents(allEvents, trafficProfiles);
   const events = filterEventsByDateRange(allEvents, dateRange).filter((event) => !isVisitorOnlyEvent(event));
   const rangedVisitorEvents = filterEventsByDateRange(visitorEvents, dateRange);
   const moduleTotals = new Map<string, ModuleAnalyticsSummary>();
@@ -372,7 +373,7 @@ function isVisitorOnlyEvent(event: AnalyticsEvent) {
 }
 
 function buildLocalUserInsights(events: AnalyticsEvent[]): UserInsightReport[] {
-  return loadProfiles().filter((profile) => !isExcludedReportEmail(String(profile.email || ""))).map((profile) => {
+  return loadProfiles().map((profile) => {
     const email = String(profile.email || "").toLowerCase();
     const userEvents = events.filter((event) => event.email === email);
     const moduleStats = new Map<string, { moduleLabel: string; clicks: number; totalMs: number; activeMs: number }>();

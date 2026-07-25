@@ -47,8 +47,9 @@ assert.notDeepEqual(
 const unrecognizedCityReading = getAstrologyReading("03/21/1985", new Date("2026-06-12"), "09:15 AM", "Smalltown, Ohio, United States");
 assert.equal(unrecognizedCityReading.birthDetailsIncluded, true);
 assert.equal(unrecognizedCityReading.chartCalculation, "sun-sign-daily");
-assert.ok(unrecognizedCityReading.synopsis.includes("Aries (March 21-April 19)"));
 assert.ok(unrecognizedCityReading.synopsis.includes("day"));
+assert.equal(unrecognizedCityReading.synopsis.includes("Aries (March 21-April 19)"), false);
+assert.equal(/\b(Sun|Moon|Rising|Midheaven|zodiac|houses)\b/i.test(unrecognizedCityReading.synopsis), false);
 assert.equal(unrecognizedCityReading.synopsis.includes("birth details"), false);
 assert.equal(unrecognizedCityReading.synopsis.includes("birthplace"), false);
 assert.equal(unrecognizedCityReading.synopsis.includes("until the app can match"), false);
@@ -61,5 +62,6 @@ const customLocationReading = getAstrologyReading(
 );
 assert.equal(customLocationReading.chartCalculation, "full-birth-chart");
 assert.ok(customLocationReading.fullChart.risingSign);
+assert.equal(/\b(Sun|Moon|Rising|Midheaven|zodiac|houses)\b/i.test(customLocationReading.dailyQuestion), false);
 
 console.log("Astrology tests passed");

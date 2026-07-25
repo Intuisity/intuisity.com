@@ -20,6 +20,7 @@ async function buildAdminReport(options = {}) {
     selectAll("friends")
   ]);
   const profiles = allProfiles.filter((profile) => !isExcludedReportEmail(profile.email));
+  const userProfiles = allProfiles.filter((profile) => profile.email && !isAnonymousVisitorEmail(profile.email));
   const analyticsEvents = allAnalyticsEvents.filter(
     (event) => !isExcludedReportEmail(event.email) && !isLikelyBotEvent(event)
   );
@@ -62,8 +63,8 @@ async function buildAdminReport(options = {}) {
   const totalActiveTimeMs = rangedModuleEvents.reduce((total, event) => total + getActiveDuration(event), 0);
   const ratings = moduleFeedback.filter((entry) => Number(entry.rating || 0));
   const ratingTotal = ratings.reduce((total, entry) => total + Number(entry.rating || 0), 0);
-  const userInsights = buildUserInsights({ analyticsEvents: rangedAnalyticsEvents, dailyResults, friends, moduleFeedback, profiles });
-  const knownUserCount = countKnownUsers({ analyticsEvents, dailyResults, friends, moduleFeedback, profiles });
+  const userInsights = buildUserInsights({ analyticsEvents: rangedAnalyticsEvents, dailyResults, friends, moduleFeedback, profiles: userProfiles });
+  const knownUserCount = countKnownUsers({ analyticsEvents, dailyResults, friends, moduleFeedback, profiles: userProfiles });
 
   return {
     totalUsers: knownUserCount,
@@ -135,7 +136,22 @@ function buildVisitorEvents(analyticsEvents, profiles) {
       event_json: { clientChannel: "desktop-web", deviceCategory: "Desktop Web", source: "profiles" }
     }));
 
-  return [...analyticsEvents, ...profileEvents];
+  return reconcileAnonymousVisitors([...analyticsEvents, ...profileEvents]);
+}
+
+function reconcileAnonymousVisitors(events) {
+  const visitorIdToEmail = new Map();
+  events.forEach((event) => {
+    const email = normalizeEmail(event.email);
+    const visitorId = event.event_json?.visitorId || event.event_json?.visitor_id || "";
+    if (visitorId && email && !isAnonymousVisitorEmail(email)) visitorIdToEmail.set(String(visitorId), email);
+  });
+  return events.map((event) => {
+    const email = normalizeEmail(event.email);
+    const visitorId = event.event_json?.visitorId || event.event_json?.visitor_id || "";
+    const signedInEmail = visitorId ? visitorIdToEmail.get(String(visitorId)) : "";
+    return signedInEmail && isAnonymousVisitorEmail(email) ? { ...event, email: signedInEmail } : event;
+  });
 }
 
 async function buildUserInsightsCsv(options = {}) {
@@ -143,6 +159,7 @@ async function buildUserInsightsCsv(options = {}) {
   const headers = [
     "Name",
     "Email",
+    "Account Source",
     "Phone",
     "Language",
     "Current City",
@@ -176,6 +193,7 @@ async function buildUserInsightsCsv(options = {}) {
     ...report.userInsights.map((row) => [
       row.name,
       row.email,
+      row.accountSource,
       row.phone,
       row.language,
       row.currentCity,
@@ -237,14 +255,15 @@ function buildUserInsights({ analyticsEvents, dailyResults, friends, moduleFeedb
     const totalPossible = results.reduce((sum, entry) => sum + Number(entry.maximum || 0), 0);
 
     return {
-      name: profile.name || "",
+      name: resolveProfileField(profile, "name"),
       email,
-      phone: profile.phone || "",
-      language: profile.language || "",
-      currentCity: profile.current_city || "",
-      currentState: profile.current_state || "",
-      currentCountry: profile.current_country || "",
-      age: calculateAge(profile.birthdate || profile.profile_json?.birthdate),
+      accountSource: resolveProfileField(profile, "auth_provider", "authProvider") === "google" ? "Google" : "Email",
+      phone: resolveProfileField(profile, "phone"),
+      language: resolveProfileField(profile, "language"),
+      currentCity: resolveProfileField(profile, "current_city", "currentCity"),
+      currentState: resolveProfileField(profile, "current_state", "currentState"),
+      currentCountry: resolveProfileField(profile, "current_country", "currentCountry"),
+      age: calculateAge(resolveProfileField(profile, "birthdate")),
       birthChartType: profile.birth_chart_type || profile.birth_chart_json?.calculationType || "",
       sunSign: profile.sun_sign || profile.birth_chart_json?.sunSign || "",
       moonSign: profile.moon_sign || profile.birth_chart_json?.moonSign || "",
@@ -289,7 +308,11 @@ function isLikelyBotEvent(event) {
 
 function collectKnownEmails({ analyticsEvents = [], dailyResults = [], friends = [], moduleFeedback = [], profiles = [] }) {
   const emails = new Set();
-  [profiles, analyticsEvents, dailyResults, moduleFeedback, friends].forEach((rows) => {
+  profiles.forEach((profile) => {
+    const email = normalizeEmail(profile.email);
+    if (email && !isAnonymousVisitorEmail(email)) emails.add(email);
+  });
+  [analyticsEvents, dailyResults, moduleFeedback, friends].forEach((rows) => {
     rows.forEach((row) => {
       const email = normalizeEmail(row.email);
       if (email && !isExcludedReportEmail(email) && !isAnonymousVisitorEmail(email)) emails.add(email);
@@ -449,6 +472,14 @@ function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
+function resolveProfileField(profile, columnName, profileJsonName = columnName) {
+  const directValue = profile?.[columnName];
+  if (directValue !== undefined && directValue !== null && String(directValue).trim()) return directValue;
+  const profileJson = profile?.profile_json && typeof profile.profile_json === "object" ? profile.profile_json : {};
+  const savedValue = profileJson?.[profileJsonName];
+  return savedValue !== undefined && savedValue !== null ? savedValue : "";
+}
+
 function calculateAge(birthdate, today = new Date()) {
   const text = String(birthdate || "").trim();
   const match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/) || text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
@@ -479,5 +510,8 @@ function formatDuration(milliseconds) {
 
 module.exports = {
   buildAdminReport,
-  buildUserInsightsCsv
+  buildUserInsightsCsv,
+  collectKnownEmails,
+  reconcileAnonymousVisitors,
+  resolveProfileField
 };

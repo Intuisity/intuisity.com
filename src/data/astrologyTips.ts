@@ -391,8 +391,10 @@ function calculateFullChart(
 }
 
 function fillFrame(frame: string, sign: SignProfile, fullChart: ReturnType<typeof calculateFullChart> | null) {
-  const fullChartAddition = fullChart?.moonSign && fullChart.risingSign
-    ? ` Consider your ${fullChart.moonSign} Moon and ${fullChart.risingSign} Rising as you answer.`
+  const innerNeeds = signs.find((item) => item.name === fullChart?.moonSign);
+  const outwardApproach = signs.find((item) => item.name === fullChart?.risingSign);
+  const fullChartAddition = innerNeeds && outwardApproach
+    ? ` As you answer, balance your need for ${innerNeeds.focus.toLowerCase()} with an approach that uses ${outwardApproach.strength.toLowerCase()}.`
     : "";
   return frame
     .replace("{strength}", sign.strength)
@@ -411,10 +413,10 @@ function buildDailySynopsis(
   const dayTone = daySeed % 3 === 0 ? "A very positive day" : daySeed % 2 === 0 ? "A positive day" : "An average day";
   const signGuidance = horoscopeGuidanceBySign[sign.name] || horoscopeGuidanceBySign.Aries;
   const lead = signGuidance[daySeed % signGuidance.length];
-  const aspect = fullChart?.strongestAspect
-    ? `The strongest chart pattern showing today is ${fullChart.strongestAspect}, so notice where that theme appears in choices, conversations, or timing.`
+  const personalDetail = fullChart?.strongestAspect
+    ? "Your detailed birth information suggests paying extra attention to how your choices, conversations, and timing work together today."
     : `The useful reminder is this: ${sign.reminder}.`;
-  return `${sign.name} (${sign.dateRange})\n${dayTone}\n\n${lead} ${aspect} Stay practical, follow the calmest signal, and let one small choice move the day forward.`;
+  return `${dayTone}\n\n${lead} ${personalDetail} Stay practical, follow the calmest signal, and let one small choice move the day forward.`;
 }
 
 const horoscopeGuidanceBySign: Record<string, string[]> = {

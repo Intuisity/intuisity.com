@@ -75,6 +75,7 @@ type BackendAdminReport = {
   userInsights: Array<{
     name: string;
     email: string;
+    accountSource?: string;
     phone?: string;
     language?: string;
     currentCity?: string;
@@ -160,7 +161,7 @@ export function backendUserInsightsCsvUrl(adminSecret = loadAdminSecret(), start
 }
 
 export function syncProfile(profile: unknown) {
-  postToBackend("/api/profiles", { profile });
+  return postToBackend("/api/profiles", { profile });
 }
 
 export async function fetchSavedProfile(email: string) {
@@ -385,7 +386,7 @@ async function postToBackend(path: string, body: unknown) {
         path,
         status: response.status
       });
-      return;
+      return false;
     }
     rememberBackendSync({
       message: "Saved to backend",
@@ -393,12 +394,14 @@ async function postToBackend(path: string, body: unknown) {
       path,
       status: response.status
     });
+    return true;
   } catch (error) {
     rememberBackendSync({
       message: error instanceof Error ? error.message : "Backend save failed",
       ok: false,
       path
     });
+    return false;
   }
 }
 
@@ -422,6 +425,10 @@ function getDateKey() {
 }
 
 function getAnonymousVisitorEmail() {
+  return `visitor-${getAnonymousVisitorId().toLowerCase()}@anonymous.intuisity`;
+}
+
+function getAnonymousVisitorId() {
   const storageKey = "intuisity-anonymous-visitor-id";
   const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
   const storage = browserWindow?.localStorage || globalThis.localStorage;
@@ -436,7 +443,7 @@ function getAnonymousVisitorEmail() {
     storage?.setItem(storageKey, visitorId);
   }
 
-  return `visitor-${visitorId.toLowerCase()}@anonymous.intuisity`;
+  return visitorId;
 }
 
 function getClientPlatformDetails() {
@@ -454,7 +461,8 @@ function getClientPlatformDetails() {
     clientChannel: appChannel ? "app" : mobileWeb ? "mobile-web" : "desktop-web",
     deviceCategory: appChannel ? "App" : mobileWeb ? "Mobile Web" : "Desktop Web",
     userAgent: userAgent.slice(0, 500),
-    isLikelyBot: Boolean(navigatorRef?.webdriver) || isLikelyBotUserAgent(userAgent)
+    isLikelyBot: Boolean(navigatorRef?.webdriver) || isLikelyBotUserAgent(userAgent),
+    visitorId: getAnonymousVisitorId()
   };
 }
 

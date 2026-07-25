@@ -3,7 +3,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
+  KeyboardAvoidingView,
   Linking,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -125,11 +127,12 @@ function isAdminUser(profile: UserProfile | null) {
 }
 
 export default function App() {
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => loadActiveProfile() || loadTreasureInviteGuestProfile());
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => loadActiveProfile() || loadTreasureInviteGuestProfile() || (isTreasurePlayRequest() ? loadOrCreateGuestProfile() : null));
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("today");
   const [homeRequestId, setHomeRequestId] = useState(0);
   const [friendChallengeRequestId, setFriendChallengeRequestId] = useState(0);
+  const [treasureEntryRequestId, setTreasureEntryRequestId] = useState(() => isTreasurePlayRequest() ? 1 : 0);
   const [answers, setAnswers] = useState<Answers>(() => {
     const activeProfile = loadActiveProfile();
     return activeProfile ? loadDailyAnswers(activeProfile.email) : {};
@@ -214,9 +217,12 @@ export default function App() {
           setAccountGateNotice("");
           setUserProfile(profile);
         }}
-        onGuest={() => {
+        onGuest={(destination = "hub") => {
           setAccountGateNotice("");
           setUserProfile(loadOrCreateGuestProfile());
+          if (destination === "treasure") {
+            setTreasureEntryRequestId((current) => current + 1);
+          }
         }}
       />
     );
@@ -303,6 +309,7 @@ export default function App() {
             answers={answers}
             homeRequestId={homeRequestId}
             friendChallengeRequestId={friendChallengeRequestId}
+            treasureEntryRequestId={treasureEntryRequestId}
             isPremium={subscriptionStatus !== "Free"}
             onLogout={confirmLogout}
             onRequireAccount={() => {
@@ -353,7 +360,7 @@ export default function App() {
   );
 }
 
-function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initialNotice?: string; onAuthenticated: (profile: UserProfile) => void; onGuest: () => void }) {
+function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initialNotice?: string; onAuthenticated: (profile: UserProfile) => void; onGuest: (destination?: "hub" | "treasure") => void }) {
   const savedProfiles = loadProfiles();
   const emptyProfile: UserProfile = {
     language: "en", email: "", phone: "", name: "", reminderTime: "9:00 AM", timeZone: detectTimeZone(), birthdate: "", birthTime: "", birthCity: "", birthState: "",
@@ -407,6 +414,7 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
         currentCountry: savedProfile?.currentCountry || detectLocaleCountry(),
         reminderTime: savedProfile?.reminderTime || "9:00 AM"
       };
+      await syncProfile(nextProfile);
       authenticate(nextProfile);
     } catch (googleError) {
       setError(googleError instanceof Error ? googleError.message : "Google sign-in could not start.");
@@ -420,10 +428,17 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
           <Ionicons color="#FFFFFF" name="sparkles-outline" size={34} />
           <Text style={styles.accountHeroTitle}>Welcome to Intuisity</Text>
           <Text style={styles.accountHeroText}>Awaken your intuition. Expand your awareness. Unlock your inner wisdom.</Text>
-          <View style={styles.freePlayBadge}>
+          <Pressable
+            accessibilityHint="Opens Treasure Chest with Friend and Computer play choices"
+            accessibilityLabel="Play two free Treasure Chest games"
+            accessibilityRole="button"
+            onPress={() => onGuest("treasure")}
+            style={({ pressed }) => [styles.freePlayBadge, pressed && styles.freePlayBadgePressed]}
+          >
             <Ionicons color="#008A94" name="gift-outline" size={17} />
-            <Text style={styles.freePlayBadgeText}>Free to play daily challenges</Text>
-          </View>
+            <Text style={styles.freePlayBadgeText}>Free to play daily challenges · Start Treasure Chest</Text>
+            <Ionicons color="#008A94" name="chevron-forward" size={16} />
+          </Pressable>
         </View>
         <Pressable onPress={() => setMode("create")} style={styles.primaryButton}>
           <Ionicons color="#FFFFFF" name="person-add-outline" size={18} />
@@ -443,7 +458,7 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
           <Text style={styles.accountSecondaryText}>I already have an account</Text>
         </Pressable>
         {!initialNotice ? (
-          <Pressable onPress={onGuest} style={styles.accountSecondaryButton}>
+          <Pressable onPress={() => onGuest("hub")} style={styles.accountSecondaryButton}>
             <Text style={styles.accountSecondaryText}>Try two games before signing up</Text>
           </Pressable>
         ) : null}
@@ -455,7 +470,9 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
 
   if (mode === "login") {
     return (
-      <SafeAreaView style={styles.accountScreen}>
+      <SafeAreaView style={styles.accountFormScreen}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.accountKeyboardAvoider}>
+          <ScrollView contentContainerStyle={styles.accountLoginContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.accountTitle}>Welcome back</Text>
         <Text style={styles.accountSubtitle}>Enter your email and password to return to your saved Intuisity profile.</Text>
         <View style={styles.loginFreePlayNote}>
@@ -558,6 +575,8 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
           <Text style={styles.accountSecondaryText}>Back</Text>
         </Pressable>
         <LegalLinks />
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
@@ -701,11 +720,21 @@ function LegalLinks() {
       <Pressable onPress={() => openLegalPage("terms.html")} style={styles.legalLinkButton}>
         <Text style={styles.legalLinkText}>Terms of Service</Text>
       </Pressable>
+      <Text style={styles.legalLinkDivider}>|</Text>
+      <Pressable onPress={() => openLegalPage("faq.html")} style={styles.legalLinkButton}>
+        <Text style={styles.legalLinkText}>FAQ</Text>
+      </Pressable>
+      <Pressable onPress={() => openLegalPage("about.html")} style={styles.legalLinkButton}>
+        <Text style={styles.legalLinkText}>About</Text>
+      </Pressable>
+      <Pressable onPress={() => openLegalPage("intuition-training.html")} style={styles.legalLinkButton}>
+        <Text style={styles.legalLinkText}>Intuition Guide</Text>
+      </Pressable>
     </View>
   );
 }
 
-function openLegalPage(page: "privacy.html" | "terms.html") {
+function openLegalPage(page: "privacy.html" | "terms.html" | "faq.html" | "about.html" | "intuition-training.html") {
   Linking.openURL(`https://www.intuisity.com/${page}`);
 }
 
@@ -795,6 +824,14 @@ function ProfileInput({ autoComplete, label, value, onChangeText, placeholder = 
 }
 
 function GoogleSignInButton({ onPress }: { onPress: () => void }) {
+  if (Platform.OS !== "web") {
+    return (
+      <View accessibilityLabel="Google sign-in is not available in this test build" style={styles.nativeGoogleNotice}>
+        <Ionicons color="#7555C7" name="information-circle-outline" size={20} />
+        <Text style={styles.nativeGoogleNoticeText}>For this TestFlight build, please use your email and password. Native Google and Apple sign-in are being prepared.</Text>
+      </View>
+    );
+  }
   return (
     <Pressable onPress={onPress} style={styles.googleButton}>
       <View style={styles.googleIconCircle}>
@@ -992,6 +1029,14 @@ function loadTreasureInviteGuestProfile(): UserProfile | null {
     reminderTime: "9:00 AM",
     timeZone: detectTimeZone()
   };
+}
+
+function isTreasurePlayRequest() {
+  try {
+    return new URLSearchParams((globalThis as any).location?.search || "").get("play") === "treasure";
+  } catch {
+    return false;
+  }
 }
 
 function loadOrCreateGuestProfile(): UserProfile {
@@ -1549,7 +1594,7 @@ function AdminDashboard() {
     count: reportedAges.filter((age) => age >= range.minimum && age <= range.maximum).length
   }));
   const summaryMetrics = [
-    { icon: "people-outline" as const, label: "Saved users", value: report.totalUsers },
+    { icon: "people-outline" as const, label: "Logged-in users", value: report.totalUsers },
     { icon: "pulse-outline" as const, label: "Tracked visits", value: report.totalVisits },
     { icon: "person-circle-outline" as const, label: "Unique visitors", value: report.uniqueVisitors },
     { icon: "flash-outline" as const, label: "Active time", value: formatDuration(report.totalActiveTimeMs || report.totalTimeMs) },
@@ -1578,6 +1623,7 @@ function AdminDashboard() {
           <View style={styles.adminUserIdentity}>
             <Text style={styles.adminModuleLabel}>{user.name || "Unnamed user"}</Text>
             <Text style={styles.adminFeedbackMeta}>{user.email}</Text>
+            <Text style={styles.adminFeedbackMeta}>Account: {user.accountSource || "Email"}</Text>
           </View>
           <View style={styles.adminUserPill}>
             <Text style={styles.adminUserPillText}>{user.totalClicks} clicks</Text>
@@ -1718,7 +1764,7 @@ function AdminDashboard() {
         </View>
 
         <View style={styles.adminMetricGrid}>
-          <Metric icon="people-outline" label="Saved users" value={report.totalUsers} />
+          <Metric icon="people-outline" label="Logged-in users" value={report.totalUsers} />
           <Metric icon="person-circle-outline" label="Unique visitors" value={report.uniqueVisitors} onPress={() => setAdminReportPage("unique-visitors")} />
           <Metric icon="pulse-outline" label="Tracked visits" value={report.totalVisits} />
           <Metric icon="flash-outline" label="Active time" value={formatDuration(report.totalActiveTimeMs || report.totalTimeMs)} />
@@ -1928,7 +1974,7 @@ function AdminDashboard() {
             key={metric.label}
             icon={metric.icon}
             label={metric.label}
-            onPress={metric.label === "Unique visitors" ? () => setAdminReportPage("unique-visitors") : metric.label === "Saved users" ? () => setAdminReportPage("user-insights") : undefined}
+            onPress={metric.label === "Unique visitors" ? () => setAdminReportPage("unique-visitors") : metric.label === "Logged-in users" ? () => setAdminReportPage("user-insights") : undefined}
             value={metric.value}
           />
         ))}
@@ -1936,6 +1982,7 @@ function AdminDashboard() {
 
       <Text style={styles.adminSectionTitle}>Visitor volume</Text>
       <Text style={styles.adminSectionHint}>Known bots and automated browsers are excluded. Older visits recorded before bot detection may remain.</Text>
+      <Text style={styles.adminSectionHint}>Logged-in users are counted once by email across browsers and devices. Admin accounts appear in User Insights, but their testing activity is excluded from visitor totals.</Text>
       <View style={styles.adminVolumeGrid}>
         <Metric icon="today-outline" label="Today" onPress={() => setAdminReportPage("unique-visitors")} value={report.visitorVolume?.today || 0} />
         <Metric icon="calendar-outline" label="Last 7 days" onPress={() => setAdminReportPage("unique-visitors")} value={report.visitorVolume?.week || 0} />
@@ -2268,12 +2315,15 @@ function setMetaTag(name: string, content: string, attribute = "name") {
 const styles = StyleSheet.create({
   accountScreen: { backgroundColor: "#FFFFFF", flex: 1, justifyContent: "center", padding: 24 },
   accountFormScreen: { backgroundColor: "#FFFFFF", flex: 1 },
+  accountKeyboardAvoider: { flex: 1 },
+  accountLoginContent: { flexGrow: 1, justifyContent: "center", padding: 24, paddingBottom: 72 },
   accountFormContent: { padding: 24, paddingBottom: 50 },
   signupBanner: { alignSelf: "stretch", borderRadius: 10, height: 150, marginBottom: 18, width: "100%" },
   accountHero: { alignItems: "center", backgroundColor: "#6544B8", borderColor: "#63E3E0", borderRadius: 8, borderWidth: 2, marginBottom: 20, padding: 30 },
   accountHeroTitle: { color: "#FFFFFF", fontSize: 28, fontWeight: "900", marginTop: 12, textAlign: "center" },
   accountHeroText: { color: "#EEE8FF", fontSize: 15, lineHeight: 22, marginTop: 10, textAlign: "center" },
   freePlayBadge: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#63E3E0", borderRadius: 999, borderWidth: 1, flexDirection: "row", gap: 7, marginTop: 16, paddingHorizontal: 14, paddingVertical: 8 },
+  freePlayBadgePressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
   freePlayBadgeText: { color: "#6544B8", fontSize: 13, fontWeight: "900" },
   accountTitle: { color: "#201B35", fontSize: 28, fontWeight: "900", marginBottom: 8 },
   accountSubtitle: { color: "#706982", fontSize: 15, lineHeight: 22, marginBottom: 20 },
@@ -2283,6 +2333,8 @@ const styles = StyleSheet.create({
   googleIconCircle: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 999, borderWidth: 1, height: 26, justifyContent: "center", width: 26 },
   googleIconText: { color: "#4285F4", fontSize: 16, fontWeight: "900" },
   googleButtonText: { color: "#30264C", fontSize: 15, fontWeight: "900" },
+  nativeGoogleNotice: { alignItems: "center", backgroundColor: "#F8F5FF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 9, marginBottom: 12, padding: 12 },
+  nativeGoogleNoticeText: { color: "#5D536A", flex: 1, fontSize: 12, fontWeight: "700", lineHeight: 17 },
   loginDivider: { alignItems: "center", flexDirection: "row", gap: 10, marginBottom: 12, marginTop: 2 },
   loginDividerLine: { backgroundColor: "#E7E3F2", flex: 1, height: 1 },
   loginDividerText: { color: "#706982", fontSize: 11, fontWeight: "900", textTransform: "uppercase" },

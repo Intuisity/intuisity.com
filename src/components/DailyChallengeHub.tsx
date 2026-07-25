@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, ImageBackground, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { getAstrologyReading, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
 import { dailyIntuitionLessons } from "../data/dailyLessons";
@@ -78,6 +78,7 @@ type Props = {
   answers: Answers;
   friendChallengeRequestId?: number;
   homeRequestId?: number;
+  treasureEntryRequestId?: number;
   isPremium: boolean;
   onLogout: () => void;
   onRequireAccount: () => void;
@@ -517,7 +518,7 @@ const personImages: Record<string, any> = {
   mei: require("../../assets/person-mei.png")
 };
 
-export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeRequestId = 0, isPremium, onLogout, onRequireAccount, onUpdateProfile, setAnswers, userProfile }: Props) {
+export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeRequestId = 0, treasureEntryRequestId = 0, isPremium, onLogout, onRequireAccount, onUpdateProfile, setAnswers, userProfile }: Props) {
   const savedPersonChallengeRef = useRef(loadTodaysPersonChallenge(userProfile.email));
   const savedPersonChallenge = savedPersonChallengeRef.current;
   const savedPersonProfile = savedPersonChallenge
@@ -616,6 +617,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const [treasureLocked, setTreasureLocked] = useState<boolean[]>(Array(5).fill(false));
   const [treasureTriesLeft, setTreasureTriesLeft] = useState(4);
   const [treasureWinText, setTreasureWinText] = useState("");
+  const [treasureShareStatus, setTreasureShareStatus] = useState("");
   const [treasureNote, setTreasureNote] = useState("");
   const [treasureSceneImage, setTreasureSceneImage] = useState(() => treasureSceneImages[0]);
   const [invitedTreasureSender, setInvitedTreasureSender] = useState("");
@@ -660,6 +662,20 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   useEffect(() => {
     setPage("hub");
   }, [homeRequestId]);
+
+  useEffect(() => {
+    if (!treasureEntryRequestId) return;
+    setPage("social-prediction");
+    setOpponent("computer");
+    setTreasureFlowStep("choose");
+    setTreasureSecret([]);
+    setTreasureGuess(Array(5).fill(null));
+    setTreasureAttemptRows([]);
+    setTreasureLocked(Array(5).fill(false));
+    setTreasureTriesLeft(4);
+    setTreasureWinText("");
+    setFriendInviteStatus("");
+  }, [treasureEntryRequestId]);
 
   useEffect(() => {
     if (!friendChallengeRequestId) return;
@@ -1624,16 +1640,16 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       <View>
         <ChallengePageHeader
           eyebrow="Challenge 5 · Daily Astrology Tips"
-          title={astrologyReading ? `${astrologyReading.sign.name} guidance for ${userProfile.name}` : "Add your birthdate for astrology guidance"}
+          title={astrologyReading ? `Today's guidance for ${userProfile.name}` : "Add your birthdate for personalized guidance"}
           subtitle={
             astrologyReading
-              ? `A daily chart synopsis and one focused question inspired by your ${astrologyReading.sign.element} sign.`
+              ? "Simple, practical information to help you understand what may be useful today."
               : "Enter your birth details here once and Intuisity will save them for next time."
           }
         />
         <IntuitionSkillFocus
           skills="Self-reflection, pattern awareness, and using symbolic prompts to make intentional choices"
-          explanation="Astrology provides a reflection prompt here. The intuition skill is deciding what feels personally relevant, then testing that insight through a practical action."
+          explanation="Read the guidance, notice what feels personally relevant, and test it through one practical action."
         />
 
         <View style={styles.birthdateCard}>
@@ -1744,43 +1760,18 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 <Ionicons color="#FFFFFF" name="star-outline" size={25} />
               </View>
               <View style={styles.menuCopy}>
-                <Text style={styles.signTitle}>{astrologyReading.sign.name}</Text>
+                <Text style={styles.signTitle}>Today's personal focus</Text>
                 <Text style={styles.signSubtitle}>
-                  {astrologyReading.sign.element} sign · {astrologyReading.sign.strength}
+                  {astrologyReading.sign.strength}
                 </Text>
-                {astrologyReading.birthDetailsIncluded && (
-                  <Text style={styles.signDetail}>
-                    {astrologyReading.fullChart ? "Full birth chart calculated" : "Birth details included"}
-                  </Text>
-                )}
+                <Text style={styles.signDetail}>{astrologyReading.sign.reminder}</Text>
               </View>
             </View>
             {astrologyReading.fullChart ? (
               <View style={styles.fullChartCard}>
-                <Text style={styles.fullChartTitle}>Your Intuisity chart highlights</Text>
-                <View style={styles.fullChartGrid}>
-                  <View style={styles.fullChartItem}>
-                    <Text style={styles.fullChartLabel}>Sun</Text>
-                    <Text style={styles.fullChartValue}>{astrologyReading.fullChart.sunSign}</Text>
-                  </View>
-                  <View style={styles.fullChartItem}>
-                    <Text style={styles.fullChartLabel}>Moon</Text>
-                    <Text style={styles.fullChartValue}>{astrologyReading.fullChart.moonSign}</Text>
-                  </View>
-                  <View style={styles.fullChartItem}>
-                    <Text style={styles.fullChartLabel}>Rising</Text>
-                    <Text style={styles.fullChartValue}>{astrologyReading.fullChart.risingSign}</Text>
-                  </View>
-                  <View style={styles.fullChartItem}>
-                    <Text style={styles.fullChartLabel}>Midheaven</Text>
-                    <Text style={styles.fullChartValue}>{astrologyReading.fullChart.midheavenSign}</Text>
-                  </View>
-                </View>
-                {astrologyReading.fullChart.strongestAspect && (
-                  <Text style={styles.fullChartAspect}>Key pattern: {astrologyReading.fullChart.strongestAspect}</Text>
-                )}
+                <Text style={styles.fullChartTitle}>Personalized for you</Text>
                 <Text style={styles.fullChartSource}>
-                  Calculated with {astrologyReading.fullChart.source} · {astrologyReading.fullChart.zodiac} zodiac · {astrologyReading.fullChart.houseSystem} houses
+                  Your saved birth date, time, and location help make this guidance more personal. You do not need to understand any special terms to use it.
                 </Text>
               </View>
             ) : (
@@ -1790,15 +1781,15 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 </Text>
                 <Text style={styles.fullChartSource}>
                   {astrologyReading.birthDetailsIncluded
-                    ? "Intuisity will use the strongest guidance available from the details you entered. Add or refine missing birth details anytime for the most reliable chart guidance."
-                    : "Today's reading uses your birthdate and Sun sign. Add birth time and birthplace when you have them for the most reliable guidance."}
+                    ? "Intuisity uses the details you entered to make the guidance more personal. Add or update missing birth information anytime for a more complete reading."
+                    : "Today's guidance uses your birthdate. Add your birth time and birthplace when you have them for more personalized information."}
                 </Text>
               </View>
             )}
             <View style={styles.astrologyChoicesHeading}>
               <Ionicons color="#7555C7" name="sparkles-outline" size={22} />
               <View style={styles.menuCopy}>
-                <Text style={styles.astrologyChoicesTitle}>Today's Chart Synopsis</Text>
+                <Text style={styles.astrologyChoicesTitle}>What may help today</Text>
                 <Text style={styles.astrologyChoicesSubtitle}>
                   Read this first, then answer the question below in your own words.
                 </Text>
@@ -1807,7 +1798,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             <View style={styles.chartSynopsisCard}>
               <View style={styles.chartSynopsisHeading}>
                 <Ionicons color="#7555C7" name="planet-outline" size={24} />
-                <Text style={styles.chartSynopsisTitle}>Your daily astrology</Text>
+                <Text style={styles.chartSynopsisTitle}>Your practical guidance</Text>
               </View>
               <Text style={styles.chartSynopsisText}>{astrologyReading.synopsis}</Text>
             </View>
@@ -1839,7 +1830,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               </View>
             )}
             <View style={styles.dailyActionCard}>
-              <Text style={styles.practiceLabel}>Today's chart question</Text>
+              <Text style={styles.practiceLabel}>One helpful question</Text>
               <Text style={styles.practiceText}>
                 {astrologyReading.dailyQuestion}
               </Text>
@@ -1874,7 +1865,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               <View style={styles.chartSynopsisCard}>
                 <View style={styles.chartSynopsisHeading}>
                   <Ionicons color="#7555C7" name="star-outline" size={24} />
-                  <Text style={styles.chartSynopsisTitle}>Your Daily Chart Highlights</Text>
+                  <Text style={styles.chartSynopsisTitle}>Your guidance and next step</Text>
                 </View>
                 <Text style={styles.chartSynopsisText}>
                   {`${astrologyReading.synopsis} Your saved response, "${astrologyPlan.trim()}", gives you a clear way to use this guidance in real life.`}
@@ -1912,6 +1903,8 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     const treasureLost = treasureWinText.startsWith("The treasure");
     const treasureFriendSubmitted = treasureWinText.startsWith("Your treasure tiles");
     const treasureWon = Boolean(treasureWinText) && !treasureLost && !treasureFriendSubmitted;
+    const treasureResultReady = treasureWon || treasureLost;
+    const treasureTriesUsed = Math.max(1, treasureAttemptRows.length);
     const treasureInspirationMessage =
       (opponent === "friend" || invitedTreasureSender) && treasureNote.trim()
         ? treasureNote.trim()
@@ -1934,7 +1927,10 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       setFriendPhoneError("");
       setFriendInviteStatus("");
       setTreasureWinText("");
+      setTreasureShareStatus("");
       setInvitedTreasureSender("");
+      setInvitedTreasureChallengeId("");
+      setTreasureResponseStatus("");
       if (mode === "friend") {
         setTreasureSecret([]);
         setTreasureGuess(Array(5).fill(null));
@@ -1990,6 +1986,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       setTreasureLocked(Array(5).fill(false));
       setTreasureTriesLeft(4);
       setTreasureWinText("");
+      setTreasureShareStatus("");
       setSelectedTreasureDrag(null);
       setTreasureSceneImage(shuffle(treasureSceneImages)[0]);
       setOpponent(mode);
@@ -2188,6 +2185,39 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         setTreasureGuess(submittedGuess.map((icon, index) => nextLocked[index] ? icon : null));
       }
     };
+    const shareTreasureResult = async () => {
+      const resultLine = treasureWon
+        ? `I opened the Intuisity Treasure Chest in ${treasureTriesUsed} ${treasureTriesUsed === 1 ? "try" : "tries"}—can you beat me?`
+        : "The Intuisity Treasure Chest stayed locked this time. Can you open it in four tries?";
+      const url = "https://www.intuisity.com/treasure-chest.html";
+      try {
+        const navigatorRef = (globalThis as any).navigator;
+        if (navigatorRef?.share) {
+          await navigatorRef.share({ title: "Intuisity Treasure Chest", text: resultLine, url });
+        } else {
+          await Share.share({ message: `${resultLine}\n${url}`, title: "Intuisity Treasure Chest", url });
+        }
+        setTreasureShareStatus("Your Treasure Chest result is ready to share.");
+      } catch (error) {
+        if ((error as any)?.name !== "AbortError") {
+          setTreasureShareStatus("Sharing did not open. You can copy intuisity.com/treasure-chest.html instead.");
+        }
+      }
+    };
+    const copyTreasureChallengeLink = async () => {
+      const url = "https://www.intuisity.com/treasure-chest.html";
+      const resultLine = treasureWon
+        ? `I opened the Intuisity Treasure Chest in ${treasureTriesUsed} ${treasureTriesUsed === 1 ? "try" : "tries"}—can you beat me?`
+        : "The Intuisity Treasure Chest stayed locked this time. Can you open it in four tries?";
+      try {
+        const clipboard = (globalThis as any).navigator?.clipboard;
+        if (!clipboard?.writeText) throw new Error("Clipboard is unavailable");
+        await clipboard.writeText(`${resultLine}\n${url}`);
+        setTreasureShareStatus("Result and challenge link copied. Paste it into a text, email, or social post.");
+      } catch {
+        setTreasureShareStatus(`Copy this challenge link: ${url}`);
+      }
+    };
     const renderTreasureInspirationBurst = () => {
       if (!treasureWon) return null;
       if (typeof (globalThis as any).document === "undefined") {
@@ -2315,7 +2345,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           fontWeight: 900,
           justifyContent: "center",
           minHeight: 66,
-          opacity: disabled ? 0.16 : 1,
+          opacity: disabled ? 0.58 : 1,
           touchAction: "none",
           userSelect: "none"
         });
@@ -2357,81 +2387,99 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             onPointerUp: finishTreasurePointerDrag,
             style: { overflow: "visible", paddingBottom: 18, touchAction: "pan-y" }
           },
-          React.createElement("div", { style: { color: "#706982", fontSize: 12, fontWeight: 900, marginBottom: 8, textTransform: "uppercase" } }, opponent === "friend" ? "Step 1: Your five empty boxes" : "Your order"),
           React.createElement(
             "div",
-            { style: { display: "flex", gap: 8, justifyContent: "center", marginBottom: 12 } },
-            treasureGuess.map((icon, index) => {
-              const active = treasureDropSlot === index;
-              return React.createElement(
-                "div",
-                {
-                  "data-treasure-slot-index": index,
-                  draggable: false,
-                  key: `treasure-top-slot-${index}`,
-                  onClick: () => icon && tapTreasureIcon({ icon, from: "slot", index }),
-                  onDragEnter: () => !treasureLocked[index] && setTreasureDropSlot(index),
-                  onDragLeave: () => setTreasureDropSlot((current) => current === index ? null : current),
-                  onDragOver: (event: any) => {
-                    if (!treasureLocked[index]) {
-                      event.preventDefault();
-                      event.dataTransfer.dropEffect = "move";
-                      setTreasureDropSlot(index);
+            {
+              style: {
+                background: "#FFFFFF",
+                border: "1px solid #DCCFF5",
+                borderRadius: 8,
+                boxShadow: "0 5px 14px rgba(48,38,76,0.12)",
+                marginBottom: 14,
+                padding: 10,
+                position: "sticky",
+                top: 0,
+                zIndex: 10
+              }
+            },
+            React.createElement("div", { style: { color: "#6544B8", fontSize: 12, fontWeight: 900, marginBottom: 3, textTransform: "uppercase" } }, "Treasure Pieces · Top Row"),
+            React.createElement("div", { style: { color: "#706982", fontSize: 11, fontWeight: 700, marginBottom: 8 } }, "Bring each piece down into Game 1, then continue through Games 2, 3, and 4."),
+            React.createElement(
+              "div",
+              { style: { display: "flex", gap: 8, justifyContent: "center" } },
+              treasureIcons.map((icon) => {
+                const disabled = treasureUsed.includes(icon);
+                const active = treasurePointerDrag?.from === "palette" && treasurePointerDrag.icon === icon;
+                return React.createElement(
+                  "div",
+                  {
+                    draggable: false,
+                    key: icon,
+                    onClick: () => tapTreasureIcon({ icon, from: "palette" }),
+                    onDragStart: (event: any) => event.preventDefault(),
+                    onPointerDown: (event: any) => !disabled && startTreasurePointerDrag(event, { icon, from: "palette" }),
+                    style: {
+                      ...webTokenStyle(disabled, active),
+                      transition: "opacity 180ms ease, transform 180ms ease",
+                      transform: "translateY(0) scale(1)"
                     }
                   },
-                  onDrop: (event: any) => {
-                    event.preventDefault();
-                    const drag = readTreasureDrag(event);
-                    if (drag) placeTreasureIcon(drag, index);
-                    setTreasureDropSlot(null);
-                  },
-                  onPointerDown: (event: any) => icon && !treasureLocked[index] && startTreasurePointerDrag(event, { icon, from: "slot", index }),
-                  style: webSlotStyle(treasureLocked[index], active, !icon)
-                },
-                icon || "Empty"
-              );
-            })
+                  icon
+                );
+              })
+            )
           ),
-          React.createElement("div", { style: { color: "#8A6B20", fontSize: 12, fontWeight: 900, lineHeight: "17px", marginBottom: 12, textAlign: "center" } }, opponent === "friend" ? "Tap a treasure below and it will fill the next empty box above." : "Tap treasures into the boxes above, or drag them into place."),
-          React.createElement("div", { style: { color: "#706982", fontSize: 12, fontWeight: 900, marginBottom: 8, textTransform: "uppercase" } }, opponent === "friend" ? "Step 2: Tap treasures to fill the boxes" : "Available treasures"),
+          React.createElement("div", { style: { color: "#8A6B20", fontSize: 12, fontWeight: 900, lineHeight: "17px", marginBottom: 12, textAlign: "center" } }, "Tap or drag a piece from the top row into the current game row."),
           React.createElement(
             "div",
-            { style: { display: "flex", gap: 8, justifyContent: "center", marginBottom: 14 } },
-            treasureIcons.map((icon) => {
-              const disabled = treasureUsed.includes(icon);
-              const active = treasurePointerDrag?.from === "palette" && treasurePointerDrag.icon === icon;
-              return React.createElement(
-                "div",
-                {
-                  draggable: false,
-                  key: icon,
-                  onClick: () => tapTreasureIcon({ icon, from: "palette" }),
-                  onDragStart: (event: any) => event.preventDefault(),
-                  onPointerDown: (event: any) => !disabled && startTreasurePointerDrag(event, { icon, from: "palette" }),
-                  style: webTokenStyle(disabled, active)
-                },
-                icon
-              );
-            })
-          ),
-          React.createElement("div", { style: { color: "#8A6B20", fontSize: 12, fontWeight: 900, lineHeight: "17px", marginBottom: 12, textAlign: "center" } }, opponent === "friend" ? "Tap five treasures below. Your chosen order appears in the boxes, then the submit button will turn purple." : "Drag treasures into the boxes below, or tap a treasure to place it in the next open box."),
-          treasureAttemptRows.length > 0 && React.createElement(
-            "div",
             { style: { display: "grid", gap: 8, marginBottom: 12 } },
-            treasureAttemptRows.map((row, rowIndex) => React.createElement(
+            Array.from({ length: 4 }, (_, rowIndex) => {
+              const completedRow = treasureAttemptRows[rowIndex];
+              const isActiveRow = rowIndex === treasureAttemptRows.length && treasureAttemptRows.length < 4;
+              const row = completedRow || (isActiveRow ? treasureGuess : Array(5).fill(null));
+              return React.createElement(
               "div",
-              { key: `treasure-attempt-${rowIndex}` },
-              React.createElement("div", { style: { color: "#706982", fontSize: 11, fontWeight: 900, marginBottom: 5, textTransform: "uppercase" } }, `Try ${rowIndex + 1}`),
+              { key: `treasure-game-${rowIndex}`, style: { opacity: completedRow || isActiveRow ? 1 : 0.5 } },
+              React.createElement("div", { style: { color: isActiveRow ? "#6544B8" : "#706982", fontSize: 12, fontWeight: 900, marginBottom: 5, textTransform: "uppercase" } }, `Game ${rowIndex + 1}${isActiveRow ? " · Your turn" : ""}`),
               React.createElement(
                 "div",
                 { style: { display: "flex", gap: 8, justifyContent: "center" } },
-                row.map((icon, index) => React.createElement(
-                  "div",
-                  { key: `treasure-attempt-${rowIndex}-${index}`, style: webPastSlotStyle(icon === treasureSecret[index]) },
-                  icon || "Empty"
-                ))
+                row.map((icon, index) => {
+                  if (!isActiveRow) {
+                    return React.createElement("div", { key: `treasure-game-${rowIndex}-${index}`, style: webPastSlotStyle(Boolean(completedRow) && icon === treasureSecret[index]) }, icon || "Empty");
+                  }
+                  const active = treasureDropSlot === index;
+                  return React.createElement(
+                    "div",
+                    {
+                      "data-treasure-slot-index": index,
+                      draggable: false,
+                      key: `treasure-game-${rowIndex}-${index}`,
+                      onClick: () => icon && tapTreasureIcon({ icon, from: "slot", index }),
+                      onDragEnter: () => !treasureLocked[index] && setTreasureDropSlot(index),
+                      onDragLeave: () => setTreasureDropSlot((current) => current === index ? null : current),
+                      onDragOver: (event: any) => {
+                        if (!treasureLocked[index]) {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = "move";
+                          setTreasureDropSlot(index);
+                        }
+                      },
+                      onDrop: (event: any) => {
+                        event.preventDefault();
+                        const drag = readTreasureDrag(event);
+                        if (drag) placeTreasureIcon(drag, index);
+                        setTreasureDropSlot(null);
+                      },
+                      onPointerDown: (event: any) => icon && !treasureLocked[index] && startTreasurePointerDrag(event, { icon, from: "slot", index }),
+                      style: { ...webSlotStyle(treasureLocked[index], active, !icon), transition: "background 180ms ease, border 180ms ease, transform 180ms ease", transform: icon ? "translateY(0) scale(1)" : "translateY(-3px) scale(0.97)" }
+                    },
+                    icon || "Empty"
+                  );
+                })
               )
-            ))
+            );
+            })
           ),
           opponent === "friend" && React.createElement(
             "label",
@@ -2500,59 +2548,59 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       }
       return (
         <View>
-          <Text style={styles.selectionCount}>{opponent === "friend" ? "Step 1: Your five empty boxes" : "Your order"}</Text>
-          <View style={styles.treasureSlotRow}>
-            {treasureGuess.map((icon, index) => (
-              <Pressable
-                key={`treasure-top-slot-${index}`}
-                onPress={() => icon && tapTreasureIcon({ icon, from: "slot", index })}
-                style={[
-                  styles.treasureSlot,
-                  !icon && styles.treasureSlotEmpty,
-                  treasureLocked[index] && styles.treasureSlotCorrect
-                ]}
-              >
-                <Text style={[styles.treasureTokenText, !icon && styles.treasureEmptySlotText]}>{icon || "Empty"}</Text>
-              </Pressable>
-            ))}
+          <View style={styles.treasurePieceBar}>
+            <Text style={styles.treasurePieceBarTitle}>Treasure Pieces · Top Row</Text>
+            <Text style={styles.treasurePieceBarHelp}>Bring each piece down into Game 1, then continue through Games 2, 3, and 4.</Text>
+            <View style={styles.treasureTokenGrid}>
+              {treasureIcons.map((icon) => {
+                const disabled = treasureUsed.includes(icon);
+                return (
+                  <Pressable
+                    disabled={disabled}
+                    key={icon}
+                    onPress={() => tapTreasureIcon({ icon, from: "palette" })}
+                    style={[styles.treasureToken, disabled && styles.treasureTokenDisabled]}
+                  >
+                    <Text style={styles.treasureTokenText}>{icon}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
           <Text style={styles.treasurePlacementHint}>
-            {opponent === "friend"
-              ? "Tap a treasure below and it will fill the next empty box above."
-              : "Tap treasures into the boxes above, or drag them into place."}
+            Tap a piece from the top row to move it into the current game row.
           </Text>
-          <Text style={styles.selectionCount}>{opponent === "friend" ? "Step 2: Tap treasures to fill the boxes" : "Available treasures"}</Text>
-          <View style={styles.treasureTokenGrid}>
-            {treasureIcons.map((icon) => {
-              const disabled = treasureUsed.includes(icon);
+          <View style={styles.treasureAttemptList}>
+            {Array.from({ length: 4 }, (_, rowIndex) => {
+              const completedRow = treasureAttemptRows[rowIndex];
+              const isActiveRow = rowIndex === treasureAttemptRows.length && treasureAttemptRows.length < 4;
+              const row = completedRow || (isActiveRow ? treasureGuess : Array(5).fill(null));
               return (
-                <Pressable
-                  disabled={disabled}
-                  key={icon}
-                  onPress={() => tapTreasureIcon({ icon, from: "palette" })}
-                  style={[styles.treasureToken, disabled && styles.treasureTokenDisabled]}
-                >
-                  <Text style={styles.treasureTokenText}>{icon}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Text style={styles.treasurePlacementHint}>
-            {opponent === "friend"
-              ? "Tap five treasures below. Your chosen order appears in the boxes, then the submit button will turn purple."
-              : "Drag treasures into the boxes below, or tap a treasure to place it in the next open box."}
-          </Text>
-          {treasureAttemptRows.length > 0 && (
-            <View style={styles.treasureAttemptList}>
-              {treasureAttemptRows.map((row, rowIndex) => (
-                <View key={`treasure-attempt-${rowIndex}`} style={styles.treasureAttemptBlock}>
-                  <Text style={styles.selectionCount}>Try {rowIndex + 1}</Text>
+                <View key={`treasure-game-${rowIndex}`} style={[styles.treasureAttemptBlock, !completedRow && !isActiveRow && styles.treasureFutureGame]}>
+                  <Text style={[styles.selectionCount, isActiveRow && styles.treasureActiveGameLabel]}>
+                    Game {rowIndex + 1}{isActiveRow ? " · Your turn" : ""}
+                  </Text>
                   <View style={styles.treasureSlotRow}>
                     {row.map((icon, index) => {
-                      const correct = icon === treasureSecret[index];
+                      const correct = Boolean(completedRow) && icon === treasureSecret[index];
+                      if (isActiveRow) {
+                        return (
+                          <Pressable
+                            key={`treasure-game-${rowIndex}-${index}`}
+                            onPress={() => icon && tapTreasureIcon({ icon, from: "slot", index })}
+                            style={[
+                              styles.treasureSlot,
+                              !icon && styles.treasureSlotEmpty,
+                              treasureLocked[index] && styles.treasureSlotCorrect
+                            ]}
+                          >
+                            <Text style={[styles.treasureTokenText, !icon && styles.treasureEmptySlotText]}>{icon || "Empty"}</Text>
+                          </Pressable>
+                        );
+                      }
                       return (
                         <View
-                          key={`treasure-attempt-${rowIndex}-${index}`}
+                          key={`treasure-game-${rowIndex}-${index}`}
                           style={[
                             styles.treasurePastSlot,
                             correct && styles.treasurePastSlotCorrect
@@ -2564,9 +2612,9 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                     })}
                   </View>
                 </View>
-              ))}
-            </View>
-          )}
+              );
+            })}
+          </View>
           {opponent === "friend" && (
             <View style={styles.treasureMessageCard}>
               <Text style={styles.treasureMessageLabel}>Message to your friend</Text>
@@ -2635,7 +2683,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             </Pressable>
           </View>
         )}
-        {treasureFlowStep !== "choose" && (
+        {treasureFlowStep !== "choose" && !invitedTreasureSender && (
           <View style={styles.opponentToggle}>
             <Pressable
               onPress={() => chooseTreasureMode("friend")}
@@ -2803,7 +2851,26 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             )}
           </View>
         )}
-        {treasureFlowStep === "choose" || pendingTreasureFriend ? null : !treasureStarted || treasureWinText ? (
+        {invitedTreasureSender && treasureWinText ? (
+          <View style={styles.treasureModeGrid}>
+            <Pressable
+              onPress={() => chooseTreasureMode("friend")}
+              style={styles.treasureModeCard}
+            >
+              <Ionicons color="#7555C7" name="people-outline" size={28} />
+              <Text style={styles.treasureModeTitle}>Play a Friend</Text>
+              <Text style={styles.treasureModeText}>Create a Treasure Chest challenge for a friend.</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => chooseTreasureMode("computer")}
+              style={styles.treasureModeCard}
+            >
+              <Ionicons color="#008A94" name="desktop-outline" size={28} />
+              <Text style={styles.treasureModeTitle}>Play the Computer</Text>
+              <Text style={styles.treasureModeText}>Start a new game against the computer.</Text>
+            </Pressable>
+          </View>
+        ) : treasureFlowStep === "choose" || pendingTreasureFriend ? null : !treasureStarted || treasureWinText ? (
           <Pressable
             disabled={opponent === "friend" && selectedFriendPhones.length === 0 && !treasureWinText}
             onPress={() => startTreasureChallenge(opponent)}
@@ -2868,6 +2935,30 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                   </Text>
                 </View>
                 <Text style={styles.treasureNoteText}>{treasureInspirationMessage}</Text>
+              </View>
+            )}
+            {treasureResultReady && (
+              <View style={styles.treasureResultShareCard}>
+                <Ionicons color="#6544B8" name={treasureWon ? "trophy-outline" : "sparkles-outline"} size={28} />
+                <Text style={styles.treasureResultShareTitle}>
+                  {treasureWon ? `Chest opened in ${treasureTriesUsed} ${treasureTriesUsed === 1 ? "try" : "tries"}` : "Your Treasure Chest result"}
+                </Text>
+                <Text style={styles.treasureResultShareText}>
+                  Share your result so a friend can try two free games and see if they can beat your score.
+                </Text>
+                <Pressable accessibilityLabel="Share my Treasure Chest result" onPress={shareTreasureResult} style={styles.treasureShareButton}>
+                  <Ionicons color="#FFFFFF" name="share-social-outline" size={18} />
+                  <Text style={styles.primaryButtonText}>Share my result</Text>
+                </Pressable>
+                <Pressable accessibilityLabel="Copy Treasure Chest challenge link" onPress={copyTreasureChallengeLink} style={styles.treasureCopyLinkButton}>
+                  <Ionicons color="#6544B8" name="copy-outline" size={18} />
+                  <Text style={styles.treasureCopyLinkButtonText}>Copy challenge link</Text>
+                </Pressable>
+                <Pressable onPress={() => setPage("hub")} style={styles.treasureExploreButton}>
+                  <Ionicons color="#6544B8" name="grid-outline" size={18} />
+                  <Text style={styles.treasureExploreButtonText}>Explore more intuition activities</Text>
+                </Pressable>
+                {treasureShareStatus ? <Text style={styles.treasureShareStatus}>{treasureShareStatus}</Text> : null}
               </View>
             )}
             {invitedTreasureSender && treasureResponseStatus && (
@@ -5579,10 +5670,22 @@ const styles = StyleSheet.create({
   treasureSiteInviteTitle: { color: "#30264C", fontSize: 16, fontWeight: "900", textAlign: "center" },
   treasureSiteInviteText: { color: "#5D536A", fontSize: 14, fontWeight: "800", lineHeight: 21, marginBottom: 12, textAlign: "center" },
   treasureSiteInviteButton: { alignItems: "center", backgroundColor: "#7555C7", borderRadius: 8, flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 48, paddingHorizontal: 14, paddingVertical: 12 },
+  treasureResultShareCard: { alignItems: "center", backgroundColor: "#F8F5FF", borderColor: "#BFADE8", borderRadius: 10, borderWidth: 2, gap: 8, marginTop: 12, padding: 16 },
+  treasureResultShareTitle: { color: "#30264C", fontSize: 18, fontWeight: "900", textAlign: "center" },
+  treasureResultShareText: { color: "#5D536A", fontSize: 13, fontWeight: "700", lineHeight: 19, textAlign: "center" },
+  treasureShareButton: { alignItems: "center", alignSelf: "stretch", backgroundColor: "#7555C7", borderRadius: 8, flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 48, paddingHorizontal: 14, paddingVertical: 12 },
+  treasureCopyLinkButton: { alignItems: "center", alignSelf: "stretch", backgroundColor: "#FFFFFF", borderColor: "#BFADE8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 44, paddingHorizontal: 14, paddingVertical: 10 },
+  treasureCopyLinkButtonText: { color: "#6544B8", fontSize: 14, fontWeight: "900" },
+  treasureExploreButton: { alignItems: "center", alignSelf: "stretch", backgroundColor: "#FFFFFF", borderColor: "#BFADE8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 46, paddingHorizontal: 12, paddingVertical: 10 },
+  treasureExploreButtonText: { color: "#6544B8", fontSize: 13, fontWeight: "900", textAlign: "center" },
+  treasureShareStatus: { color: "#007C86", fontSize: 11, fontWeight: "800", lineHeight: 16, textAlign: "center" },
+  treasurePieceBar: { backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, elevation: 4, marginBottom: 14, padding: 10, shadowColor: "#30264C", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8, zIndex: 4 },
+  treasurePieceBarTitle: { color: "#6544B8", fontSize: 12, fontWeight: "900", marginBottom: 3, textTransform: "uppercase" },
+  treasurePieceBarHelp: { color: "#706982", fontSize: 11, fontWeight: "700", lineHeight: 16, marginBottom: 8 },
   treasureTokenGrid: { flexDirection: "row", gap: 8, justifyContent: "center", marginBottom: 14 },
   treasureToken: { alignItems: "center", backgroundColor: "#EDFBFB", borderColor: "#00AEBB", borderRadius: 8, borderWidth: 2, cursor: "grab" as any, flex: 1, minHeight: 66, justifyContent: "center" },
   treasureTokenSelected: { backgroundColor: "#FFF9E8", borderColor: "#F4B740", borderWidth: 3, shadowColor: "#F4B740", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 10 },
-  treasureTokenDisabled: { opacity: 0.16 },
+  treasureTokenDisabled: { backgroundColor: "#F4F1FA", borderColor: "#CFC6E3", opacity: 0.58 },
   treasureTokenText: { color: "#30264C", fontSize: 28, fontWeight: "900" },
   treasureMessageCard: { backgroundColor: "#F2FAFA", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 2, marginBottom: 14, padding: 12 },
   treasureMessageLabel: { color: "#6544B8", fontSize: 13, fontWeight: "900", marginBottom: 7 },
@@ -5590,6 +5693,8 @@ const styles = StyleSheet.create({
   treasurePlacementHint: { color: "#8A6B20", fontSize: 12, fontWeight: "900", lineHeight: 17, marginBottom: 12, textAlign: "center" },
   treasureAttemptList: { gap: 8, marginBottom: 18 },
   treasureAttemptBlock: { gap: 5 },
+  treasureFutureGame: { opacity: 0.5 },
+  treasureActiveGameLabel: { color: "#6544B8" },
   treasureSlotRow: { flexDirection: "row", gap: 8, justifyContent: "center", marginBottom: 14 },
   treasureSlot: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#DAD3E8", borderRadius: 8, borderStyle: "dashed", borderWidth: 2, cursor: "grab" as any, flex: 1, minHeight: 66, justifyContent: "center" },
   treasureSlotEmpty: { backgroundColor: "#FFF9E8", borderColor: "#F4B740", borderWidth: 3 },
