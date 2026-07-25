@@ -2433,7 +2433,9 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           React.createElement(
             "div",
             { style: { display: "grid", gap: 8, marginBottom: 12 } },
-            Array.from({ length: 4 }, (_, rowIndex) => {
+            Array.from(
+              { length: Math.min(4, treasureAttemptRows.length + (treasureResultReady || treasureFriendSubmitted ? 0 : 1)) },
+              (_, rowIndex) => {
               const completedRow = treasureAttemptRows[rowIndex];
               const isActiveRow = rowIndex === treasureAttemptRows.length && treasureAttemptRows.length < 4;
               const row = completedRow || (isActiveRow ? treasureGuess : Array(5).fill(null));
@@ -2479,7 +2481,8 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 })
               )
             );
-            })
+              }
+            )
           ),
           opponent === "friend" && React.createElement(
             "label",
@@ -2571,7 +2574,9 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             Tap a piece from the top row to move it into the current game row.
           </Text>
           <View style={styles.treasureAttemptList}>
-            {Array.from({ length: 4 }, (_, rowIndex) => {
+            {Array.from(
+              { length: Math.min(4, treasureAttemptRows.length + (treasureResultReady || treasureFriendSubmitted ? 0 : 1)) },
+              (_, rowIndex) => {
               const completedRow = treasureAttemptRows[rowIndex];
               const isActiveRow = rowIndex === treasureAttemptRows.length && treasureAttemptRows.length < 4;
               const row = completedRow || (isActiveRow ? treasureGuess : Array(5).fill(null));
@@ -2613,7 +2618,8 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                   </View>
                 </View>
               );
-            })}
+              }
+            )}
           </View>
           {opponent === "friend" && (
             <View style={styles.treasureMessageCard}>
