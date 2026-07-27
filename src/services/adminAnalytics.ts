@@ -85,6 +85,7 @@ export type VisitorInsightReport = {
 export type UserInsightReport = {
   name: string;
   email: string;
+  accountSource?: string;
   phone?: string;
   language?: string;
   currentCity?: string;

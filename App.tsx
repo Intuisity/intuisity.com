@@ -1,4 +1,5 @@
 import { StatusBar } from "expo-status-bar";
+import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -34,6 +35,7 @@ type TabKey = "today" | "remote" | "friends" | "premium" | "admin";
 type Answers = Record<string, string>;
 const profilesKey = "intuisity-user-profiles";
 const activeProfileKey = "intuisity-active-profile";
+const nativeActiveProfileKey = "intuisity-native-active-profile";
 const guestProfileKey = "intuisity-guest-profile";
 const dailyAnswersKeyPrefix = "intuisity-daily-answers";
 const supportedLanguages = [
@@ -127,7 +129,10 @@ function isAdminUser(profile: UserProfile | null) {
 }
 
 export default function App() {
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => loadActiveProfile() || loadTreasureInviteGuestProfile() || (isTreasurePlayRequest() ? loadOrCreateGuestProfile() : null));
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => Platform.OS === "web"
+    ? loadActiveProfile() || loadTreasureInviteGuestProfile() || (isTreasurePlayRequest() ? loadOrCreateGuestProfile() : null)
+    : null);
+  const [sessionRestoring, setSessionRestoring] = useState(Platform.OS !== "web");
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("today");
   const [homeRequestId, setHomeRequestId] = useState(0);
@@ -148,6 +153,24 @@ export default function App() {
   useEffect(() => {
     updateWebMetadata();
     syncSiteVisit();
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    let cancelled = false;
+    SecureStore.getItemAsync(nativeActiveProfileKey)
+      .then((storedProfile) => {
+        if (!cancelled && storedProfile) {
+          setUserProfile(normalizeLoadedProfile(JSON.parse(storedProfile)));
+        }
+      })
+      .catch(() => {
+        // A missing or unreadable saved session returns the user to login.
+      })
+      .finally(() => {
+        if (!cancelled) setSessionRestoring(false);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -209,6 +232,15 @@ export default function App() {
     saveDailyAnswers(userProfile.email, answers);
   }, [answers, userProfile?.email]);
 
+  if (sessionRestoring) {
+    return (
+      <SafeAreaView style={styles.accountScreen}>
+        <Text style={styles.accountTitle}>Opening Intuisity...</Text>
+        <Text style={styles.accountSubtitle}>Restoring your saved login.</Text>
+      </SafeAreaView>
+    );
+  }
+
   if (!userProfile) {
     return (
       <AccountAccess
@@ -230,6 +262,9 @@ export default function App() {
 
   const logout = () => {
     globalThis.localStorage?.removeItem(activeProfileKey);
+    if (Platform.OS !== "web") {
+      SecureStore.deleteItemAsync(nativeActiveProfileKey).catch(() => undefined);
+    }
     setAnswers({});
     setUserProfile(null);
   };
@@ -303,7 +338,13 @@ export default function App() {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+        contentContainerStyle={styles.content}
+        contentInsetAdjustmentBehavior="automatic"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+        keyboardShouldPersistTaps="handled"
+      >
         {activeTab === "today" && (
           <DailyChallengeHub
             answers={answers}
@@ -472,7 +513,13 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
     return (
       <SafeAreaView style={styles.accountFormScreen}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.accountKeyboardAvoider}>
-          <ScrollView contentContainerStyle={styles.accountLoginContent} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+            contentContainerStyle={styles.accountLoginContent}
+            contentInsetAdjustmentBehavior="automatic"
+            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+            keyboardShouldPersistTaps="handled"
+          >
         <Text style={styles.accountTitle}>Welcome back</Text>
         <Text style={styles.accountSubtitle}>Enter your email and password to return to your saved Intuisity profile.</Text>
         <View style={styles.loginFreePlayNote}>
@@ -1077,6 +1124,9 @@ function saveProfile(profile: UserProfile) {
   const profiles = loadProfiles().filter((item) => item.email !== profile.email);
   globalThis.localStorage?.setItem(profilesKey, JSON.stringify([...profiles, profile]));
   globalThis.localStorage?.setItem(activeProfileKey, profile.email);
+  if (Platform.OS !== "web") {
+    SecureStore.setItemAsync(nativeActiveProfileKey, JSON.stringify(profile)).catch(() => undefined);
+  }
   syncProfile(profile);
 }
 
@@ -2316,7 +2366,7 @@ const styles = StyleSheet.create({
   accountScreen: { backgroundColor: "#FFFFFF", flex: 1, justifyContent: "center", padding: 24 },
   accountFormScreen: { backgroundColor: "#FFFFFF", flex: 1 },
   accountKeyboardAvoider: { flex: 1 },
-  accountLoginContent: { flexGrow: 1, justifyContent: "center", padding: 24, paddingBottom: 72 },
+  accountLoginContent: { flexGrow: 1, justifyContent: "flex-start", padding: 24, paddingBottom: 180 },
   accountFormContent: { padding: 24, paddingBottom: 50 },
   signupBanner: { alignSelf: "stretch", borderRadius: 10, height: 150, marginBottom: 18, width: "100%" },
   accountHero: { alignItems: "center", backgroundColor: "#6544B8", borderColor: "#63E3E0", borderRadius: 8, borderWidth: 2, marginBottom: 20, padding: 30 },
@@ -2423,7 +2473,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 18,
-    paddingBottom: 112
+    paddingBottom: 220
   },
   sectionHeader: {
     marginBottom: 16

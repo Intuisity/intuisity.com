@@ -1,4 +1,5 @@
 const localBackendUrl = "http://localhost:4000";
+const productionBackendUrl = "https://www.intuisity.com";
 
 function getBackendUrl() {
   const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
@@ -8,7 +9,10 @@ function getBackendUrl() {
     return localBackendUrl;
   }
 
-  return "";
+  // Installed iOS/Android apps do not have a browser hostname and cannot use
+  // relative /api URLs. Send their account, analytics, and friend-game calls
+  // to the production website backend.
+  return hostname ? "" : productionBackendUrl;
 }
 
 type BackendAdminReport = {

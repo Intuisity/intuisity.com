@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Image, ImageBackground, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, ImageBackground, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { getAstrologyReading, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
 import { dailyIntuitionLessons } from "../data/dailyLessons";
@@ -757,6 +757,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   };
 
   const saveBirthDetails = async () => {
+    try {
     const nextBirthDetailsComplete = Boolean(
       birthDetails.birthdate.trim() &&
       birthDetails.birthTime.trim() &&
@@ -813,6 +814,12 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     });
     setBirthDetailsSaved(true);
     setBirthDetailsOpen(!nextBirthDetailsComplete);
+    } catch (error) {
+      setBirthDetailsSaved(false);
+      setBirthLocationStatus(
+        `Your birth details could not be saved yet. Please check the information and try again. ${error instanceof Error ? error.message : ""}`.trim()
+      );
+    }
   };
   const birthdateReady = validBirthdate(birthDetails.birthdate);
   const birthdateHasFullLength = birthDetails.birthdate.replace(/\D/g, "").length === 8;
@@ -2041,9 +2048,15 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         setSelectedTreasureDrag(null);
         return;
       }
-      const firstEmpty = treasureGuess.findIndex((slot) => !slot);
-      if (firstEmpty === -1 || treasureGuess.includes(drag.icon)) return;
-      placeTreasureIcon(drag, firstEmpty);
+      setTreasureGuess((current) => {
+        if (current.includes(drag.icon)) return current;
+        const firstEmpty = current.findIndex((slot) => !slot);
+        if (firstEmpty === -1 || treasureLocked[firstEmpty]) return current;
+        const next = [...current];
+        next[firstEmpty] = drag.icon;
+        return next;
+      });
+      setSelectedTreasureDrag(null);
     };
     const writeTreasureDrag = (event: any, drag: TreasureDragItem) => {
       const transfer = event.dataTransfer || event.nativeEvent?.dataTransfer;
@@ -5219,6 +5232,41 @@ function DrawingPad({
     event.currentTarget?.releasePointerCapture?.(event.pointerId);
   };
 
+  if (Platform.OS !== "web") {
+    const addNativePoint = (event: any, start = false) => {
+      const x = Number(event.nativeEvent?.locationX);
+      const y = Number(event.nativeEvent?.locationY);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      setHasInk(true);
+      setPoints((current) => [...current, { x, y, start }].slice(-900));
+    };
+
+    return (
+      <View
+        accessibilityLabel="Remote viewing touch drawing area"
+        onMoveShouldSetResponder={() => true}
+        onResponderGrant={(event) => addNativePoint(event, true)}
+        onResponderMove={(event) => addNativePoint(event)}
+        onStartShouldSetResponder={() => true}
+        style={styles.drawingPad}
+      >
+        {points.length === 0 && (
+          <View pointerEvents="none" style={styles.drawingPrompt}>
+            <Ionicons color="#B2ACC0" name="pencil-outline" size={24} />
+            <Text style={styles.drawingPromptText}>Draw or trace your impressions here</Text>
+          </View>
+        )}
+        {points.map((point, index) => (
+          <View
+            key={`native-drawing-point-${index}`}
+            pointerEvents="none"
+            style={[styles.nativeDrawingPoint, { left: point.x - 3, top: point.y - 3 }]}
+          />
+        ))}
+      </View>
+    );
+  }
+
   return (
     <View style={styles.drawingPad}>
       {!hasInk && (
@@ -5300,6 +5348,7 @@ function drawLine(canvas: any, from: { x: number; y: number }, to: { x: number; 
 }
 
 const styles = StyleSheet.create({
+  nativeDrawingPoint: { backgroundColor: "#30264C", borderRadius: 3, height: 6, position: "absolute", width: 6 },
   skillFocusCard: { backgroundColor: "#F8F5FF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, marginBottom: 12, padding: 12 },
   skillFocusHeading: { alignItems: "center", flexDirection: "row", gap: 7 },
   skillFocusTitle: { color: "#30264C", flex: 1, fontSize: 14, fontWeight: "900" },
