@@ -1,4 +1,12 @@
-const { allowCors, normalizeEmail, readJsonBody, sendJson, supabaseRequest } = require("./_supabase");
+let supabaseHelpers;
+
+try {
+  supabaseHelpers = require("../server/supabase");
+} catch {
+  supabaseHelpers = require("./_supabase");
+}
+
+const { allowCors, normalizeEmail, readJsonBody, sendJson, supabaseRequest } = supabaseHelpers;
 
 module.exports = async function handler(request, response) {
   if (allowCors(request, response)) return;
@@ -7,6 +15,7 @@ module.exports = async function handler(request, response) {
 
   try {
     const body = await readJsonBody(request);
+    if (body.action) return authenticateAccount(body, response);
     const profile = body.profile || body || {};
     const email = normalizeEmail(profile.email);
     if (!email) return sendJson(response, 400, { error: "Profile email is required" });
@@ -68,6 +77,87 @@ module.exports = async function handler(request, response) {
     sendJson(response, 500, { error: "Profile sync failed", message: error.message });
   }
 };
+
+async function authenticateAccount(body, response) {
+  const action = String(body.action || "");
+  if (action === "google-login") return handleGoogleLogin(body, response);
+
+  const email = normalizeEmail(body.email);
+  if (!email) return sendJson(response, 400, { error: "Email is required" });
+  const rows = await supabaseRequest(`/profiles?email=eq.${encodeURIComponent(email)}&select=*&limit=1`);
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (!row) return sendJson(response, 404, { error: "We could not find an account with that email." });
+
+  const profile = toUserProfile(row);
+  if (action === "password-login") {
+    if (!profile.passwordHash || profile.passwordHash !== body.passwordHash) {
+      return sendJson(response, 401, { error: "That password does not match this account." });
+    }
+    return sendJson(response, 200, { profile });
+  }
+
+  if (action === "reset-password") {
+    const savedPhone = String(profile.phone || "").replace(/\D/g, "");
+    const suppliedPhone = String(body.phone || "").replace(/\D/g, "");
+    if (!savedPhone || savedPhone !== suppliedPhone) {
+      return sendJson(response, 401, { error: "That phone number does not match this account." });
+    }
+    const updatedProfile = {
+      ...profile,
+      authProvider: "password",
+      passwordHash: String(body.passwordHash || "")
+    };
+    await saveAuthenticatedProfile(updatedProfile);
+    return sendJson(response, 200, { profile: updatedProfile });
+  }
+
+  return sendJson(response, 400, { error: "Unsupported account action" });
+}
+
+async function handleGoogleLogin(body, response) {
+  const accessToken = String(body.accessToken || "");
+  if (!accessToken) return sendJson(response, 400, { error: "Google access token is required" });
+
+  const googleResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  if (!googleResponse.ok) return sendJson(response, 401, { error: "Google could not verify this account." });
+  const googleProfile = await googleResponse.json();
+  const email = normalizeEmail(googleProfile.email);
+  if (!email || googleProfile.email_verified === false) {
+    return sendJson(response, 401, { error: "Google did not return a verified email address." });
+  }
+
+  const rows = await supabaseRequest(`/profiles?email=eq.${encodeURIComponent(email)}&select=*&limit=1`);
+  const row = Array.isArray(rows) ? rows[0] : null;
+  const profile = row
+    ? { ...toUserProfile(row), authProvider: "google" }
+    : { email, name: googleProfile.name || email, phone: "", language: "en", authProvider: "google" };
+  await saveAuthenticatedProfile(profile);
+  return sendJson(response, 200, { profile });
+}
+
+async function saveAuthenticatedProfile(profile) {
+  const email = normalizeEmail(profile.email);
+  await upsertProfile({
+    email,
+    name: profile.name || "",
+    phone: profile.phone || "",
+    language: profile.language || "en",
+    reminder_time: profile.reminderTime || "9:00 AM",
+    time_zone: profile.timeZone || "",
+    birthdate: profile.birthdate || "",
+    birth_time: profile.birthTime || "",
+    birth_city: profile.birthCity || "",
+    birth_state: profile.birthState || "",
+    birth_country: profile.birthCountry || "",
+    current_city: profile.currentCity || "",
+    current_state: profile.currentState || "",
+    current_country: profile.currentCountry || "",
+    profile_json: { ...profile, email },
+    updated_at: new Date().toISOString()
+  });
+}
 
 async function getProfile(request, response) {
   try {
