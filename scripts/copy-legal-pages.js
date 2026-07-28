@@ -66,7 +66,11 @@ function injectHomePageSeo() {
   html = html
     .replace(/<title>.*?<\/title>/i, "")
     .replace(/<meta\s+name=["']description["'][^>]*>/i, "")
-    .replace("</head>", `    ${seo}\n  </head>`);
+    .replace("</head>", `    ${seo}\n  </head>`)
+    .replace(
+      '<div id="root"></div>',
+      `<div id="root"><main style="font-family:Arial,sans-serif;margin:40px auto;max-width:900px;padding:20px"><h1>${title}</h1><p>${description}</p><p><a href="/intuition-training.html">Learn how to practice intuition</a> · <a href="/remote-viewing-practice.html">Try remote viewing practice</a> · <a href="/faq.html">Read the Intuisity FAQ</a></p></main></div>`
+    );
   fs.writeFileSync(indexPath, html);
 }
 
