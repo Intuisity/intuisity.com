@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, Image, ImageBackground, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { getAstrologyReading, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
 import { dailyIntuitionLessons } from "../data/dailyLessons";
@@ -5392,14 +5393,11 @@ function DrawingPad({
             <Text style={styles.drawingPromptText}>Draw or trace your impressions here</Text>
           </View>
         )}
-        {points.map((point, index) => {
-          const previous = points[index - 1];
-          if (!previous || point.start) return <View key={`native-drawing-point-${index}`} pointerEvents="none" style={[styles.nativeDrawingPoint, { left: point.x - 3, top: point.y - 3 }]} />;
-          const dx = point.x - previous.x;
-          const dy = point.y - previous.y;
-          const length = Math.sqrt(dx * dx + dy * dy);
-          return <View key={`native-drawing-segment-${index}`} pointerEvents="none" style={[styles.drawingSegment, { left: (previous.x + point.x) / 2 - length / 2, top: (previous.y + point.y) / 2 - 3, width: Math.max(6, length), transform: [{ rotate: `${Math.atan2(dy, dx)}rad` }] }]} />;
-        })}
+        <Svg height="100%" pointerEvents="none" style={StyleSheet.absoluteFill} width="100%">
+          {makeSmoothDrawingPaths(points).map((path, index) => (
+            <Path d={path} fill="none" key={`native-drawing-path-${index}`} stroke="#30264C" strokeLinecap="round" strokeLinejoin="round" strokeWidth={5} />
+          ))}
+        </Svg>
       </View>
     );
   }
@@ -5452,6 +5450,28 @@ function prepareCanvas(canvas: any) {
   context.fillStyle = "#30264C";
 }
 
+function makeSmoothDrawingPaths(points: Array<{ x: number; y: number; start?: boolean }>) {
+  const strokes: Array<Array<{ x: number; y: number }>> = [];
+  points.forEach((point) => {
+    if (point.start || strokes.length === 0) strokes.push([]);
+    strokes[strokes.length - 1].push(point);
+  });
+  return strokes.filter((stroke) => stroke.length > 0).map((stroke) => {
+    if (stroke.length === 1) {
+      const point = stroke[0];
+      return `M ${point.x - 0.01} ${point.y} L ${point.x + 0.01} ${point.y}`;
+    }
+    let path = `M ${stroke[0].x} ${stroke[0].y}`;
+    for (let index = 1; index < stroke.length - 1; index += 1) {
+      const point = stroke[index];
+      const next = stroke[index + 1];
+      path += ` Q ${point.x} ${point.y} ${(point.x + next.x) / 2} ${(point.y + next.y) / 2}`;
+    }
+    const last = stroke[stroke.length - 1];
+    return `${path} L ${last.x} ${last.y}`;
+  });
+}
+
 function getCanvasContext(canvas: any) {
   if (!canvas) return null;
   prepareCanvas(canvas);
@@ -5485,7 +5505,6 @@ function drawLine(canvas: any, from: { x: number; y: number }, to: { x: number; 
 }
 
 const styles = StyleSheet.create({
-  nativeDrawingPoint: { backgroundColor: "#30264C", borderRadius: 3, height: 6, position: "absolute", width: 6 },
   skillFocusCard: { backgroundColor: "#F8F5FF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, marginBottom: 12, padding: 12 },
   skillFocusHeading: { alignItems: "center", flexDirection: "row", gap: 7 },
   skillFocusTitle: { color: "#30264C", flex: 1, fontSize: 14, fontWeight: "900" },
@@ -5969,7 +5988,6 @@ const styles = StyleSheet.create({
   drawingPrompt: { alignItems: "center", bottom: 0, justifyContent: "center", left: 0, opacity: 0.6, position: "absolute", right: 0, top: 0 },
   drawingPromptText: { color: "#8A8299", fontSize: 13, fontWeight: "700", marginTop: 7 },
   drawingPoint: { backgroundColor: "#30264C", borderRadius: 3, height: 6, position: "absolute", width: 6 },
-  drawingSegment: { backgroundColor: "#30264C", borderRadius: 3, height: 6, position: "absolute" },
   drawingActions: { flexDirection: "row", gap: 8, marginBottom: 4 },
   drawingActionButton: { flex: 1, marginBottom: 0, minHeight: 42, padding: 9 },
   remoteSuccess: { backgroundColor: "#D9FFEA", borderColor: "#18B86A", borderWidth: 3, shadowColor: "#18B86A", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 12 }
