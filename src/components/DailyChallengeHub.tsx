@@ -74,6 +74,10 @@ type KitchenSpot = {
   height: number;
 };
 
+function validEmailAddress(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
 type Props = {
   answers: Answers;
   friendChallengeRequestId?: number;
@@ -620,6 +624,8 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const [treasureShareStatus, setTreasureShareStatus] = useState("");
   const [treasureSentChallengeUrl, setTreasureSentChallengeUrl] = useState("");
   const [treasureSentFriendPhone, setTreasureSentFriendPhone] = useState("");
+  const [treasureGuestSenderName, setTreasureGuestSenderName] = useState("");
+  const [treasureGuestSenderEmail, setTreasureGuestSenderEmail] = useState("");
   const [treasureNote, setTreasureNote] = useState("");
   const [treasureSceneImage, setTreasureSceneImage] = useState(() => treasureSceneImages[0]);
   const [invitedTreasureSender, setInvitedTreasureSender] = useState("");
@@ -1940,11 +1946,6 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       treasureLost && styles.treasureSceneLost
     ];
     const chooseTreasureMode = (mode: "friend" | "computer") => {
-      if (mode === "friend" && userProfile.authProvider === "guest") {
-        setFriendPhoneError("Please create or sign in to your Intuisity account before inviting your own friends.");
-        onLogout();
-        return;
-      }
       setOpponent(mode);
       setFriendPhoneError("");
       setFriendInviteStatus("");
@@ -1990,6 +1991,11 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         return;
       }
       if (mode === "friend") {
+        if (userProfile.authProvider === "guest" && (!treasureGuestSenderName.trim() || !validEmailAddress(treasureGuestSenderEmail))) {
+          setFriendPhoneError("Enter your name and a valid email so your friend knows who sent the challenge.");
+          setTreasureFlowStep("friend-setup");
+          return;
+        }
         const selectedFriends = friendList.filter((friend) => friendKeys.includes(getFriendKey(friend)));
         const missingEmail = selectedFriends.some((friend) => !friend.email);
         if (missingEmail) {
@@ -2156,8 +2162,8 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             competitionId,
             origin: getAppOrigin(),
             note: treasureNote.trim(),
-            senderEmail: userProfile.email,
-            senderName: userProfile.name || "A friend",
+            senderEmail: userProfile.authProvider === "guest" ? treasureGuestSenderEmail.trim().toLowerCase() : userProfile.email,
+            senderName: userProfile.authProvider === "guest" ? treasureGuestSenderName.trim() : userProfile.name || "A friend",
             tiles: submittedGuess as string[]
           });
           return { ...created, friendEmail: friend.email || "", friendName: friend.name } as TreasureChallengeReceipt;
@@ -2813,6 +2819,31 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         )}
         {treasureFlowStep !== "choose" && opponent === "friend" && !treasureStarted && (
           <View>
+            {userProfile.authProvider === "guest" ? (
+              <View>
+                <Text style={styles.inputLabel}>Your information</Text>
+                <TextInput
+                  accessibilityLabel="Your name"
+                  autoCapitalize="words"
+                  onChangeText={(value) => { setTreasureGuestSenderName(value); setFriendPhoneError(""); }}
+                  placeholder="Your name"
+                  placeholderTextColor="#9A93AA"
+                  style={styles.birthdateInput}
+                  value={treasureGuestSenderName}
+                />
+                <TextInput
+                  accessibilityLabel="Your email address"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  onChangeText={(value) => { setTreasureGuestSenderEmail(value); setFriendPhoneError(""); }}
+                  placeholder="Your email for challenge updates"
+                  placeholderTextColor="#9A93AA"
+                  style={styles.birthdateInput}
+                  value={treasureGuestSenderEmail}
+                />
+                <Text style={styles.savedFriendsLabel}>No account is required. Your information is used only for this challenge and its updates.</Text>
+              </View>
+            ) : null}
             <Text style={styles.inputLabel}>Friend connection</Text>
             <TextInput
               accessibilityLabel="Friend name"
@@ -2856,9 +2887,9 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             {friendPhoneError ? <Text style={styles.inputError}>{friendPhoneError}</Text> : null}
             <Pressable
               accessibilityLabel="Save friend and continue to treasure tiles"
-              disabled={!friendName.trim() || !friendEmail.trim()}
+              disabled={!friendName.trim() || !friendEmail.trim() || (userProfile.authProvider === "guest" && (!treasureGuestSenderName.trim() || !validEmailAddress(treasureGuestSenderEmail)))}
               onPress={saveTreasureFriendAndContinue}
-              style={[styles.primaryButton, (!friendName.trim() || !friendEmail.trim()) && styles.disabledButton]}
+              style={[styles.primaryButton, (!friendName.trim() || !friendEmail.trim() || (userProfile.authProvider === "guest" && (!treasureGuestSenderName.trim() || !validEmailAddress(treasureGuestSenderEmail)))) && styles.disabledButton]}
             >
               <Ionicons color="#FFFFFF" name="person-add-outline" size={18} />
               <Text style={styles.primaryButtonText}>Save this friend</Text>
