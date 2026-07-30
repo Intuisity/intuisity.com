@@ -669,6 +669,12 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const [feedbackSaved, setFeedbackSaved] = useState(false);
 
   useEffect(() => {
+    if (page !== "social-prediction" || Platform.OS !== "web") return;
+    const browserWindow = (globalThis as any).window;
+    browserWindow?.requestAnimationFrame?.(() => browserWindow.scrollTo({ behavior: "smooth", left: 0, top: 0 }));
+  }, [page, treasureFlowStep]);
+
+  useEffect(() => {
     setBirthDetails({
       birthdate: userProfile.birthdate,
       birthTime: userProfile.birthTime,
@@ -2180,6 +2186,10 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             setFriendInviteStatus(deliveryProblems.length
               ? `Challenge created and ready to text, but email was rejected: ${deliveryProblems[0].emailError}`
               : `Your invite has been sent to ${selectedFriends.length} ${selectedFriends.length === 1 ? "friend" : "friends"}. Resend accepted the email; delivery status will appear below. You will also receive email updates when it is opened and completed.`);
+            if (Platform.OS === "web") {
+              const browserWindow = (globalThis as any).window;
+              browserWindow?.requestAnimationFrame?.(() => browserWindow.scrollTo({ behavior: "smooth", left: 0, top: 0 }));
+            }
           })
           .catch((error) => setFriendInviteStatus(`Your tiles were saved here, but the email invite could not be sent yet. ${error instanceof Error ? error.message : "Check Resend and Vercel settings."}`));
         return;
@@ -2793,6 +2803,21 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           title={invitedTreasureSender ? `${invitedTreasureSender}'s Treasure Chest` : "Treasure Chest"}
           subtitle={invitedTreasureSender ? "Your friend hid five treasures. Guess the order in four tries, then create an account if you want to invite friends too." : "Try a friend's treasure challenge or play the computer. Arrange the five treasures in the hidden order. You have four tries."}
         />
+        {treasureFriendSubmitted && friendInviteStatus && friendInviteStatus !== "Sending friend challenge invite..." ? (
+          <View style={styles.treasureResultShareCard}>
+            <Ionicons color={friendInviteStatus.includes("rejected") || friendInviteStatus.includes("could not") ? "#B33A3A" : "#43A86B"} name={friendInviteStatus.includes("rejected") || friendInviteStatus.includes("could not") ? "alert-circle-outline" : "checkmark-circle-outline"} size={30} />
+            <Text style={styles.treasureResultShareTitle}>{friendInviteStatus.startsWith("Your invite has been sent") ? "Your invite has been sent" : "Treasure Chest invitation update"}</Text>
+            <Text style={styles.treasureResultShareText}>{friendInviteStatus}</Text>
+            {sentTreasureChallenges.slice(0, 5).map((challenge) => (
+              <Text
+                key={`invite-confirmation-${challenge.id}`}
+                style={[styles.treasureStatusDetail, isEmailDeliveryProblem(challenge.emailDeliveryStatus || "") && styles.treasureStatusDeliveryProblem]}
+              >
+                {challenge.friendName || challenge.friendEmail}: {formatEmailDeliveryStatus(challenge.emailDeliveryStatus || "sent")}
+              </Text>
+            ))}
+          </View>
+        ) : null}
         <IntuitionSkillFocus
           skills="Pattern sensing, working memory, patience, and trusting an initial arrangement before revising it"
           explanation="Notice how your first arrangement compares with later guesses. Pay attention to which choices feel calm and clear versus rushed or overly analytical."
