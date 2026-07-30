@@ -94,6 +94,7 @@ type Props = {
 
 const personChoiceLimit = 3;
 const personMaximumScore = 3;
+const guestPlayLimit = 3;
 const personPortraitSearchLimit = 100;
 const portraitCache = new Map<string, string | null>();
 const photographicPersonProfileIds = new Set([
@@ -676,7 +677,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   }, [page, treasureFlowStep]);
 
   useEffect(() => {
-    if (userProfile.authProvider !== "guest" || getCompletedGuestPlayCount(answers) < 2 || guestAccountPromptShownRef.current) return;
+    if (userProfile.authProvider !== "guest" || getCompletedGuestPlayCount(answers) < guestPlayLimit || guestAccountPromptShownRef.current) return;
     guestAccountPromptShownRef.current = true;
     const message = "Glad you're enjoying Intuisity! Log in or create your free account for always-free play and to track your intuition progress.";
     if (Platform.OS === "web") {
@@ -897,7 +898,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   };
 
   const openChallenge = (challengeId: string) => {
-    if (userProfile.authProvider === "guest" && getCompletedGuestPlayCount(answers) >= 2) {
+    if (userProfile.authProvider === "guest" && getCompletedGuestPlayCount(answers) >= guestPlayLimit) {
       onRequireAccount();
       return;
     }
