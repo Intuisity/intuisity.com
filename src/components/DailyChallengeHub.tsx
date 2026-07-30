@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, Image, ImageBackground, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Animated, Easing, Image, ImageBackground, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { getAstrologyReading, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
@@ -2183,15 +2183,25 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             setSentTreasureChallenges(next);
             saveSentTreasureChallenges(userProfile.email, next);
             const deliveryProblems = created.filter((challenge) => challenge.emailError);
-            setFriendInviteStatus(deliveryProblems.length
-              ? `Challenge created and ready to text, but email was rejected: ${deliveryProblems[0].emailError}`
-              : `Your invite has been sent to ${selectedFriends.length} ${selectedFriends.length === 1 ? "friend" : "friends"}. Resend accepted the email; delivery status will appear below. You will also receive email updates when it is opened and completed.`);
+            const inviteMessage = deliveryProblems.length
+              ? `The Treasure Chest was saved, but the email was not sent. ${deliveryProblems[0].emailError}`
+              : `Your invite has been sent to ${selectedFriends.length} ${selectedFriends.length === 1 ? "friend" : "friends"}. Resend accepted the email and its delivery status will appear on this page.`;
+            setFriendInviteStatus(inviteMessage);
+            Alert.alert(deliveryProblems.length ? "Email invitation not sent" : "Your invite has been sent", inviteMessage);
             if (Platform.OS === "web") {
               const browserWindow = (globalThis as any).window;
               browserWindow?.requestAnimationFrame?.(() => browserWindow.scrollTo({ behavior: "smooth", left: 0, top: 0 }));
             }
           })
-          .catch((error) => setFriendInviteStatus(`Your tiles were saved here, but the email invite could not be sent yet. ${error instanceof Error ? error.message : "Check Resend and Vercel settings."}`));
+          .catch((error) => {
+            const message = `Your tiles were saved here, but the email invitation was not sent. ${error instanceof Error ? error.message : "Check Resend and Vercel settings."}`;
+            setFriendInviteStatus(message);
+            Alert.alert("Email invitation not sent", message);
+            if (Platform.OS === "web") {
+              const browserWindow = (globalThis as any).window;
+              browserWindow?.requestAnimationFrame?.(() => browserWindow.scrollTo({ behavior: "smooth", left: 0, top: 0 }));
+            }
+          });
         return;
       }
       const nextTriesLeft = Math.max(0, treasureTriesLeft - 1);
