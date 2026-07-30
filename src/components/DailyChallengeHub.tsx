@@ -2389,9 +2389,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 transform: [{ scale: treasureGlowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.88, 1.16] }) }]
               }
             ]}
-          >
-            <View style={styles.realTreasureGlowCore} />
-          </Animated.View>
+          />
         );
       }
       return React.createElement(
@@ -5828,8 +5826,7 @@ const styles = StyleSheet.create({
   realTreasureChestWrap: { alignItems: "center", bottom: -36, height: "78%", justifyContent: "flex-end", left: -20, position: "absolute", right: -20, zIndex: 2 },
   realTreasureChestImage: { height: "100%", width: "112%" },
   realTreasureShadow: { backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 999, bottom: 16, height: 30, left: "12%", position: "absolute", right: "12%" },
-  realTreasureGlow: { backgroundColor: "rgba(255, 231, 122, 0.48)", borderRadius: 999, height: "24%", left: "31%", opacity: 0.88, position: "absolute", right: "31%", shadowColor: "#FFE77A", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.82, shadowRadius: 20, top: "48%", zIndex: 3 },
-  realTreasureGlowCore: { alignSelf: "center", backgroundColor: "rgba(255, 250, 183, 0.78)", borderRadius: 999, height: "58%", marginTop: "18%", shadowColor: "#FFF197", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 12, width: "64%" },
+  realTreasureGlow: { backgroundColor: "rgba(255, 226, 91, 0.2)", borderRadius: 999, height: "18%", left: "34%", position: "absolute", right: "34%", shadowColor: "#FFF197", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 28, top: "51%", zIndex: 3 },
   treasureInspirationLayer: { alignItems: "center", bottom: "48%", flexDirection: "row", flexWrap: "wrap", gap: 7, justifyContent: "center", left: "8%", position: "absolute", right: "8%", zIndex: 6 },
   treasureInspirationWord: { color: "#FFFFFF", fontSize: 18, fontWeight: "900", textShadowColor: "rgba(88, 49, 8, 0.55)", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
   treasureMoon: { backgroundColor: "#FFF9E8", borderRadius: 24, height: 48, position: "absolute", right: 22, top: 15, width: 48 },
