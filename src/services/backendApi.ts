@@ -315,7 +315,7 @@ export async function fetchTreasureChallenge(id: string, senderToken = "") {
 }
 
 async function treasureChallengeRequest(query: string, body: unknown, method: "GET" | "POST") {
-  const response = await fetch(`/api/treasure-challenges${query}`, {
+  const response = await fetch(`${getBackendUrl()}/api/treasure-challenges${query}`, {
     ...(body ? { body: JSON.stringify(body) } : {}),
     headers: { "Content-Type": "application/json" },
     method
