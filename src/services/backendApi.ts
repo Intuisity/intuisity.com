@@ -296,7 +296,7 @@ export async function createTreasureChallenge(invite: {
   note?: string;
   origin?: string;
   competitionId?: string;
-}): Promise<{ id: string; senderToken: string; status: TreasureChallengeStatus; emailError?: string | null }> {
+}): Promise<{ id: string; senderToken: string; status: TreasureChallengeStatus; emailDeliveryStatus?: string; emailError?: string | null }> {
   return treasureChallengeRequest("", invite, "POST");
 }
 

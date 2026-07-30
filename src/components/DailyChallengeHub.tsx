@@ -2179,7 +2179,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             const deliveryProblems = created.filter((challenge) => challenge.emailError);
             setFriendInviteStatus(deliveryProblems.length
               ? `Challenge created and ready to text, but email was rejected: ${deliveryProblems[0].emailError}`
-              : `Challenge sent to ${selectedFriends.length} ${selectedFriends.length === 1 ? "friend" : "friends"}. You will receive an email when it is opened and another when answers are submitted.`);
+              : `Your invite has been sent to ${selectedFriends.length} ${selectedFriends.length === 1 ? "friend" : "friends"}. Resend accepted the email; delivery status will appear below. You will also receive email updates when it is opened and completed.`);
           })
           .catch((error) => setFriendInviteStatus(`Your tiles were saved here, but the email invite could not be sent yet. ${error instanceof Error ? error.message : "Check Resend and Vercel settings."}`));
         return;
@@ -2380,17 +2380,39 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     const renderRealTreasureGlow = () => {
       if (!treasureStarted) return null;
       if (typeof (globalThis as any).document === "undefined") {
+        const sparklePositions = [
+          { left: "12%", top: "48%", size: 5 }, { left: "24%", top: "24%", size: 8 },
+          { left: "39%", top: "57%", size: 4 }, { left: "50%", top: "12%", size: 7 },
+          { left: "62%", top: "43%", size: 5 }, { left: "74%", top: "20%", size: 8 },
+          { left: "86%", top: "54%", size: 4 }, { left: "46%", top: "76%", size: 6 }
+        ];
         return (
           <Animated.View
             pointerEvents="none"
             style={[
               styles.realTreasureGlow,
               {
-                opacity: treasureGlowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.52, 1] }),
-                transform: [{ scale: treasureGlowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.88, 1.16] }) }]
+                opacity: treasureGlowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }),
+                transform: [{ scale: treasureGlowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.12] }) }]
               }
             ]}
-          />
+          >
+            {sparklePositions.map((sparkle, index) => (
+              <View
+                key={`native-treasure-sparkle-${index}`}
+                style={[
+                  styles.realTreasureSparkle,
+                  {
+                    backgroundColor: index % 3 === 0 ? "#FFFFFF" : index % 3 === 1 ? "#FFE77A" : "#8FF4F1",
+                    height: sparkle.size,
+                    left: sparkle.left as any,
+                    top: sparkle.top as any,
+                    width: sparkle.size
+                  }
+                ]}
+              />
+            ))}
+          </Animated.View>
         );
       }
       return React.createElement(
@@ -3079,8 +3101,8 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             {treasureFriendSubmitted && treasureSentChallengeUrl ? (
               <View style={styles.treasureResultShareCard}>
                 <Ionicons color="#6544B8" name="paper-plane-outline" size={28} />
-                <Text style={styles.treasureResultShareTitle}>Your friend challenge is ready</Text>
-                <Text style={styles.treasureResultShareText}>The email invitation was sent. You can also open Messages with your friend's number and challenge link filled in.</Text>
+                <Text style={styles.treasureResultShareTitle}>Your invite has been sent</Text>
+                <Text style={styles.treasureResultShareText}>Resend accepted the email invitation. Its delivery status appears under Your sent chests. You can also open Messages with your friend's number and challenge link filled in.</Text>
                 <Pressable accessibilityLabel="Text Treasure Chest challenge link" onPress={textTreasureChallengeLink} style={styles.treasureShareButton}>
                   <Ionicons color="#FFFFFF" name="chatbubble-outline" size={18} />
                   <Text style={styles.primaryButtonText}>Text Challenge Link</Text>
@@ -5844,7 +5866,8 @@ const styles = StyleSheet.create({
   realTreasureChestWrap: { alignItems: "center", bottom: -36, height: "78%", justifyContent: "flex-end", left: -20, position: "absolute", right: -20, zIndex: 2 },
   realTreasureChestImage: { height: "100%", width: "112%" },
   realTreasureShadow: { backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 999, bottom: 16, height: 30, left: "12%", position: "absolute", right: "12%" },
-  realTreasureGlow: { backgroundColor: "rgba(255, 226, 91, 0.2)", borderRadius: 999, height: "18%", left: "34%", position: "absolute", right: "34%", shadowColor: "#FFF197", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 28, top: "51%", zIndex: 3 },
+  realTreasureGlow: { height: "25%", left: "27%", position: "absolute", right: "27%", shadowColor: "#FFE77A", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.72, shadowRadius: 18, top: "47%", zIndex: 3 },
+  realTreasureSparkle: { borderRadius: 999, position: "absolute", shadowColor: "#FFFFFF", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 7 },
   treasureInspirationLayer: { alignItems: "center", bottom: "48%", flexDirection: "row", flexWrap: "wrap", gap: 7, justifyContent: "center", left: "8%", position: "absolute", right: "8%", zIndex: 6 },
   treasureInspirationWord: { color: "#FFFFFF", fontSize: 18, fontWeight: "900", textShadowColor: "rgba(88, 49, 8, 0.55)", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
   treasureMoon: { backgroundColor: "#FFF9E8", borderRadius: 24, height: 48, position: "absolute", right: 22, top: 15, width: 48 },

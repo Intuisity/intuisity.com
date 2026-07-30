@@ -78,10 +78,10 @@ async function createChallenge(body, response) {
     const emailError = safeError(error);
     await updateChallenge(id, { email_error: emailError, invite_delivery_status: "failed", updated_at: new Date().toISOString() }).catch(() => {});
     console.warn("treasure_challenge_invite_delivery_failed", { challengeId: id, recipient: maskEmail(friendEmail), emailError });
-    return sendJson(response, 201, { id, senderToken, status: "sent", emailError });
+    return sendJson(response, 201, { id, senderToken, status: "sent", emailDeliveryStatus: "failed", emailError });
   }
 
-  return sendJson(response, 201, { id, senderToken, status: "sent" });
+  return sendJson(response, 201, { id, senderToken, status: "sent", emailDeliveryStatus: "sent" });
 }
 
 async function getChallenge(request, response) {
