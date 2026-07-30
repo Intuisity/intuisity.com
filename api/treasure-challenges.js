@@ -66,18 +66,15 @@ async function createChallenge(body, response) {
 
   try {
     const pushToken = await findExpoPushToken(friendEmail);
-    let deliveryId = pushToken ? await sendExpoPush({ challengeUrl, friendName, pushToken, senderName }) : "";
-    let deliveryStatus = deliveryId ? "push-sent" : "sent";
-    if (!deliveryId) {
-      deliveryId = await sendEmail({
-        to: friendEmail,
-        subject: `${senderName} invited you to Intuisity`,
-        html: inviteHtml({ challengeUrl, friendName, note, senderName }),
-        text: `Hi ${friendName},\n\n${senderName} invited you to a Treasure Chest challenge.\n\n${note ? `${note}\n\n` : ""}Open it here: ${challengeUrl}`
-      });
-    }
-    await updateChallenge(id, { invite_delivery_id: deliveryId, invite_delivery_status: deliveryStatus, updated_at: new Date().toISOString() });
-    console.info("treasure_challenge_invite_sent", { challengeId: id, deliveryId, deliveryStatus, recipient: maskEmail(friendEmail) });
+    const pushDeliveryId = pushToken ? await sendExpoPush({ challengeUrl, friendName, pushToken, senderName }) : "";
+    const deliveryId = await sendEmail({
+      to: friendEmail,
+      subject: `${senderName} invited you to Intuisity`,
+      html: inviteHtml({ challengeUrl, friendName, note, senderName }),
+      text: `Hi ${friendName},\n\n${senderName} invited you to a Treasure Chest challenge.\n\n${note ? `${note}\n\n` : ""}Open it here: ${challengeUrl}`
+    });
+    await updateChallenge(id, { invite_delivery_id: deliveryId, invite_delivery_status: "sent", updated_at: new Date().toISOString() });
+    console.info("treasure_challenge_invite_sent", { challengeId: id, deliveryId, pushDeliveryId: pushDeliveryId || null, recipient: maskEmail(friendEmail) });
   } catch (error) {
     await updateChallenge(id, { email_error: safeError(error), updated_at: new Date().toISOString() }).catch(() => {});
     throw error;
@@ -95,7 +92,7 @@ async function getChallenge(request, response) {
   if (!row) return sendJson(response, 404, { error: "Challenge not found" });
 
   if (senderToken && senderToken === row.sender_token) {
-    if (row.invite_delivery_id && row.invite_delivery_status !== "push-sent") {
+    if (row.invite_delivery_id) {
       try {
         const latestDeliveryStatus = await getEmailDeliveryStatus(row.invite_delivery_id);
         if (latestDeliveryStatus && latestDeliveryStatus !== row.invite_delivery_status) {

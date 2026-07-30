@@ -108,8 +108,9 @@ const handler = require("../api/treasure-challenges");
   assert.equal(pushed.statusCode, 201);
   assert.equal(pushes.length, 1);
   assert.match(pushes[0].data.challengeUrl, /challenge=/);
-  assert.equal(emails.length, emailCountBeforePush, "Successful push avoids duplicate invitation email");
-  assert.equal(rows.get(pushed.payload.id).invite_delivery_status, "push-sent");
+  assert.equal(emails.length, emailCountBeforePush + 1, "Registered friends receive email as a reliable backup to push");
+  assert.equal(emails.at(-1).to, "registered@example.com");
+  assert.equal(rows.get(pushed.payload.id).invite_delivery_status, "sent");
   console.log("Treasure challenge tests passed");
 })().catch((error) => {
   console.error(error);

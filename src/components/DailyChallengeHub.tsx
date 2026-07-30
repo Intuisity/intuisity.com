@@ -3044,6 +3044,18 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 <Text style={styles.treasureNoteText}>{treasureInspirationMessage}</Text>
               </View>
             )}
+            {treasureFriendSubmitted && treasureSentChallengeUrl ? (
+              <View style={styles.treasureResultShareCard}>
+                <Ionicons color="#6544B8" name="paper-plane-outline" size={28} />
+                <Text style={styles.treasureResultShareTitle}>Your friend challenge is ready</Text>
+                <Text style={styles.treasureResultShareText}>The email invitation was sent. You can also open Messages with your friend's number and challenge link filled in.</Text>
+                <Pressable accessibilityLabel="Text Treasure Chest challenge link" onPress={textTreasureChallengeLink} style={styles.treasureShareButton}>
+                  <Ionicons color="#FFFFFF" name="chatbubble-outline" size={18} />
+                  <Text style={styles.primaryButtonText}>Text Challenge Link</Text>
+                </Pressable>
+                {treasureShareStatus ? <Text style={styles.treasureShareStatus}>{treasureShareStatus}</Text> : null}
+              </View>
+            ) : null}
             {treasureResultReady && (
               <View style={styles.treasureResultShareCard}>
                 <Ionicons color="#6544B8" name={treasureWon ? "trophy-outline" : "sparkles-outline"} size={28} />
