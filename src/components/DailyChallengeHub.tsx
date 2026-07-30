@@ -639,6 +639,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const [treasurePointerDrag, setTreasurePointerDrag] = useState<TreasureDragItem | null>(null);
   const [treasureDropSlot, setTreasureDropSlot] = useState<number | null>(null);
   const treasureGlowPulse = useRef(new Animated.Value(0)).current;
+  const guestAccountPromptShownRef = useRef(false);
   const treasureNativeDragRef = useRef<TreasureDragItem | null>(null);
   const treasureSlotRefs = useRef<Array<any>>([]);
   const [dailyPowerWords] = useState(makeDailyPowerWords);
@@ -673,6 +674,20 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     const browserWindow = (globalThis as any).window;
     browserWindow?.requestAnimationFrame?.(() => browserWindow.scrollTo({ behavior: "smooth", left: 0, top: 0 }));
   }, [page, treasureFlowStep]);
+
+  useEffect(() => {
+    if (userProfile.authProvider !== "guest" || getCompletedGuestPlayCount(answers) < 2 || guestAccountPromptShownRef.current) return;
+    guestAccountPromptShownRef.current = true;
+    const message = "Glad you're enjoying Intuisity! Log in or create your free account for always-free play and to track your intuition progress.";
+    if (Platform.OS === "web") {
+      Alert.alert("Keep enjoying Intuisity", message);
+      onRequireAccount();
+      return;
+    }
+    Alert.alert("Keep enjoying Intuisity", message, [
+      { text: "Log in or create account", onPress: onRequireAccount }
+    ]);
+  }, [answers, onRequireAccount, userProfile.authProvider]);
 
   useEffect(() => {
     setBirthDetails({
@@ -3166,7 +3181,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                   {treasureWon ? `Chest opened in ${treasureTriesUsed} ${treasureTriesUsed === 1 ? "try" : "tries"}` : "Your Treasure Chest result"}
                 </Text>
                 <Text style={styles.treasureResultShareText}>
-                  Share your result so a friend can try two free games and see if they can beat your score.
+                  Share your result so a friend can try Treasure Chest and see if they can beat your score.
                 </Text>
                 <Pressable accessibilityLabel="Share my Treasure Chest result" onPress={shareTreasureResult} style={styles.treasureShareButton}>
                   <Ionicons color="#FFFFFF" name="share-social-outline" size={18} />
@@ -4011,9 +4026,9 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         <View style={styles.guestPlayNotice}>
           <Ionicons color="#008A94" name="gift-outline" size={20} />
           <View style={styles.guestPlayNoticeCopy}>
-            <Text style={styles.guestPlayNoticeTitle}>Try Intuisity before signing up</Text>
+            <Text style={styles.guestPlayNoticeTitle}>Explore Intuisity</Text>
             <Text style={styles.guestPlayNoticeText}>
-              {Math.max(0, 2 - getCompletedGuestPlayCount(answers))} of 2 free games remaining. Create a free account afterward to keep playing and save your progress.
+              Play Treasure Chest and explore your intuition. You can create a free account whenever you are ready to save and track your progress.
             </Text>
           </View>
         </View>

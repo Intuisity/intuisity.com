@@ -390,7 +390,7 @@ export default function App() {
             isPremium={subscriptionStatus !== "Free"}
             onLogout={confirmLogout}
             onRequireAccount={() => {
-              setAccountGateNotice("You completed your two free games. Create your free account to keep playing, save your scores and streak, and challenge friends.");
+              setAccountGateNotice("Glad you're enjoying Intuisity! Log in or create your free account for always-free play and to track your intuition progress.");
               setUserProfile(null);
             }}
             onUpdateProfile={(updatedProfile) => {
@@ -517,7 +517,7 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
           <Text style={styles.accountHeroText}>Awaken your intuition. Expand your awareness. Unlock your inner wisdom.</Text>
           <Pressable
             accessibilityHint="Opens Treasure Chest with Friend and Computer play choices"
-            accessibilityLabel="Play two free Treasure Chest games"
+            accessibilityLabel="Start Treasure Chest"
             accessibilityRole="button"
             onPress={() => onGuest("treasure")}
             style={({ pressed }) => [styles.freePlayBadge, pressed && styles.freePlayBadgePressed]}
