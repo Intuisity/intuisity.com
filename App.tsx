@@ -1211,11 +1211,7 @@ function getPasswordRules(password: string) {
 
   return [
     { label: "At least 8 characters", passed: password.length >= 8 },
-    { label: "At least 3 of the following", passed: categoryCount >= 3 },
-    { label: "Lower case letters (a-z)", passed: /[a-z]/.test(password) },
-    { label: "Upper case letters (A-Z)", passed: /[A-Z]/.test(password) },
-    { label: "Numbers (0-9)", passed: /\d/.test(password) },
-    { label: "Special characters (e.g. !@#$%^&*)", passed: /[^A-Za-z0-9]/.test(password) },
+    { label: "At least 3 character types, or 15+ characters", passed: categoryCount >= 3 || password.length >= 15 },
     { label: "No more than 2 identical characters in a row", passed: !/(.)\1\1/.test(password) }
   ];
 }

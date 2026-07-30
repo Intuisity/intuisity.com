@@ -2489,8 +2489,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 boxShadow: "0 5px 14px rgba(48,38,76,0.12)",
                 marginBottom: 14,
                 padding: 10,
-                position: "sticky",
-                top: 0,
+                position: "relative",
                 zIndex: 10
               }
             },
