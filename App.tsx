@@ -457,8 +457,13 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
     return backendProfile ? normalizeLoadedProfile(backendProfile) : null;
   };
 
-  const authenticate = (nextProfile: UserProfile) => {
+  const authenticate = async (nextProfile: UserProfile) => {
     saveProfile(nextProfile);
+    if (Platform.OS !== "web") {
+      // Finish the Keychain write before leaving the login screen. This prevents
+      // an iOS lifecycle restart from reopening the app in a signed-out state.
+      await SecureStore.setItemAsync(nativeActiveProfileKey, JSON.stringify(nextProfile));
+    }
     if (nextProfile.email) {
       const signedInAt = new Date();
       syncModuleTime({
