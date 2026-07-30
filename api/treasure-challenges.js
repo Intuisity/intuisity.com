@@ -40,7 +40,6 @@ async function createChallenge(body, response) {
     return sendJson(response, 400, { error: "Five treasure tiles are required" });
   }
 
-  requireEmailConfig();
   const id = crypto.randomUUID();
   const senderToken = crypto.randomBytes(24).toString("hex");
   const now = new Date().toISOString();
