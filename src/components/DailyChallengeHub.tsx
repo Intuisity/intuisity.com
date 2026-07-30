@@ -619,6 +619,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const [treasureWinText, setTreasureWinText] = useState("");
   const [treasureShareStatus, setTreasureShareStatus] = useState("");
   const [treasureSentChallengeUrl, setTreasureSentChallengeUrl] = useState("");
+  const [treasureSentFriendPhone, setTreasureSentFriendPhone] = useState("");
   const [treasureNote, setTreasureNote] = useState("");
   const [treasureSceneImage, setTreasureSceneImage] = useState(() => treasureSceneImages[0]);
   const [invitedTreasureSender, setInvitedTreasureSender] = useState("");
@@ -2164,6 +2165,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           .then((created) => {
             const firstChallenge = created[0];
             if (firstChallenge) setTreasureSentChallengeUrl(`${getAppOrigin()}/?treasureInvite=1&challenge=${encodeURIComponent(firstChallenge.id)}`);
+            setTreasureSentFriendPhone(selectedFriends[0]?.phone || "");
             const next = [...created, ...sentTreasureChallenges.filter((existing) => !created.some((item) => item.id === existing.id))];
             setSentTreasureChallenges(next);
             saveSentTreasureChallenges(userProfile.email, next);
@@ -2265,13 +2267,22 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     const textTreasureChallengeLink = async () => {
       const url = treasureSentChallengeUrl || "https://www.intuisity.com/treasure-chest.html";
       const message = `${userProfile.name || "A friend"} invited you to an Intuisity Treasure Chest challenge. Open it here: ${url}`;
+      const recipient = treasureSentFriendPhone.replace(/[^\d+]/g, "");
       try {
         if (Platform.OS === "ios") {
-          await Linking.openURL(`sms:&body=${encodeURIComponent(message)}`);
+          await Linking.openURL(`sms:${recipient}&body=${encodeURIComponent(message)}`);
         } else if (Platform.OS === "android") {
-          await Linking.openURL(`sms:?body=${encodeURIComponent(message)}`);
+          await Linking.openURL(`sms:${recipient}?body=${encodeURIComponent(message)}`);
         } else {
-          await Share.share({ message, title: "Intuisity Treasure Chest", url });
+          const userAgent = (globalThis as any).navigator?.userAgent || "";
+          const smsUrl = /iPhone|iPad|iPod/i.test(userAgent)
+            ? `sms:${recipient}&body=${encodeURIComponent(message)}`
+            : `sms:${recipient}?body=${encodeURIComponent(message)}`;
+          if (/Android|iPhone|iPad|iPod/i.test(userAgent)) {
+            await Linking.openURL(smsUrl);
+          } else {
+            await Share.share({ message, title: "Intuisity Treasure Chest", url });
+          }
         }
         setTreasureShareStatus("Your challenge link is ready to text.");
       } catch {
