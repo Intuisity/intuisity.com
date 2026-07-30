@@ -76,8 +76,10 @@ async function createChallenge(body, response) {
     await updateChallenge(id, { invite_delivery_id: deliveryId, invite_delivery_status: "sent", updated_at: new Date().toISOString() });
     console.info("treasure_challenge_invite_sent", { challengeId: id, deliveryId, pushDeliveryId: pushDeliveryId || null, recipient: maskEmail(friendEmail) });
   } catch (error) {
-    await updateChallenge(id, { email_error: safeError(error), updated_at: new Date().toISOString() }).catch(() => {});
-    throw error;
+    const emailError = safeError(error);
+    await updateChallenge(id, { email_error: emailError, invite_delivery_status: "failed", updated_at: new Date().toISOString() }).catch(() => {});
+    console.warn("treasure_challenge_invite_delivery_failed", { challengeId: id, recipient: maskEmail(friendEmail), emailError });
+    return sendJson(response, 201, { id, senderToken, status: "sent", emailError });
   }
 
   return sendJson(response, 201, { id, senderToken, status: "sent" });

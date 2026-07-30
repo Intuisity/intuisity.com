@@ -2169,7 +2169,10 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             const next = [...created, ...sentTreasureChallenges.filter((existing) => !created.some((item) => item.id === existing.id))];
             setSentTreasureChallenges(next);
             saveSentTreasureChallenges(userProfile.email, next);
-            setFriendInviteStatus(`Challenge sent to ${selectedFriends.length} ${selectedFriends.length === 1 ? "friend" : "friends"}. You will receive an email when it is opened and another when answers are submitted.`);
+            const deliveryProblems = created.filter((challenge) => challenge.emailError);
+            setFriendInviteStatus(deliveryProblems.length
+              ? `Challenge created and ready to text, but email was rejected: ${deliveryProblems[0].emailError}`
+              : `Challenge sent to ${selectedFriends.length} ${selectedFriends.length === 1 ? "friend" : "friends"}. You will receive an email when it is opened and another when answers are submitted.`);
           })
           .catch((error) => setFriendInviteStatus(`Your tiles were saved here, but the email invite could not be sent yet. ${error instanceof Error ? error.message : "Check Resend and Vercel settings."}`));
         return;
