@@ -1945,6 +1945,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         ? treasureNote.trim()
         : "You are bright, brave, and guided.";
     const treasureInspirationWords = treasureInspirationMessage.split(/\s+/).filter(Boolean);
+    const treasureCanOpenMessages = Platform.OS !== "web" || /Android|iPhone|iPad|iPod/i.test((globalThis as any).navigator?.userAgent || "");
     const treasureSceneStyle = [
       styles.treasureScene,
       opponent === "friend" ? styles.treasureSceneFriend : styles.treasureSceneComputer,
@@ -2299,6 +2300,15 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       const message = `${userProfile.name || "A friend"} invited you to an Intuisity Treasure Chest challenge. Open it here: ${url}`;
       const recipient = treasureSentFriendPhone.replace(/[^\d+]/g, "");
       try {
+        if (!treasureCanOpenMessages) {
+          const clipboard = (globalThis as any).navigator?.clipboard;
+          if (!clipboard?.writeText) throw new Error("Clipboard is unavailable");
+          await clipboard.writeText(message);
+          const desktopMessage = "The challenge message was copied. Open Messages on your phone or another messaging service, paste it, and press Send.";
+          setTreasureShareStatus(desktopMessage);
+          Alert.alert("Challenge link copied", desktopMessage);
+          return;
+        }
         if (Platform.OS === "ios") {
           await Linking.openURL(`sms:${recipient}&body=${encodeURIComponent(message)}`);
         } else if (Platform.OS === "android") {
@@ -2314,9 +2324,13 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             await Share.share({ message, title: "Intuisity Treasure Chest", url });
           }
         }
-        setTreasureShareStatus("Your challenge link is ready to text.");
+        const readyMessage = "Messages opened with the challenge prepared. Review it and press Send to deliver the text.";
+        setTreasureShareStatus(readyMessage);
+        Alert.alert("Press Send in Messages", readyMessage);
       } catch {
-        setTreasureShareStatus(`Text this challenge link: ${url}`);
+        const fallbackMessage = `Messages could not be opened. Copy and text this challenge link: ${url}`;
+        setTreasureShareStatus(fallbackMessage);
+        Alert.alert("Text was not sent", fallbackMessage);
       }
     };
     const renderTreasureInspirationBurst = () => {
@@ -3140,7 +3154,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 <Text style={styles.treasureResultShareText}>Resend accepted the email invitation. Its delivery status appears under Your sent chests. You can also open Messages with your friend's number and challenge link filled in.</Text>
                 <Pressable accessibilityLabel="Text Treasure Chest challenge link" onPress={textTreasureChallengeLink} style={styles.treasureShareButton}>
                   <Ionicons color="#FFFFFF" name="chatbubble-outline" size={18} />
-                  <Text style={styles.primaryButtonText}>Text Challenge Link</Text>
+                  <Text style={styles.primaryButtonText}>{treasureCanOpenMessages ? "Open Messages to Text" : "Copy Link for Text"}</Text>
                 </Pressable>
                 {treasureShareStatus ? <Text style={styles.treasureShareStatus}>{treasureShareStatus}</Text> : null}
               </View>
@@ -3164,7 +3178,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 </Pressable>
                 <Pressable accessibilityLabel="Text Treasure Chest challenge link" onPress={textTreasureChallengeLink} style={styles.treasureCopyLinkButton}>
                   <Ionicons color="#6544B8" name="chatbubble-outline" size={18} />
-                  <Text style={styles.treasureCopyLinkButtonText}>Text Challenge Link</Text>
+                  <Text style={styles.treasureCopyLinkButtonText}>{treasureCanOpenMessages ? "Open Messages to Text" : "Copy Link for Text"}</Text>
                 </Pressable>
                 <Pressable onPress={() => setPage("hub")} style={styles.treasureExploreButton}>
                   <Ionicons color="#6544B8" name="grid-outline" size={18} />
