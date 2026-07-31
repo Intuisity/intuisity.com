@@ -45,11 +45,19 @@ function responseRecorder() {
   assert.match(pageResponse.payload, /<h1>Trust Your First Impression<\/h1>/);
   assert.match(pageResponse.payload, /application\/ld\+json/);
   assert.match(pageResponse.payload, /<h2>Record the signal<\/h2>/);
+  assert.match(pageResponse.payload, /Try it for yourself/);
+
+  const categoryResponse = responseRecorder();
+  await articlePage({ query: { category: "intuition-training" } }, categoryResponse);
+  assert.equal(categoryResponse.statusCode, 200);
+  assert.match(categoryResponse.payload, /<h1>Intuition Training<\/h1>/);
+  assert.match(categoryResponse.payload, /Trust Your First Impression/);
 
   const sitemap = require("../api/sitemap");
   const sitemapResponse = responseRecorder();
   await sitemap({}, sitemapResponse);
   assert.equal(sitemapResponse.statusCode, 200);
   assert.match(sitemapResponse.payload, /articles\/trust-your-first-impression/);
+  assert.match(sitemapResponse.payload, /articles\/category\/intuition-training/);
   console.log("Article publishing tests passed");
 })().catch((error) => { console.error(error); process.exit(1); });
