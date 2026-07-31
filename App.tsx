@@ -385,10 +385,9 @@ export default function App() {
 
       <ScrollView
         automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
-        canCancelContentTouches={false}
+        canCancelContentTouches={Platform.OS === "ios"}
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic"
-        directionalLockEnabled={Platform.OS === "ios"}
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         keyboardShouldPersistTaps="handled"
       >
@@ -521,7 +520,14 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
 
   if (mode === "welcome") {
     return (
-      <SafeAreaView style={styles.accountScreen}>
+      <SafeAreaView style={styles.accountFormScreen}>
+        <ScrollView
+          alwaysBounceVertical={false}
+          canCancelContentTouches={Platform.OS === "ios"}
+          contentContainerStyle={styles.accountWelcomeContent}
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
+        >
         <View style={styles.accountHero}>
           <Ionicons color="#FFFFFF" name="sparkles-outline" size={34} />
           <Text style={styles.accountHeroTitle}>Welcome to Intuisity</Text>
@@ -562,6 +568,7 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
         ) : null}
         {error ? <Text style={styles.accountError}>{error}</Text> : null}
         <LegalLinks />
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -2479,6 +2486,7 @@ function setMetaTag(name: string, content: string, attribute = "name") {
 const styles = StyleSheet.create({
   accountScreen: { backgroundColor: "#FFFFFF", flex: 1, justifyContent: "center", padding: 24 },
   accountFormScreen: { backgroundColor: "#FFFFFF", flex: 1 },
+  accountWelcomeContent: { flexGrow: 1, justifyContent: "center", padding: 24, paddingBottom: 48 },
   accountKeyboardAvoider: { flex: 1 },
   accountLoginContent: { flexGrow: 1, justifyContent: "flex-start", padding: 24, paddingBottom: 180 },
   accountFormContent: { padding: 24, paddingBottom: 50 },
