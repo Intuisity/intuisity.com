@@ -1,6 +1,11 @@
 {
   "buildCommand": "npm run build:web",
   "outputDirectory": "dist",
-  "framework": null
+  "framework": null,
+  "rewrites": [
+    { "source": "/articles", "destination": "/api/article-page" },
+    { "source": "/articles/:slug", "destination": "/api/article-page?slug=:slug" },
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" }
+  ]
 }
 

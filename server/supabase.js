@@ -80,8 +80,11 @@ async function readJsonBody(request) {
 
 function allowCors(request, response) {
   response.setHeader("Access-Control-Allow-Origin", "*");
-  response.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  response.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  response.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, X-Intuisity-Admin-Secret",
+  );
+  response.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
 
   if (request.method === "OPTIONS") {
     response.status(204).end();

@@ -42,6 +42,7 @@ import { premiumPlan } from "./src/services/subscriptions";
 import { formatDuration, loadAdminAnalyticsReport } from "./src/services/adminAnalytics";
 import { backendUserInsightsCsvUrl, clearBackendSyncLog, fetchSavedProfile, getLastAdminReportError, loadAdminSecret, loadBackendAdminReport, loadBackendSyncLog, saveAdminSecret, syncDailyAnswers, syncModuleTime, syncProfile, syncSiteVisit } from "./src/services/backendApi";
 import { DailyChallengeHub } from "./src/components/DailyChallengeHub";
+import { AdminArticleEditor } from "./src/components/AdminArticleEditor";
 import { UserProfile } from "./src/types/userProfile";
 
 const { scoreDailyChallenge } = require("./src/domain/scoringCore");
@@ -336,6 +337,14 @@ export default function App() {
           <Text style={styles.profileBadgeText}>Home</Text>
         </Pressable>
         <View style={styles.topRightActions}>
+          <Pressable
+            accessibilityLabel="Read Intuisity articles"
+            onPress={() => Linking.openURL("https://www.intuisity.com/articles")}
+            style={styles.languageButton}
+          >
+            <Ionicons color="#008A94" name="newspaper-outline" size={19} />
+            <Text style={styles.languageButtonText}>Articles</Text>
+          </Pressable>
           <Pressable
             accessibilityLabel="Change language"
             onPress={() => setShowLanguageMenu((current) => !current)}
@@ -2052,6 +2061,8 @@ function AdminDashboard() {
           <Text style={styles.adminFeedbackMeta}>Enter the same value you saved in Vercel as INTUISITY_ADMIN_SECRET.</Text>
         )}
       </View>
+
+      <AdminArticleEditor adminSecret={adminSecret} />
 
       {!hasActivity && (
         <View style={styles.adminStartCard}>

@@ -269,6 +269,60 @@ export function syncFriends(email: string, friends: unknown) {
 
 export type TreasureChallengeStatus = "sent" | "opened" | "completed";
 
+export type ArticleRecord = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  body: string;
+  author_name: string;
+  category: string;
+  call_to_action_label: string;
+  call_to_action_url: string;
+  status: "draft" | "published";
+  published_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export async function loadAdminArticles(adminSecret = loadAdminSecret()): Promise<ArticleRecord[]> {
+  return articleRequest("?admin=1", undefined, "GET", adminSecret);
+}
+
+export async function saveAdminArticle(article: Partial<ArticleRecord>, adminSecret = loadAdminSecret()): Promise<ArticleRecord> {
+  return articleRequest("", {
+    id: article.id,
+    slug: article.slug,
+    title: article.title,
+    description: article.description,
+    body: article.body,
+    authorName: article.author_name,
+    category: article.category,
+    callToActionLabel: article.call_to_action_label,
+    callToActionUrl: article.call_to_action_url,
+    status: article.status,
+    publishedAt: article.published_at
+  }, "POST", adminSecret);
+}
+
+export async function deleteAdminArticle(id: string, adminSecret = loadAdminSecret()) {
+  return articleRequest(`?id=${encodeURIComponent(id)}`, undefined, "DELETE", adminSecret);
+}
+
+async function articleRequest(query: string, body: unknown, method: "GET" | "POST" | "DELETE", adminSecret: string) {
+  const response = await fetch(`${getBackendUrl()}/api/articles${query}`, {
+    ...(body ? { body: JSON.stringify(body) } : {}),
+    headers: {
+      "Content-Type": "application/json",
+      ...(adminSecret.trim() ? { "X-Intuisity-Admin-Secret": adminSecret.trim() } : {})
+    },
+    method
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload?.message || payload?.error || "Article request failed");
+  return payload;
+}
+
 export type TreasureChallengeReceipt = {
   id: string;
   senderToken: string;
