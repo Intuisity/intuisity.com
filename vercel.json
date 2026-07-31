@@ -6,7 +6,7 @@
     { "source": "/articles", "destination": "/api/article-page" },
     { "source": "/articles/category/:category", "destination": "/api/article-page?category=:category" },
     { "source": "/articles/:slug", "destination": "/api/article-page?slug=:slug" },
-    { "source": "/sitemap.xml", "destination": "/api/sitemap" }
+    { "source": "/sitemap.xml", "destination": "/api/article-page?sitemap=1" }
   ]
 }
 

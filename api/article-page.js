@@ -6,6 +6,7 @@ module.exports = async function handler(request, response) {
     const category = cleanSlug(request.query?.category);
     const rows = await supabaseRequest("/articles?status=eq.published&select=*&order=published_at.desc.nullslast,updated_at.desc");
     const articles = rows || [];
+    if (String(request.query?.sitemap || "") === "1") return sendSitemap(response, articles);
     if (slug) {
       const article = articles.find((item) => item.slug === slug);
       if (!article) return sendPage(response, 404, layout({ title: "Article not found | Intuisity", description: "The requested Intuisity article could not be found.", content: '<main><h1>Article not found</h1><p><a href="/articles">Browse Intuisity articles</a></p></main>' }));
@@ -17,6 +18,20 @@ module.exports = async function handler(request, response) {
     return sendPage(response, 500, layout({ title: "Intuisity Articles", description: "Intuition training articles from Intuisity.", content: "<main><h1>Intuisity Articles</h1><p>Articles are temporarily unavailable. Please return soon.</p></main>" }));
   }
 };
+
+function sendSitemap(response, articles) {
+  const staticPaths = ["", "privacy.html", "terms.html", "faq.html", "about.html", "intuition-training.html", "remote-viewing-practice.html", "friend-intuition-games.html", "treasure-chest.html", "articles"];
+  const categories = [...new Set(articles.map((article) => categorySlug(article.category)).filter(Boolean))];
+  const urls = [
+    ...staticPaths.map((path) => ({ loc: `https://www.intuisity.com/${path}`, lastmod: "" })),
+    ...categories.map((category) => ({ loc: `https://www.intuisity.com/articles/category/${category}`, lastmod: "" })),
+    ...articles.map((article) => ({ loc: `https://www.intuisity.com/articles/${encodeURIComponent(article.slug)}`, lastmod: String(article.updated_at || "").slice(0, 10) }))
+  ];
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((url) => `  <url><loc>${escapeXml(url.loc)}</loc>${url.lastmod ? `<lastmod>${escapeXml(url.lastmod)}</lastmod>` : ""}</url>`).join("\n")}\n</urlset>`;
+  response.setHeader("Content-Type", "application/xml; charset=utf-8");
+  response.setHeader("Cache-Control", "public, max-age=0, s-maxage=600");
+  return response.status(200).send(xml);
+}
 
 function renderLibrary(articles) {
   const groups = categoryGroups(articles);
@@ -65,5 +80,6 @@ function sendPage(response, status, html) { response.setHeader("Content-Type", "
 function cleanSlug(value) { return String(value || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 120); }
 function escapeHtml(value) { return String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character])); }
 function escapeAttribute(value) { return escapeHtml(value); }
+function escapeXml(value) { return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[character])); }
 function formatDate(value) { const date = new Date(value || Date.now()); return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "America/Los_Angeles" }); }
 const pageStyles = `*{box-sizing:border-box}body{margin:0;background:#fbfaff;color:#30264c;font-family:Arial,sans-serif;line-height:1.7}header{align-items:center;background:#fff;border-bottom:1px solid #e6def5;display:flex;justify-content:space-between;padding:16px max(20px,calc((100% - 960px)/2))}.brand{color:#6544b8;font-size:24px;font-weight:900;text-decoration:none}nav{display:flex;flex-wrap:wrap;gap:16px}a{color:#6544b8;font-weight:700}main{margin:0 auto;max-width:900px;padding:48px 20px}h1{font-size:clamp(34px,6vw,56px);line-height:1.1;margin:8px 0 18px}h2{line-height:1.25}.eyebrow{color:#008a94;font-size:13px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.intro{font-size:20px}.meta,.breadcrumbs{color:#706982;font-size:14px}.grid{display:grid;gap:18px;margin-top:24px}.categories{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}.card,.category-card,.practice{background:#fff;border:1px solid #dccff5;border-radius:12px;padding:24px}.card h2,.category-card h2{margin:4px 0}.read,.cta{display:inline-block;margin-top:8px}.cta{background:#6544b8;border-radius:8px;color:#fff;padding:12px 18px;text-decoration:none}.article-body{font-size:18px;margin:34px 0}.article-body h2{margin-top:34px}.practice{background:#f0eafa;margin:38px 0}.practice h2{margin-top:0}.related,.section-title{margin-top:46px}footer{border-top:1px solid #e6def5;margin-top:32px;padding:28px;text-align:center}@media(max-width:620px){header{align-items:flex-start;flex-direction:column;gap:10px}nav{gap:10px}main{padding-top:32px}}`;

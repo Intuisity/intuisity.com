@@ -53,9 +53,8 @@ function responseRecorder() {
   assert.match(categoryResponse.payload, /<h1>Intuition Training<\/h1>/);
   assert.match(categoryResponse.payload, /Trust Your First Impression/);
 
-  const sitemap = require("../api/sitemap");
   const sitemapResponse = responseRecorder();
-  await sitemap({}, sitemapResponse);
+  await articlePage({ query: { sitemap: "1" } }, sitemapResponse);
   assert.equal(sitemapResponse.statusCode, 200);
   assert.match(sitemapResponse.payload, /articles\/trust-your-first-impression/);
   assert.match(sitemapResponse.payload, /articles\/category\/intuition-training/);
