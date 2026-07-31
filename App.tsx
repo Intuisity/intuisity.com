@@ -152,6 +152,7 @@ export default function App() {
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("today");
   const [homeRequestId, setHomeRequestId] = useState(0);
+  const [drawingActive, setDrawingActive] = useState(false);
   const [friendChallengeRequestId, setFriendChallengeRequestId] = useState(0);
   const [treasureEntryRequestId, setTreasureEntryRequestId] = useState(() => isTreasurePlayRequest() ? 1 : 0);
   const [answers, setAnswers] = useState<Answers>(() => {
@@ -390,6 +391,7 @@ export default function App() {
         contentInsetAdjustmentBehavior="automatic"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         keyboardShouldPersistTaps="handled"
+        scrollEnabled={!drawingActive}
       >
         {activeTab === "today" && (
           <DailyChallengeHub
@@ -398,6 +400,7 @@ export default function App() {
             friendChallengeRequestId={friendChallengeRequestId}
             treasureEntryRequestId={treasureEntryRequestId}
             isPremium={subscriptionStatus !== "Free"}
+            onDrawingChange={setDrawingActive}
             onLogout={confirmLogout}
             onRequireAccount={() => {
               setAccountGateNotice("Glad you're enjoying Intuisity! Log in or create your free account for always-free play and to track your intuition progress.");

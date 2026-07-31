@@ -85,6 +85,7 @@ type Props = {
   homeRequestId?: number;
   treasureEntryRequestId?: number;
   isPremium: boolean;
+  onDrawingChange?: (active: boolean) => void;
   onLogout: () => void;
   onRequireAccount: () => void;
   onUpdateProfile: (profile: UserProfile) => void;
@@ -524,7 +525,7 @@ const personImages: Record<string, any> = {
   mei: require("../../assets/person-mei.png")
 };
 
-export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeRequestId = 0, treasureEntryRequestId = 0, isPremium, onLogout, onRequireAccount, onUpdateProfile, setAnswers, userProfile }: Props) {
+export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeRequestId = 0, treasureEntryRequestId = 0, isPremium, onDrawingChange, onLogout, onRequireAccount, onUpdateProfile, setAnswers, userProfile }: Props) {
   const savedPersonChallengeRef = useRef(loadTodaysPersonChallenge(userProfile.email));
   const savedPersonChallenge = savedPersonChallengeRef.current;
   const savedPersonProfile = savedPersonChallenge
@@ -3598,7 +3599,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 Imagine which image is showing on the next page. Draw your ideas before you see the choices. It is great to start with basic shapes, lines, colors, textures, or the first feeling that comes to mind.
               </Text>
             </View>
-            <DrawingPad points={drawingPoints} setPoints={setDrawingPoints} />
+            <DrawingPad onDrawingChange={onDrawingChange} points={drawingPoints} setPoints={setDrawingPoints} />
             <View style={styles.drawingActions}>
               <Pressable onPress={() => setDrawingPoints([])} style={[styles.secondaryButton, styles.drawingActionButton]}>
                 <Ionicons color="#FFFFFF" name="trash-outline" size={17} />
@@ -4065,25 +4066,26 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       </View>
       <View style={styles.moduleGrid}>
         {homeChallenges.map((challenge) => (
-          <View key={challenge.id} style={styles.moduleGridItem}>
-            <Pressable
-              accessibilityLabel={`Open ${challenge.title}`}
-              onPress={() => {
-                openChallenge(challenge.id);
-              }}
-              style={[styles.moduleIconButton, styles.moduleIconButtonPurple]}
-            >
+          <Pressable
+            accessibilityLabel={`Open ${challenge.title}`}
+            accessibilityRole="button"
+            hitSlop={4}
+            key={challenge.id}
+            onPress={() => openChallenge(challenge.id)}
+            style={({ pressed }) => [styles.moduleGridItem, pressed && styles.moduleGridItemPressed]}
+          >
+            <View style={[styles.moduleIconButton, styles.moduleIconButtonPurple]}>
               <Ionicons
                 color="#FFFFFF"
                 name={challengeIcons[challenge.id]}
                 size={32}
               />
-            </Pressable>
+            </View>
             <View style={styles.moduleGridCopy}>
               <Text style={styles.moduleGridTitle}>{challenge.title}</Text>
               <Text style={styles.moduleGridTagline}>{challenge.prompt}</Text>
             </View>
-          </View>
+          </Pressable>
         ))}
       </View>
       <Pressable
@@ -5396,9 +5398,11 @@ function getFallbackPictureSource(id: string) {
 }
 
 function DrawingPad({
+  onDrawingChange,
   points,
   setPoints
 }: {
+  onDrawingChange?: (active: boolean) => void;
   points: Array<{ x: number; y: number; start?: boolean }>;
   setPoints: React.Dispatch<React.SetStateAction<Array<{ x: number; y: number; start?: boolean }>>>;
 }) {
@@ -5422,6 +5426,8 @@ function DrawingPad({
     context.clearRect(0, 0, canvas.clientWidth || 0, canvas.clientHeight || 0);
     setHasInk(false);
   }, [points.length]);
+
+  useEffect(() => () => onDrawingChange?.(false), [onDrawingChange]);
 
   const beginStroke = (event: any) => {
     event.preventDefault?.();
@@ -5478,10 +5484,10 @@ function DrawingPad({
         accessibilityLabel="Remote viewing touch drawing area"
         onMoveShouldSetResponderCapture={() => true}
         onMoveShouldSetResponder={() => true}
-        onResponderGrant={(event) => addNativePoint(event, true)}
+        onResponderGrant={(event) => { onDrawingChange?.(true); addNativePoint(event, true); }}
         onResponderMove={(event) => addNativePoint(event)}
-        onResponderRelease={() => { lastPointRef.current = null; }}
-        onResponderTerminate={() => { lastPointRef.current = null; }}
+        onResponderRelease={() => { lastPointRef.current = null; onDrawingChange?.(false); }}
+        onResponderTerminate={() => { lastPointRef.current = null; onDrawingChange?.(false); }}
         onResponderTerminationRequest={() => false}
         onStartShouldSetResponderCapture={() => true}
         onStartShouldSetResponder={() => true}
@@ -5653,6 +5659,7 @@ const styles = StyleSheet.create({
   menuTagline: { color: "#00AEBB", fontSize: 13, fontWeight: "800", marginTop: 3 },
   moduleGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "space-between" },
   moduleGridItem: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#CFEFED", borderRadius: 8, borderWidth: 1, minHeight: 164, padding: 14, width: "48%" },
+  moduleGridItemPressed: { backgroundColor: "#F0FAFA", borderColor: "#63E3E0", opacity: 0.86, transform: [{ scale: 0.98 }] },
   moduleIconButton: { alignItems: "center", borderRadius: 8, borderWidth: 1, height: 66, justifyContent: "center", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.28, shadowRadius: 8, width: 66 },
   moduleIconButtonPurple: { backgroundColor: "#7555C7", borderColor: "#DCCFF5", shadowColor: "#7555C7" },
   moduleIconButtonTeal: { backgroundColor: "#008A94", borderColor: "#63E3E0", shadowColor: "#00AEBB" },
