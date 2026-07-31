@@ -3,6 +3,9 @@
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [
+    { "source": "/api/public-config", "destination": "/api/misc?endpoint=public-config" },
+    { "source": "/api/birth-location", "destination": "/api/misc?endpoint=birth-location" },
+    { "source": "/api/module-feedback", "destination": "/api/misc?endpoint=module-feedback" },
     { "source": "/api/articles", "destination": "/api/article-page?endpoint=articles" },
     { "source": "/articles", "destination": "/api/article-page" },
     { "source": "/articles/category/:category", "destination": "/api/article-page?category=:category" },

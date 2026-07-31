@@ -1,4 +1,4 @@
-const { allowCors, sendJson } = require("../server/supabase");
+const { allowCors, sendJson } = require("./supabase");
 
 module.exports = async function handler(request, response) {
   if (allowCors(request, response)) return;
