@@ -46,6 +46,8 @@ function responseRecorder() {
   assert.match(pageResponse.payload, /application\/ld\+json/);
   assert.match(pageResponse.payload, /<h2>Record the signal<\/h2>/);
   assert.match(pageResponse.payload, /Try it for yourself/);
+  assert.match(pageResponse.payload, /<summary>Article Guides<\/summary>/);
+  assert.match(pageResponse.payload, /articles\/trust-your-first-impression/);
 
   const categoryResponse = responseRecorder();
   await articlePage({ query: { category: "intuition-training" } }, categoryResponse);
