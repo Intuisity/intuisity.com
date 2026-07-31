@@ -376,8 +376,10 @@ export default function App() {
 
       <ScrollView
         automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+        canCancelContentTouches={false}
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic"
+        directionalLockEnabled={Platform.OS === "ios"}
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         keyboardShouldPersistTaps="handled"
       >

@@ -2723,14 +2723,17 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 return (
                   <Pressable
                     disabled={disabled}
-                    onTouchStart={() => {
+                    onStartShouldSetResponder={() => !disabled}
+                    onMoveShouldSetResponder={() => !disabled}
+                    onResponderGrant={() => {
                       if (disabled) return;
                       const drag = { icon, from: "palette" as const };
                       treasureNativeDragRef.current = drag;
                       setTreasurePointerDrag(drag);
                     }}
-                    onTouchEnd={finishNativeTreasureDrag}
-                    onTouchCancel={() => { treasureNativeDragRef.current = null; setTreasurePointerDrag(null); }}
+                    onResponderRelease={finishNativeTreasureDrag}
+                    onResponderTerminate={() => { treasureNativeDragRef.current = null; setTreasurePointerDrag(null); }}
+                    onResponderTerminationRequest={() => false}
                     key={icon}
                     onPress={() => tapTreasureIcon({ icon, from: "palette" })}
                     style={[styles.treasureToken, disabled && styles.treasureTokenDisabled]}
@@ -2764,14 +2767,17 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                         <Pressable
                             ref={(node) => { treasureSlotRefs.current[index] = node; }}
                             key={`treasure-game-${rowIndex}-${index}`}
-                            onTouchStart={() => {
+                            onStartShouldSetResponder={() => Boolean(icon && !treasureLocked[index])}
+                            onMoveShouldSetResponder={() => Boolean(icon && !treasureLocked[index])}
+                            onResponderGrant={() => {
                               if (!icon || treasureLocked[index]) return;
                               const drag = { icon, from: "slot" as const, index };
                               treasureNativeDragRef.current = drag;
                               setTreasurePointerDrag(drag);
                             }}
-                            onTouchEnd={finishNativeTreasureDrag}
-                            onTouchCancel={() => { treasureNativeDragRef.current = null; setTreasurePointerDrag(null); }}
+                            onResponderRelease={finishNativeTreasureDrag}
+                            onResponderTerminate={() => { treasureNativeDragRef.current = null; setTreasurePointerDrag(null); }}
+                            onResponderTerminationRequest={() => false}
                             onPress={() => icon && tapTreasureIcon({ icon, from: "slot", index })}
                             style={[
                               styles.treasureSlot,
@@ -5460,6 +5466,9 @@ function DrawingPad({
       const x = Number(event.nativeEvent?.locationX);
       const y = Number(event.nativeEvent?.locationY);
       if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      const previous = lastPointRef.current;
+      if (!start && previous && Math.hypot(x - previous.x, y - previous.y) < 1.5) return;
+      lastPointRef.current = { x, y };
       setHasInk(true);
       setPoints((current) => [...current, { x, y, start }].slice(-900));
     };
@@ -5467,9 +5476,14 @@ function DrawingPad({
     return (
       <View
         accessibilityLabel="Remote viewing touch drawing area"
+        onMoveShouldSetResponderCapture={() => true}
         onMoveShouldSetResponder={() => true}
         onResponderGrant={(event) => addNativePoint(event, true)}
         onResponderMove={(event) => addNativePoint(event)}
+        onResponderRelease={() => { lastPointRef.current = null; }}
+        onResponderTerminate={() => { lastPointRef.current = null; }}
+        onResponderTerminationRequest={() => false}
+        onStartShouldSetResponderCapture={() => true}
         onStartShouldSetResponder={() => true}
         style={styles.drawingPad}
       >
