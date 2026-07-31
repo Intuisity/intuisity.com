@@ -10,6 +10,12 @@
     { "source": "/articles", "destination": "/api/article-page" },
     { "source": "/articles/category/:category", "destination": "/api/article-page?category=:category" },
     { "source": "/articles/:slug", "destination": "/api/article-page?slug=:slug" },
+    { "source": "/free-intuition-test", "destination": "/api/article-page?landing=free-intuition-test" },
+    { "source": "/daily-intuition-challenge", "destination": "/api/article-page?landing=daily-intuition-challenge" },
+    { "source": "/free-remote-viewing-practice", "destination": "/api/article-page?landing=free-remote-viewing-practice" },
+    { "source": "/intuition-games-for-adults", "destination": "/api/article-page?landing=intuition-games-for-adults" },
+    { "source": "/intuition-games-with-friends", "destination": "/api/article-page?landing=intuition-games-with-friends" },
+    { "source": "/five-minute-intuition-exercise", "destination": "/api/article-page?landing=five-minute-intuition-exercise" },
     { "source": "/sitemap.xml", "destination": "/api/article-page?sitemap=1" }
   ]
 }

@@ -55,10 +55,19 @@ function responseRecorder() {
   assert.match(categoryResponse.payload, /<h1>Intuition Training<\/h1>/);
   assert.match(categoryResponse.payload, /Trust Your First Impression/);
 
+  const landingResponse = responseRecorder();
+  await articlePage({ query: { landing: "free-remote-viewing-practice" } }, landingResponse);
+  assert.equal(landingResponse.statusCode, 200);
+  assert.match(landingResponse.payload, /<h1>Free Remote Viewing Practice for Beginners<\/h1>/);
+  assert.match(landingResponse.payload, /Try Remote Viewing Free/);
+  assert.match(landingResponse.payload, /FAQPage/);
+
   const sitemapResponse = responseRecorder();
   await articlePage({ query: { sitemap: "1" } }, sitemapResponse);
   assert.equal(sitemapResponse.statusCode, 200);
   assert.match(sitemapResponse.payload, /articles\/trust-your-first-impression/);
   assert.match(sitemapResponse.payload, /articles\/category\/intuition-training/);
+  assert.match(sitemapResponse.payload, /free-intuition-test/);
+  assert.match(sitemapResponse.payload, /free-remote-viewing-practice/);
   console.log("Article publishing tests passed");
 })().catch((error) => { console.error(error); process.exit(1); });
