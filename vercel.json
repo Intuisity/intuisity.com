@@ -1,6 +1,7 @@
 {
   "buildCommand": "npm run build:web",
   "outputDirectory": "dist",
+  "trailingSlash": false,
   "framework": null,
   "rewrites": [
     { "source": "/api/public-config", "destination": "/api/misc?endpoint=public-config" },
