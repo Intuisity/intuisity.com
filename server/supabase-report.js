@@ -338,17 +338,14 @@ function selectAll(table) {
 }
 
 function buildVisitorVolume(events, dateRange) {
-  const today = getLocalDateKey(new Date());
-  const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - 6);
-  const monthStart = new Date(now);
-  monthStart.setDate(now.getDate() - 29);
+  const today = getReportingDateKey(new Date());
+  const weekStart = shiftDateKey(today, -6);
+  const monthStart = shiftDateKey(today, -29);
 
   return {
     today: countUniqueVisitors(filterEventsSince(events, today)),
-    week: countUniqueVisitors(filterEventsFromDate(events, weekStart)),
-    month: countUniqueVisitors(filterEventsFromDate(events, monthStart)),
+    week: countUniqueVisitors(events.filter((event) => getEventDateKey(event) >= weekStart)),
+    month: countUniqueVisitors(events.filter((event) => getEventDateKey(event) >= monthStart)),
     range: countUniqueVisitors(filterEventsByDateRange(events, dateRange))
   };
 }
@@ -448,6 +445,23 @@ function getLocalDateKey(date) {
   ].join("-");
 }
 
+function getReportingDateKey(date, timeZone = process.env.INTUISITY_REPORT_TIME_ZONE || "America/Los_Angeles") {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone,
+    year: "numeric"
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function shiftDateKey(dateKey, days) {
+  const date = new Date(`${dateKey}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return [date.getUTCFullYear(), String(date.getUTCMonth() + 1).padStart(2, "0"), String(date.getUTCDate()).padStart(2, "0")].join("-");
+}
+
 function getActiveDuration(event) {
   return Number(event.active_duration_ms || event.duration_ms || 0);
 }
@@ -524,6 +538,7 @@ module.exports = {
   buildAdminReport,
   buildUserInsightsCsv,
   collectKnownEmails,
+  getReportingDateKey,
   reconcileAnonymousVisitors,
   resolveProfileField
 };
