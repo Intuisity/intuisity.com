@@ -5,9 +5,10 @@ import * as WebBrowser from "expo-web-browser";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  AppState,
   Image,
   KeyboardAvoidingView,
   Linking,
@@ -52,6 +53,10 @@ type Answers = Record<string, string>;
 const profilesKey = "intuisity-user-profiles";
 const activeProfileKey = "intuisity-active-profile";
 const nativeActiveProfileKey = "intuisity-native-active-profile";
+const sessionActivityKey = "intuisity-session-last-active";
+const nativeSessionActivityKey = "intuisity-native-session-last-active";
+const sessionInactivityLimitMs = 6 * 60 * 60 * 1000;
+const sessionActivityPersistIntervalMs = 60 * 1000;
 const guestProfileKey = "intuisity-guest-profile";
 const dailyAnswersKeyPrefix = "intuisity-daily-answers";
 const supportedLanguages = [
@@ -161,11 +166,22 @@ export default function App() {
   });
   const [subscriptionStatus, setSubscriptionStatus] = useState("Free");
   const [accountGateNotice, setAccountGateNotice] = useState("");
+  const sessionActivityRef = useRef(Date.now());
+  const sessionActivityPersistedRef = useRef(0);
   const userIsAdmin = isAdminUser(userProfile);
   const visibleTabs = useMemo(
     () => tabs.filter((tab) => tab.key !== "admin" || userIsAdmin),
     [userIsAdmin]
   );
+
+  const markSessionActivity = useCallback(() => {
+    if (!userProfile) return;
+    const now = Date.now();
+    sessionActivityRef.current = now;
+    if (now - sessionActivityPersistedRef.current < sessionActivityPersistIntervalMs) return;
+    sessionActivityPersistedRef.current = now;
+    persistSessionActivity(now);
+  }, [userProfile?.email]);
 
   useEffect(() => {
     updateWebMetadata();
@@ -183,9 +199,20 @@ export default function App() {
   useEffect(() => {
     if (Platform.OS === "web") return;
     let cancelled = false;
-    SecureStore.getItemAsync(nativeActiveProfileKey)
-      .then((storedProfile) => {
+    Promise.all([
+      SecureStore.getItemAsync(nativeActiveProfileKey),
+      SecureStore.getItemAsync(nativeSessionActivityKey)
+    ])
+      .then(([storedProfile, storedActivity]) => {
         if (!cancelled && storedProfile) {
+          const lastActivity = Number(storedActivity || Date.now());
+          if (Date.now() - lastActivity >= sessionInactivityLimitMs) {
+            clearSavedSession();
+            setAccountGateNotice("For your security, you were logged out after six hours without activity. Please log in again.");
+            return;
+          }
+          sessionActivityRef.current = Date.now();
+          persistSessionActivity(sessionActivityRef.current);
           setUserProfile(normalizeLoadedProfile(JSON.parse(storedProfile)));
         }
       })
@@ -197,6 +224,47 @@ export default function App() {
       });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!userProfile) return;
+    const savedActivity = Platform.OS === "web" ? Number(globalThis.localStorage?.getItem(sessionActivityKey) || Date.now()) : Date.now();
+    sessionActivityRef.current = Number.isFinite(savedActivity) ? savedActivity : Date.now();
+    markSessionActivity();
+
+    const expireIfInactive = () => {
+      if (Date.now() - sessionActivityRef.current < sessionInactivityLimitMs) return;
+      clearSavedSession();
+      setAnswers({});
+      setUserProfile(null);
+      setAccountGateNotice("For your security, you were logged out after six hours without activity. Please log in again.");
+    };
+    const interval = setInterval(expireIfInactive, 60 * 1000);
+
+    if (Platform.OS === "web") {
+      const documentRef = (globalThis as any).document;
+      const browserWindow = (globalThis as any).window;
+      documentRef?.addEventListener("pointerdown", markSessionActivity, { passive: true });
+      documentRef?.addEventListener("keydown", markSessionActivity, { passive: true });
+      browserWindow?.addEventListener("scroll", markSessionActivity, { passive: true });
+      documentRef?.addEventListener("visibilitychange", expireIfInactive);
+      return () => {
+        clearInterval(interval);
+        documentRef?.removeEventListener("pointerdown", markSessionActivity);
+        documentRef?.removeEventListener("keydown", markSessionActivity);
+        browserWindow?.removeEventListener("scroll", markSessionActivity);
+        documentRef?.removeEventListener("visibilitychange", expireIfInactive);
+      };
+    }
+
+    const appStateSubscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") expireIfInactive();
+      else persistSessionActivity(sessionActivityRef.current);
+    });
+    return () => {
+      clearInterval(interval);
+      appStateSubscription.remove();
+    };
+  }, [markSessionActivity, userProfile?.email]);
 
   useEffect(() => {
     if (activeTab === "admin" && !userIsAdmin) {
@@ -299,10 +367,7 @@ export default function App() {
   }
 
   const logout = () => {
-    globalThis.localStorage?.removeItem(activeProfileKey);
-    if (Platform.OS !== "web") {
-      SecureStore.deleteItemAsync(nativeActiveProfileKey).catch(() => undefined);
-    }
+    clearSavedSession();
     setAnswers({});
     setUserProfile(null);
   };
@@ -326,7 +391,7 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.app}>
+    <SafeAreaView onTouchStart={markSessionActivity} style={styles.app}>
       <StatusBar style="dark" />
       <View style={styles.floatingScore}>
         <Pressable
@@ -1123,6 +1188,12 @@ function loadProfiles(): UserProfile[] {
 
 function loadActiveProfile(): UserProfile | null {
   try {
+    const storedActivity = Number(globalThis.localStorage?.getItem(sessionActivityKey) || Date.now());
+    if (Date.now() - storedActivity >= sessionInactivityLimitMs) {
+      globalThis.localStorage?.removeItem(activeProfileKey);
+      globalThis.localStorage?.removeItem(sessionActivityKey);
+      return null;
+    }
     const activeEmail = globalThis.localStorage?.getItem(activeProfileKey);
     return loadProfiles().find((profile) => profile.email === activeEmail) || null;
   } catch {
@@ -1207,11 +1278,30 @@ function loadOrCreateGuestProfile(): UserProfile {
   return profile;
 }
 
+function persistSessionActivity(timestamp: number) {
+  globalThis.localStorage?.setItem(sessionActivityKey, String(timestamp));
+  if (Platform.OS !== "web") {
+    SecureStore.setItemAsync(nativeSessionActivityKey, String(timestamp)).catch(() => undefined);
+  }
+}
+
+function clearSavedSession() {
+  globalThis.localStorage?.removeItem(activeProfileKey);
+  globalThis.localStorage?.removeItem(sessionActivityKey);
+  if (Platform.OS !== "web") {
+    Promise.all([
+      SecureStore.deleteItemAsync(nativeActiveProfileKey),
+      SecureStore.deleteItemAsync(nativeSessionActivityKey)
+    ]).catch(() => undefined);
+  }
+}
+
 function saveProfile(profile: UserProfile) {
   if (profile.authProvider === "guest") return;
   const profiles = loadProfiles().filter((item) => item.email !== profile.email);
   globalThis.localStorage?.setItem(profilesKey, JSON.stringify([...profiles, profile]));
   globalThis.localStorage?.setItem(activeProfileKey, profile.email);
+  persistSessionActivity(Date.now());
   if (Platform.OS !== "web") {
     SecureStore.setItemAsync(nativeActiveProfileKey, JSON.stringify(profile)).catch(() => undefined);
   }
