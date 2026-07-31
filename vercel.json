@@ -3,6 +3,7 @@
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [
+    { "source": "/api/articles", "destination": "/api/article-page?endpoint=articles" },
     { "source": "/articles", "destination": "/api/article-page" },
     { "source": "/articles/category/:category", "destination": "/api/article-page?category=:category" },
     { "source": "/articles/:slug", "destination": "/api/article-page?slug=:slug" },

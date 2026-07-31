@@ -1,6 +1,8 @@
 const { supabaseRequest } = require("../server/supabase");
+const articleApi = require("../server/articles-api");
 
 module.exports = async function handler(request, response) {
+  if (String(request.query?.endpoint || "") === "articles") return articleApi(request, response);
   try {
     const slug = cleanSlug(request.query?.slug);
     const category = cleanSlug(request.query?.category);

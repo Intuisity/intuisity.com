@@ -32,7 +32,7 @@ function responseRecorder() {
 }
 
 (async () => {
-  const articleApi = require("../api/articles");
+  const articleApi = require("../server/articles-api");
   const listResponse = responseRecorder();
   await articleApi({ method: "GET", query: {}, headers: {} }, listResponse);
   assert.equal(listResponse.statusCode, 200);

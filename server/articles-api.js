@@ -1,5 +1,5 @@
 const crypto = require("node:crypto");
-const { allowCors, readJsonBody, requireAdminSecret, sendJson, supabaseRequest } = require("../server/supabase");
+const { allowCors, readJsonBody, requireAdminSecret, sendJson, supabaseRequest } = require("./supabase");
 
 module.exports = async function handler(request, response) {
   if (allowCors(request, response)) return;
