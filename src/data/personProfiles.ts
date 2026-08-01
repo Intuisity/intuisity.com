@@ -19,13 +19,51 @@ type HistoricalSeed = {
   history: string;
 };
 
-const decoySets = [
-  ["Court musician", "Mapmaker", "Medical herbalist"],
-  ["Trade route organizer", "Religious reformer", "Textile artisan"],
-  ["Military strategist", "Diplomatic envoy", "Agricultural reformer"],
-  ["Legal advocate", "Ship navigator", "Poet and storyteller"],
-  ["Printer and publisher", "Museum curator", "Architectural designer"]
-];
+const plausibleTraitDecoys: Record<string, string[]> = {
+  activism: ["Persuasive coalition builder", "Patient negotiator", "Skilled public organizer", "Pragmatic reformer"],
+  arts: ["Careful cultural observer", "Innovative stylist", "Disciplined craftsperson", "Bold artistic experimenter"],
+  education: ["Patient mentor", "Institution builder", "Advocate for wider learning", "Careful scholar"],
+  exploration: ["Skilled navigator", "Detailed mapmaker", "Cross-cultural envoy", "Logistical planner"],
+  leadership: ["Consensus-building leader", "Long-range planner", "Diplomatic strategist", "Administrative reformer"],
+  law: ["Methodical legal thinker", "Persuasive advocate", "Strategic case builder", "Institutional reformer"],
+  medicine: ["Careful clinical observer", "Public-health reformer", "Methodical practitioner", "Compassionate caregiver"],
+  military: ["Tactical planner", "Resilient field leader", "Skilled alliance builder", "Decisive commander"],
+  science: ["Methodical experimenter", "Precise record keeper", "Patient investigator", "Inventive theorist"],
+  general: ["Adaptable collaborator", "Methodical planner", "Persuasive communicator", "Patient researcher"]
+};
+
+function getProfileCategory(seed: HistoricalSeed) {
+  const text = `${seed.role} ${seed.knownFor} ${seed.context}`.toLowerCase();
+  if (/scient|mathematic|astronom|physic|chemist|engineer|invent|botan|naturalist|computer|optics/.test(text)) return "science";
+  if (/physician|surgeon|nurse|medic|health|hospital|treatment/.test(text)) return "medicine";
+  if (/writer|poet|artist|paint|music|composer|singer|actor|film|photograph|architect/.test(text)) return "arts";
+  if (/activist|rights|reform|abolition|suffrag|revolution|resistance|independence/.test(text)) return "activism";
+  if (/law|judge|legal|justice|court/.test(text)) return "law";
+  if (/educat|teacher|school|scholar|learning|university/.test(text)) return "education";
+  if (/admiral|military|war|army|commander|fighter|general/.test(text)) return "military";
+  if (/explor|navigator|voyage|map|expedition/.test(text)) return "exploration";
+  if (/leader|president|queen|king|emperor|founder|diplomat|minister|organizer/.test(text)) return "leadership";
+  return "general";
+}
+
+function getPlausibleDecoys(seed: HistoricalSeed, index: number, allSeeds: HistoricalSeed[]) {
+  const category = getProfileCategory(seed);
+  const traits = plausibleTraitDecoys[category] || plausibleTraitDecoys.general;
+  const firstTrait = traits[index % traits.length];
+  const secondTrait = traits[(index + 1) % traits.length];
+  const seedWords = new Set(`${seed.role} ${seed.context}`.toLowerCase().split(/\W+/).filter((word) => word.length > 3));
+  const relatedAccomplishments = allSeeds
+    .filter((candidate) => candidate.id !== seed.id && candidate.knownFor !== seed.knownFor && getProfileCategory(candidate) === category)
+    .map((candidate, candidateIndex) => ({
+      knownFor: candidate.knownFor,
+      order: candidateIndex,
+      similarity: `${candidate.role} ${candidate.context}`.toLowerCase().split(/\W+/).filter((word) => seedWords.has(word)).length
+    }))
+    .sort((left, right) => right.similarity - left.similarity || left.order - right.order);
+  const accomplishmentPoolSize = Math.min(relatedAccomplishments.length, 5);
+  const accomplishment = relatedAccomplishments[index % Math.max(accomplishmentPoolSize, 1)]?.knownFor || "Built a lasting public institution";
+  return [firstTrait, secondTrait, accomplishment];
+}
 
 function getPersonalityTraits(seed: HistoricalSeed, index: number): string[] {
   const profileText = `${seed.role} ${seed.knownFor} ${seed.context}`.toLowerCase();
@@ -61,7 +99,7 @@ function getPersonalityTraits(seed: HistoricalSeed, index: number): string[] {
   return fallbackTraits[index % fallbackTraits.length];
 }
 
-function createProfile(seed: HistoricalSeed, index: number): PersonProfile {
+function createProfile(seed: HistoricalSeed, index: number, allSeeds: HistoricalSeed[]): PersonProfile {
   const correctAttributes = [...getPersonalityTraits(seed, index), seed.knownFor];
   return {
     id: seed.id,
@@ -70,7 +108,7 @@ function createProfile(seed: HistoricalSeed, index: number): PersonProfile {
     introduction: "Take a quiet moment with this portrait. The name is hidden until the reveal, so notice which personality traits and life details feel true before you begin analyzing.",
     history: seed.history,
     correctAttributes,
-    attributes: [...correctAttributes, ...decoySets[index % decoySets.length]]
+    attributes: [...correctAttributes, ...getPlausibleDecoys(seed, index, allSeeds)]
   };
 }
 
@@ -432,4 +470,5 @@ const worldwideHistoricalSeeds: HistoricalSeed[] = [
   { id: "manuel-alvarez-bravo", name: "Manuel Alvarez Bravo", role: "Photographer", knownFor: "Mexican modern photography", context: "Mexican art", history: "Manuel Alvarez Bravo was a photographer whose poetic images shaped modern Mexican visual culture." }
 ];
 
-export const personProfiles: PersonProfile[] = [...historicalSeeds, ...worldwideHistoricalSeeds].slice(0, 300).map(createProfile);
+const selectedHistoricalSeeds = [...historicalSeeds, ...worldwideHistoricalSeeds].slice(0, 300);
+export const personProfiles: PersonProfile[] = selectedHistoricalSeeds.map((seed, index) => createProfile(seed, index, selectedHistoricalSeeds));
