@@ -35,6 +35,7 @@ async function buildAdminReport(options = {}) {
   const volume = buildVisitorVolume(visitorEvents, dateRange);
   const visitorTrend = buildVisitorTrend(rangedVisitorEvents);
   const platformBreakdown = buildPlatformBreakdown(rangedVisitorEvents);
+  const geographicAreas = buildGeographicAreas(userProfiles);
   const moduleDailyTrend = buildModuleDailyTrend(rangedAnalyticsEvents);
 
   const moduleTotals = new Map();
@@ -74,6 +75,7 @@ async function buildAdminReport(options = {}) {
     visitorVolume: volume,
     visitorTrend,
     platformBreakdown,
+    geographicAreas,
     moduleDailyTrend,
     dateRange,
     totalTimeMs,
@@ -447,6 +449,52 @@ function getLocalDateKey(date) {
   ].join("-");
 }
 
+function buildGeographicAreas(profiles) {
+  const uniqueProfiles = new Map();
+  profiles.forEach((profile) => {
+    const email = normalizeEmail(profile.email);
+    if (!email || isExcludedReportEmail(email) || isAnonymousVisitorEmail(email)) return;
+    uniqueProfiles.set(email, profile);
+  });
+
+  const countries = new Map();
+  const states = new Map();
+  const cities = new Map();
+  let usersWithLocation = 0;
+
+  uniqueProfiles.forEach((profile) => {
+    const country = String(resolveProfileField(profile, "current_country", "currentCountry") || "").trim();
+    const state = String(resolveProfileField(profile, "current_state", "currentState") || "").trim();
+    const city = String(resolveProfileField(profile, "current_city", "currentCity") || "").trim();
+    if (!country && !state && !city) return;
+    usersWithLocation += 1;
+    incrementArea(countries, country);
+    incrementArea(states, state ? [state, country].filter(Boolean).join(", ") : "");
+    incrementArea(cities, city ? [city, state || country].filter(Boolean).join(", ") : "");
+  });
+
+  return {
+    cities: rankAreas(cities),
+    countries: rankAreas(countries),
+    states: rankAreas(states),
+    totalUsers: uniqueProfiles.size,
+    usersWithLocation
+  };
+}
+
+function incrementArea(areas, label) {
+  const cleanLabel = String(label || "").trim();
+  if (!cleanLabel) return;
+  const key = cleanLabel.toLocaleLowerCase("en-US");
+  const current = areas.get(key) || { count: 0, label: cleanLabel };
+  current.count += 1;
+  areas.set(key, current);
+}
+
+function rankAreas(areas) {
+  return [...areas.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)).slice(0, 20);
+}
+
 function buildPremiumInterest(analyticsEvents, profiles) {
   const profileByEmail = new Map(profiles.map((profile) => [normalizeEmail(profile.email), profile]));
   const interestByEmail = new Map();
@@ -561,6 +609,7 @@ function formatDuration(milliseconds) {
 
 module.exports = {
   buildAdminReport,
+  buildGeographicAreas,
   buildPremiumInterest,
   buildUserInsightsCsv,
   collectKnownEmails,

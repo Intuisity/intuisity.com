@@ -73,6 +73,13 @@ type BackendAdminReport = {
     requestedAt: string;
     platform: string;
   }>;
+  geographicAreas: {
+    countries: Array<{ label: string; count: number }>;
+    states: Array<{ label: string; count: number }>;
+    cities: Array<{ label: string; count: number }>;
+    usersWithLocation: number;
+    totalUsers: number;
+  };
   visitorInsights: Array<{
     key: string;
     name: string;

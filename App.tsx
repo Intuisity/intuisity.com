@@ -1857,6 +1857,7 @@ function AdminDashboard() {
   const [reportRefreshedAt, setReportRefreshedAt] = useState("");
   const localReport = loadAdminAnalyticsReport(reportStartDate, reportEndDate);
   const report = backendReport || localReport;
+  const geographicAreas = report.geographicAreas || { cities: [], countries: [], states: [], totalUsers: report.totalUsers, usersWithLocation: 0 };
   const recentBackendSaves = useMemo(loadBackendSyncLog, [backendLogRefresh]);
   const hasActivity = report.totalUsers > 0 || report.totalVisits > 0 || report.feedbackCount > 0;
   const visitorTrendMax = Math.max(1, ...(report.visitorTrend || []).map((day) => day.uniqueVisitors));
@@ -2295,6 +2296,34 @@ function AdminDashboard() {
             <Text style={styles.metricValue}>{platform.uniqueVisitors}</Text>
             <Text style={styles.metricLabel}>{platform.label}</Text>
             <Text style={styles.adminFeedbackMeta}>{platform.visits} visits</Text>
+          </View>
+        ))}
+      </View>
+
+      <Text style={styles.adminSectionTitle}>Strongest geographic areas</Text>
+      <Text style={styles.adminSectionHint}>
+        Based on the current city, state or region, and country saved by {geographicAreas.usersWithLocation} of {geographicAreas.totalUsers} registered users. No background GPS tracking is used.
+      </Text>
+      <View style={styles.adminGeographyGrid}>
+        {[
+          { icon: "globe-outline" as const, items: geographicAreas.countries, title: "Countries" },
+          { icon: "map-outline" as const, items: geographicAreas.states, title: "States and regions" },
+          { icon: "location-outline" as const, items: geographicAreas.cities, title: "Cities" }
+        ].map((group) => (
+          <View key={group.title} style={styles.adminGeographyCard}>
+            <View style={styles.adminGeographyTitleRow}>
+              <Ionicons color="#7555C7" name={group.icon} size={22} />
+              <Text style={styles.adminStartTitle}>{group.title}</Text>
+            </View>
+            {group.items.length ? group.items.slice(0, 8).map((area, index) => (
+              <View key={area.label} style={styles.adminGeographyRow}>
+                <Text style={styles.adminGeographyRank}>{index + 1}</Text>
+                <Text style={styles.adminGeographyLabel}>{area.label}</Text>
+                <Text style={styles.adminGeographyCount}>{area.count}</Text>
+              </View>
+            )) : (
+              <Text style={styles.adminFeedbackMeta}>No saved location information yet.</Text>
+            )}
           </View>
         ))}
       </View>
@@ -2840,6 +2869,57 @@ const styles = StyleSheet.create({
     gap: 10,
     justifyContent: "space-between",
     marginBottom: 10
+  },
+  adminGeographyGrid: {
+    gap: 12,
+    marginBottom: 10
+  },
+  adminGeographyCard: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E7E3F2",
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 14
+  },
+  adminGeographyTitleRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 10
+  },
+  adminGeographyRow: {
+    alignItems: "center",
+    borderTopColor: "#EEEAF5",
+    borderTopWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    minHeight: 42,
+    paddingVertical: 8
+  },
+  adminGeographyRank: {
+    color: "#7555C7",
+    fontSize: 13,
+    fontWeight: "900",
+    textAlign: "center",
+    width: 22
+  },
+  adminGeographyLabel: {
+    color: "#30264C",
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "700"
+  },
+  adminGeographyCount: {
+    backgroundColor: "#F1EDFF",
+    borderRadius: 8,
+    color: "#6544B8",
+    fontSize: 13,
+    fontWeight: "900",
+    minWidth: 34,
+    overflow: "hidden",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    textAlign: "center"
   },
   metric: {
     backgroundColor: "#F8F7FC",

@@ -57,4 +57,23 @@ assert.deepEqual(premiumInterest, [{
   requestedAt: "2026-08-01T11:00:00.000Z"
 }]);
 
+const geographicAreas = serverReport.buildGeographicAreas([
+  { email: "one@example.com", current_city: "San Diego", current_state: "California", current_country: "United States" },
+  { email: "two@example.com", profile_json: { currentCity: "San Diego", currentState: "California", currentCountry: "United States" } },
+  { email: "three@example.com", current_city: "Austin", current_state: "Texas", current_country: "United States" },
+  { email: "one@example.com", current_city: "San Diego", current_state: "California", current_country: "United States" },
+  { email: "admin@intuisity.com", current_city: "Admin City", current_country: "United States" }
+]);
+assert.equal(geographicAreas.totalUsers, 3);
+assert.equal(geographicAreas.usersWithLocation, 3);
+assert.deepEqual(geographicAreas.countries, [{ label: "United States", count: 3 }]);
+assert.deepEqual(geographicAreas.states.slice(0, 2), [
+  { label: "California, United States", count: 2 },
+  { label: "Texas, United States", count: 1 }
+]);
+assert.deepEqual(geographicAreas.cities.slice(0, 2), [
+  { label: "San Diego, California", count: 2 },
+  { label: "Austin, Texas", count: 1 }
+]);
+
 console.log("Profile report tests passed");

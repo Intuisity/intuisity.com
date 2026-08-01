@@ -55,6 +55,7 @@ export type AdminAnalyticsReport = {
     visits: number;
     uniqueVisitors: number;
   }>;
+  geographicAreas: GeographicAreasReport;
   moduleDailyTrend: Array<{
     date: string;
     modules: Array<{
@@ -80,6 +81,14 @@ export type AdminAnalyticsReport = {
   premiumInterest: PremiumInterestReport[];
   userInsights: UserInsightReport[];
   visitorInsights: VisitorInsightReport[];
+};
+
+export type GeographicAreasReport = {
+  countries: Array<{ label: string; count: number }>;
+  states: Array<{ label: string; count: number }>;
+  cities: Array<{ label: string; count: number }>;
+  usersWithLocation: number;
+  totalUsers: number;
 };
 
 export type VisitorInsightReport = {
@@ -264,6 +273,7 @@ export function loadAdminAnalyticsReport(startDate = "", endDate = ""): AdminAna
     visitorVolume: buildVisitorVolume(visitorEvents, dateRange),
     visitorTrend: buildVisitorTrend(rangedVisitorEvents),
     platformBreakdown: buildPlatformBreakdown(rangedVisitorEvents),
+    geographicAreas: buildLocalGeographicAreas(allProfiles),
     moduleDailyTrend: buildModuleDailyTrend(events),
     dateRange,
     totalTimeMs,
@@ -279,6 +289,44 @@ export function loadAdminAnalyticsReport(startDate = "", endDate = ""): AdminAna
     userInsights: buildLocalUserInsights(events),
     visitorInsights: buildLocalVisitorInsights(rangedVisitorEvents, allProfiles)
   };
+}
+
+function buildLocalGeographicAreas(profiles: Array<Record<string, any>>): GeographicAreasReport {
+  const uniqueProfiles = new Map<string, Record<string, any>>();
+  profiles.forEach((profile) => {
+    const email = String(profile.email || "").trim().toLowerCase();
+    if (!email || isExcludedReportEmail(email) || email.endsWith("@anonymous.intuisity")) return;
+    uniqueProfiles.set(email, profile);
+  });
+  const countries = new Map<string, { label: string; count: number }>();
+  const states = new Map<string, { label: string; count: number }>();
+  const cities = new Map<string, { label: string; count: number }>();
+  let usersWithLocation = 0;
+
+  uniqueProfiles.forEach((profile) => {
+    const country = String(profile.currentCountry || "").trim();
+    const state = String(profile.currentState || "").trim();
+    const city = String(profile.currentCity || "").trim();
+    if (!country && !state && !city) return;
+    usersWithLocation += 1;
+    incrementLocalArea(countries, country);
+    incrementLocalArea(states, state ? [state, country].filter(Boolean).join(", ") : "");
+    incrementLocalArea(cities, city ? [city, state || country].filter(Boolean).join(", ") : "");
+  });
+
+  const rank = (areas: Map<string, { label: string; count: number }>) => [...areas.values()]
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+    .slice(0, 20);
+  return { cities: rank(cities), countries: rank(countries), states: rank(states), totalUsers: uniqueProfiles.size, usersWithLocation };
+}
+
+function incrementLocalArea(areas: Map<string, { label: string; count: number }>, label: string) {
+  const cleanLabel = label.trim();
+  if (!cleanLabel) return;
+  const key = cleanLabel.toLocaleLowerCase("en-US");
+  const current = areas.get(key) || { count: 0, label: cleanLabel };
+  current.count += 1;
+  areas.set(key, current);
 }
 
 function buildLocalPremiumInterest(events: AnalyticsEvent[], profiles: Array<Record<string, any>>): PremiumInterestReport[] {
