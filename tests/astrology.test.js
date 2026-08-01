@@ -10,7 +10,14 @@ const compiled = ts.transpile(source, {
 const moduleShim = { exports: {} };
 new Function("require", "module", "exports", compiled)(require, moduleShim, moduleShim.exports);
 
-const { getAstrologyReading } = moduleShim.exports;
+const { getAstrologyReading, getBirthLocationSuggestions } = moduleShim.exports;
+
+assert.deepEqual(
+  getBirthLocationSuggestions("den").map((location) => location.label),
+  ["Denver, Colorado, United States"]
+);
+assert.equal(getBirthLocationSuggestions("s").length, 0, "Suggestions wait until at least two characters are entered");
+assert.ok(getBirthLocationSuggestions("san").length <= 5, "Suggestion results stay compact on mobile");
 
 assert.equal(getAstrologyReading("03/21/1985", new Date("2026-06-12")).sign.name, "Aries");
 assert.equal(getAstrologyReading("12/25/1990", new Date("2026-06-12")).sign.name, "Capricorn");

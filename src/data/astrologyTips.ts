@@ -346,6 +346,14 @@ export function getKnownBirthLocation(value: string) {
   return resolveBirthLocation(value);
 }
 
+export function getBirthLocationSuggestions(value: string, limit = 5) {
+  const normalizedValue = normalizeLocation(value);
+  if (normalizedValue.length < 2) return [];
+  return knownBirthLocations
+    .filter((location) => normalizeLocation(location.label).startsWith(normalizedValue))
+    .slice(0, limit);
+}
+
 function calculateFullChart(
   birthdate: { year: number; month: number; day: number },
   birthTime: { hour: number; minute: number },

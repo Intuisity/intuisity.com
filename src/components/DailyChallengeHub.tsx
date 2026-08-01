@@ -3,7 +3,7 @@ import * as Contacts from "expo-contacts";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Animated, Easing, Image, ImageBackground, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { getAstrologyReading, getKnownBirthLocation } from "../data/astrologyTips";
+import { getAstrologyReading, getBirthLocationSuggestions, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
 import { dailyIntuitionLessons } from "../data/dailyLessons";
 import { PersonProfile, personProfiles } from "../data/personProfiles";
@@ -596,6 +596,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const [astrologyPlan, setAstrologyPlan] = useState("");
   const [planSaved, setPlanSaved] = useState(false);
   const [birthLocationStatus, setBirthLocationStatus] = useState("");
+  const [birthLocationSuggestionsOpen, setBirthLocationSuggestionsOpen] = useState(false);
   const [priorAstrologyEntry, setPriorAstrologyEntry] = useState<AstrologyJournalEntry | null>(null);
   const [astrologyUpdate, setAstrologyUpdate] = useState("");
   const [friendName, setFriendName] = useState("");
@@ -799,8 +800,25 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
 
   const updateBirthDetail = (field: keyof typeof birthDetails, value: string) => {
     setBirthDetails({ ...birthDetails, [field]: value });
+    if (field === "birthCity") setBirthLocationSuggestionsOpen(value.trim().length >= 2);
     setBirthDetailsSaved(false);
     setBirthLocationStatus("");
+  };
+
+  const birthLocationSuggestions = useMemo(
+    () => getBirthLocationSuggestions(birthDetails.birthCity),
+    [birthDetails.birthCity]
+  );
+
+  const chooseBirthLocationSuggestion = (label: string) => {
+    const parts = label.split(",").map((part) => part.trim()).filter(Boolean);
+    const city = parts[0] || "";
+    const country = parts.length === 1 ? parts[0] : parts[parts.length - 1] || "";
+    const state = parts.length > 2 ? parts.slice(1, -1).join(", ") : "";
+    setBirthDetails({ ...birthDetails, birthCity: city, birthState: state, birthCountry: country });
+    setBirthDetailsSaved(false);
+    setBirthLocationSuggestionsOpen(false);
+    setBirthLocationStatus(`Birthplace selected: ${label}`);
   };
 
   const saveBirthDetails = async () => {
@@ -1782,6 +1800,22 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 style={styles.birthdateInput}
                 value={birthDetails.birthCity}
               />
+              {birthLocationSuggestionsOpen && birthLocationSuggestions.length ? (
+                <View accessibilityLabel="Birthplace suggestions" style={styles.birthLocationSuggestions}>
+                  <Text style={styles.birthLocationSuggestionsTitle}>Select your birthplace</Text>
+                  {birthLocationSuggestions.map((location) => (
+                    <Pressable
+                      accessibilityLabel={`Use ${location.label} as birthplace`}
+                      key={location.label}
+                      onPress={() => chooseBirthLocationSuggestion(location.label)}
+                      style={styles.birthLocationSuggestion}
+                    >
+                      <Ionicons color="#6544B8" name="location-outline" size={18} />
+                      <Text style={styles.birthLocationSuggestionText}>{location.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
               <TextInput
                 accessibilityLabel="Birth state or region for astrology"
                 onChangeText={(birthState) => updateBirthDetail("birthState", birthState)}
@@ -5832,6 +5866,10 @@ const styles = StyleSheet.create({
   inputLabel: { color: "#30264C", fontSize: 14, fontWeight: "900", marginBottom: 7 },
   optionalLabel: { color: "#8A8299", fontSize: 12, fontWeight: "700" },
   birthdateInput: { backgroundColor: "#FFFFFF", borderColor: "#DAD3E8", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 17, marginBottom: 7, paddingHorizontal: 14, paddingVertical: 12 },
+  birthLocationSuggestions: { backgroundColor: "#FFFFFF", borderColor: "#DAD3E8", borderRadius: 9, borderWidth: 1, marginBottom: 9, marginTop: -3, overflow: "hidden" },
+  birthLocationSuggestionsTitle: { backgroundColor: "#F5F1FC", color: "#706982", fontSize: 12, fontWeight: "800", paddingHorizontal: 12, paddingVertical: 8 },
+  birthLocationSuggestion: { alignItems: "center", borderTopColor: "#EEE9F6", borderTopWidth: 1, flexDirection: "row", gap: 8, minHeight: 44, paddingHorizontal: 12, paddingVertical: 9 },
+  birthLocationSuggestionText: { color: "#30264C", flex: 1, fontSize: 14, fontWeight: "700" },
   birthTimePicker: { alignSelf: "center", backgroundColor: "#FFFFFF", borderColor: "#DAD3E8", borderRadius: 28, borderWidth: 1, marginBottom: 10, maxWidth: 306, padding: 10, width: "100%" },
   birthTimeHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 6, paddingHorizontal: 4 },
   birthTimeSelected: { color: "#008A94", fontSize: 12, fontWeight: "900", marginTop: -2, textAlign: "center" },
