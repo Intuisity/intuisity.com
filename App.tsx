@@ -307,7 +307,7 @@ export default function App() {
     setSubscriptionStatus("Early access requested");
     Alert.alert(
       "You are on the premium interest list",
-      "Premium is not live yet. We will let you know when it becomes available. The first 100 signups will receive Premium free for the first year."
+      "Premium is not live yet. We will let you know when it becomes available. The first 100 signups will receive Premium free for the first year, including access to other premium services as they are developed."
     );
   };
 
@@ -1782,6 +1782,7 @@ function FriendChallenges({ onCreateChallenge }: { onCreateChallenge: () => void
 }
 
 function Premium({ status, startCheckout }: { status: string; startCheckout: () => void }) {
+  const earlyAccessRequested = status !== "Free";
   return (
     <View>
       <SectionHeader
@@ -1807,11 +1808,29 @@ function Premium({ status, startCheckout }: { status: string; startCheckout: () 
             <Text style={styles.bodyText}>{feature}</Text>
           </View>
         ))}
+        <View style={styles.featureRow}>
+          <Ionicons color="#4DAA57" name="checkmark-circle-outline" size={20} />
+          <Text style={styles.bodyText}>Access to other premium services as they are developed</Text>
+        </View>
       </View>
-      <Pressable onPress={startCheckout} style={styles.primaryButton}>
-        <Ionicons color="#FFFFFF" name="notifications-outline" size={18} />
-        <Text style={styles.primaryButtonText}>Let me know when Premium is available</Text>
+      <Pressable
+        accessibilityRole="button"
+        disabled={earlyAccessRequested}
+        onPress={startCheckout}
+        style={[styles.primaryButton, earlyAccessRequested && styles.primaryButtonDisabled]}
+      >
+        <Ionicons color="#FFFFFF" name={earlyAccessRequested ? "checkmark-circle-outline" : "notifications-outline"} size={18} />
+        <Text style={styles.primaryButtonText}>{earlyAccessRequested ? "You're on the early-access list" : "Let me know when Premium is available"}</Text>
       </Pressable>
+      {earlyAccessRequested && (
+        <View accessibilityLiveRegion="polite" style={styles.premiumConfirmationCard}>
+          <Ionicons color="#287A36" name="checkmark-circle" size={24} />
+          <View style={styles.adminInsightCopy}>
+            <Text style={styles.premiumConfirmationTitle}>Your request was received</Text>
+            <Text style={styles.bodyText}>We will let you know when Premium becomes available. Your membership will also include access to other premium services as they are developed.</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -2946,6 +2965,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12
   },
+  primaryButtonDisabled: {
+    backgroundColor: "#4B8D58",
+    borderColor: "#BCE2C3",
+    opacity: 1
+  },
   disabledButton: {
     opacity: 0.45
   },
@@ -3004,6 +3028,23 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 12,
     padding: 12
+  },
+  premiumConfirmationCard: {
+    alignItems: "flex-start",
+    backgroundColor: "#F0FAF2",
+    borderColor: "#BCE2C3",
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 14,
+    padding: 14
+  },
+  premiumConfirmationTitle: {
+    color: "#287A36",
+    fontSize: 16,
+    fontWeight: "900",
+    marginBottom: 4
   },
   adminRow: {
     alignItems: "center",
