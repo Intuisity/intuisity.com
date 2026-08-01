@@ -14,6 +14,14 @@ export type AnalyticsEvent = {
   isLikelyBot?: boolean;
   name?: string;
   phone?: string;
+  visitorId?: string;
+  isOwnerTest?: boolean;
+  referrer?: string;
+  landingPath?: string;
+  treasureInvite?: boolean;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
 };
 
 export type PremiumInterestReport = {
@@ -38,6 +46,8 @@ export type AdminAnalyticsReport = {
   totalUsers: number;
   totalVisits: number;
   uniqueVisitors: number;
+  audienceUniqueVisitors: number;
+  ownerTestVisitors: number;
   visitorVolume: {
     today: number;
     week: number;
@@ -56,6 +66,8 @@ export type AdminAnalyticsReport = {
     uniqueVisitors: number;
   }>;
   geographicAreas: GeographicAreasReport;
+  visitorGeographicAreas: VisitorGeographicAreasReport;
+  acquisitionSources: Array<{ source: string; label: string; uniqueVisitors: number }>;
   moduleDailyTrend: Array<{
     date: string;
     modules: Array<{
@@ -91,6 +103,10 @@ export type GeographicAreasReport = {
   totalUsers: number;
 };
 
+export type VisitorGeographicAreasReport = Omit<GeographicAreasReport, "totalUsers"> & {
+  totalVisitors: number;
+};
+
 export type VisitorInsightReport = {
   key: string;
   name: string;
@@ -100,6 +116,9 @@ export type VisitorInsightReport = {
   visits: number;
   firstSeenAt?: string;
   lastSeenAt?: string;
+  isOwnerTest?: boolean;
+  source?: string;
+  currentLocation?: string;
 };
 
 export type UserInsightReport = {
@@ -139,6 +158,7 @@ const profilesKey = "intuisity-user-profiles";
 const maxStoredEvents = 1200;
 const activeGraceMs = 60000;
 const excludedReportEmails = new Set(["admin@intuisity.com", "kathy@intuisity.com"]);
+const ownerTestEmails = new Set(["admin@intuisity.com", "kathy@intuisity.com", "kathy@kathykennedy.biz"]);
 let lastInteractionAt = Date.now();
 let activityTrackingStarted = false;
 
@@ -270,10 +290,14 @@ export function loadAdminAnalyticsReport(startDate = "", endDate = ""): AdminAna
     totalUsers: allProfiles.length,
     totalVisits: events.length,
     uniqueVisitors: countUniqueVisitors(rangedVisitorEvents),
+    audienceUniqueVisitors: countUniqueVisitors(rangedVisitorEvents.filter((event) => !isLocalOwnerTestEvent(event))),
+    ownerTestVisitors: countUniqueVisitors(rangedVisitorEvents.filter(isLocalOwnerTestEvent)),
     visitorVolume: buildVisitorVolume(visitorEvents, dateRange),
     visitorTrend: buildVisitorTrend(rangedVisitorEvents),
     platformBreakdown: buildPlatformBreakdown(rangedVisitorEvents),
     geographicAreas: buildLocalGeographicAreas(allProfiles),
+    visitorGeographicAreas: buildLocalVisitorGeographicAreas(rangedVisitorEvents.filter((event) => !isLocalOwnerTestEvent(event)), allProfiles),
+    acquisitionSources: buildLocalAcquisitionSources(rangedVisitorEvents.filter((event) => !isLocalOwnerTestEvent(event))),
     moduleDailyTrend: buildModuleDailyTrend(events),
     dateRange,
     totalTimeMs,
@@ -367,17 +391,63 @@ function buildLocalVisitorInsights(events: AnalyticsEvent[], profiles: Array<Rec
       email: anonymous ? "" : email,
       visitorId: anonymous ? email.split("@")[0] : "",
       platform: getLocalPlatformLabel(event.clientChannel || event.deviceCategory || ""),
+      source: getLocalAcquisitionSource(event).label,
+      currentLocation: profile ? [profile.currentCity, profile.currentState, profile.currentCountry].filter(Boolean).join(", ") : "",
+      isOwnerTest: isLocalOwnerTestEvent(event),
       visits: 0,
       firstSeenAt: event.startedAt,
       lastSeenAt: event.startedAt
     };
     current.visits += 1;
-    if (event.startedAt && (!current.firstSeenAt || event.startedAt < current.firstSeenAt)) current.firstSeenAt = event.startedAt;
+    if (isLocalOwnerTestEvent(event)) current.isOwnerTest = true;
+    if (event.startedAt && (!current.firstSeenAt || event.startedAt < current.firstSeenAt)) {
+      current.firstSeenAt = event.startedAt;
+      current.source = getLocalAcquisitionSource(event).label;
+    }
     if (event.startedAt && (!current.lastSeenAt || event.startedAt > current.lastSeenAt)) current.lastSeenAt = event.startedAt;
     visitors.set(email, current);
   });
 
   return [...visitors.values()].sort((a, b) => new Date(b.lastSeenAt || 0).getTime() - new Date(a.lastSeenAt || 0).getTime());
+}
+
+function buildLocalVisitorGeographicAreas(events: AnalyticsEvent[], profiles: Array<Record<string, any>>): VisitorGeographicAreasReport {
+  const visitorEmails = new Set(events.map((event) => String(event.email || "").trim().toLowerCase()).filter((email) => email && !email.endsWith("@anonymous.intuisity")));
+  const geography = buildLocalGeographicAreas(profiles.filter((profile) => visitorEmails.has(String(profile.email || "").trim().toLowerCase())));
+  return { cities: geography.cities, countries: geography.countries, states: geography.states, totalVisitors: countUniqueVisitors(events), usersWithLocation: geography.usersWithLocation };
+}
+
+function buildLocalAcquisitionSources(events: AnalyticsEvent[]) {
+  const firstEventByVisitor = new Map<string, AnalyticsEvent>();
+  events.forEach((event) => {
+    const key = event.email || event.visitorId || "";
+    if (!key) return;
+    const current = firstEventByVisitor.get(key);
+    if (!current || event.startedAt < current.startedAt) firstEventByVisitor.set(key, event);
+  });
+  const sources = new Map<string, { source: string; label: string; uniqueVisitors: number }>();
+  firstEventByVisitor.forEach((event) => {
+    const source = getLocalAcquisitionSource(event);
+    const current = sources.get(source.source) || { ...source, uniqueVisitors: 0 };
+    current.uniqueVisitors += 1;
+    sources.set(source.source, current);
+  });
+  return [...sources.values()].sort((a, b) => b.uniqueVisitors - a.uniqueVisitors || a.label.localeCompare(b.label));
+}
+
+function getLocalAcquisitionSource(event: AnalyticsEvent) {
+  const referrer = String(event.referrer || "").toLowerCase();
+  if (event.treasureInvite || /[?&](treasureInvite=1|challenge=)/i.test(event.landingPath || "")) return { source: "friend-challenge", label: "Friend/Treasure Chest invite" };
+  if (event.utmSource) return { source: `campaign:${event.utmSource.toLowerCase()}`, label: `Campaign: ${event.utmSource}` };
+  if (/google\.|bing\.|yahoo\.|duckduckgo\.|ecosia\.|search\.brave\./.test(referrer)) return { source: "search", label: "Search engine" };
+  if (/facebook\.|instagram\.|tiktok\.|linkedin\.|twitter\.|x\.com|pinterest\.|youtube\./.test(referrer)) return { source: "social", label: "Social media" };
+  if (referrer && !/intuisity\.com/.test(referrer)) return { source: "referral", label: "Other website/referral" };
+  if (normalizePlatformChannel(event.clientChannel || event.deviceCategory || "") === "app") return { source: "app", label: "Opened the app" };
+  return { source: "direct", label: "Direct or unknown" };
+}
+
+function isLocalOwnerTestEvent(event: AnalyticsEvent) {
+  return ownerTestEmails.has(String(event.email || "").trim().toLowerCase()) || event.isOwnerTest === true;
 }
 
 function getLocalPlatformLabel(value: string) {
@@ -645,6 +715,7 @@ function getEventActiveMs(event: AnalyticsEvent) {
 
 function getClientPlatformDetails() {
   const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+  const documentRef = typeof globalThis !== "undefined" ? (globalThis as any).document : undefined;
   const navigatorRef = typeof globalThis !== "undefined" ? (globalThis as any).navigator : undefined;
   const userAgent = String(navigatorRef?.userAgent || "");
   const isStandalone = Boolean(
@@ -654,12 +725,21 @@ function getClientPlatformDetails() {
   const appChannel = Boolean((globalThis as any).Expo || navigatorRef?.product === "ReactNative" || isStandalone);
   const mobileWeb = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
   const clientChannel = appChannel ? "app" : mobileWeb ? "mobile-web" : "desktop-web";
+  const search = String(browserWindow?.location?.search || "");
+  const params = new URLSearchParams(search);
 
   return {
     clientChannel,
     deviceCategory: getPlatformLabel(clientChannel),
     userAgent: userAgent.slice(0, 500),
-    isLikelyBot: Boolean(navigatorRef?.webdriver) || isLikelyBotUserAgent(userAgent)
+    isLikelyBot: Boolean(navigatorRef?.webdriver) || isLikelyBotUserAgent(userAgent),
+    isOwnerTest: globalThis.localStorage?.getItem("intuisity-owner-test-device") === "true",
+    referrer: String(documentRef?.referrer || "").slice(0, 1000),
+    landingPath: `${String(browserWindow?.location?.pathname || "")}${search}`.slice(0, 1000),
+    treasureInvite: params.get("treasureInvite") === "1" || Boolean(params.get("challenge")),
+    utmSource: String(params.get("utm_source") || "").slice(0, 200),
+    utmMedium: String(params.get("utm_medium") || "").slice(0, 200),
+    utmCampaign: String(params.get("utm_campaign") || "").slice(0, 200)
   };
 }
 

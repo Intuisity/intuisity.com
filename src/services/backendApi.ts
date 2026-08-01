@@ -19,6 +19,8 @@ type BackendAdminReport = {
   totalUsers: number;
   totalVisits: number;
   uniqueVisitors: number;
+  audienceUniqueVisitors: number;
+  ownerTestVisitors: number;
   visitorVolume: {
     today: number;
     week: number;
@@ -80,6 +82,14 @@ type BackendAdminReport = {
     usersWithLocation: number;
     totalUsers: number;
   };
+  visitorGeographicAreas: {
+    countries: Array<{ label: string; count: number }>;
+    states: Array<{ label: string; count: number }>;
+    cities: Array<{ label: string; count: number }>;
+    usersWithLocation: number;
+    totalVisitors: number;
+  };
+  acquisitionSources: Array<{ source: string; label: string; uniqueVisitors: number }>;
   visitorInsights: Array<{
     key: string;
     name: string;
@@ -89,6 +99,9 @@ type BackendAdminReport = {
     visits: number;
     firstSeenAt?: string;
     lastSeenAt?: string;
+    isOwnerTest?: boolean;
+    source?: string;
+    currentLocation?: string;
   }>;
   userInsights: Array<{
     name: string;
@@ -125,6 +138,7 @@ type BackendAdminReport = {
 
 const adminSecretStorageKey = "intuisity-admin-secret";
 const backendSyncLogKey = "intuisity-backend-sync-log";
+const ownerTestDeviceKey = "intuisity-owner-test-device";
 let lastDailyAnswersSyncPayload = "";
 let lastAdminReportError = "";
 
@@ -303,6 +317,23 @@ export type ArticleRecord = {
 
 export async function loadAdminArticles(adminSecret = loadAdminSecret()): Promise<ArticleRecord[]> {
   return articleRequest("?admin=1", undefined, "GET", adminSecret);
+}
+
+export function isOwnerTestDevice() {
+  try {
+    return globalThis.localStorage?.getItem(ownerTestDeviceKey) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function setOwnerTestDevice(enabled: boolean) {
+  try {
+    if (enabled) globalThis.localStorage?.setItem(ownerTestDeviceKey, "true");
+    else globalThis.localStorage?.removeItem(ownerTestDeviceKey);
+  } catch {
+    // The signed-in owner email can still identify testing activity.
+  }
 }
 
 export async function saveAdminArticle(article: Partial<ArticleRecord>, adminSecret = loadAdminSecret()): Promise<ArticleRecord> {
@@ -522,6 +553,7 @@ function getAnonymousVisitorId() {
 
 function getClientPlatformDetails() {
   const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+  const documentRef = typeof globalThis !== "undefined" ? (globalThis as any).document : undefined;
   const navigatorRef = typeof globalThis !== "undefined" ? (globalThis as any).navigator : undefined;
   const userAgent = String(navigatorRef?.userAgent || "");
   const isStandalone = Boolean(
@@ -530,13 +562,22 @@ function getClientPlatformDetails() {
   );
   const appChannel = (globalThis as any).Expo || (navigatorRef as any)?.product === "ReactNative" || isStandalone;
   const mobileWeb = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+  const search = String(browserWindow?.location?.search || "");
+  const params = new URLSearchParams(search);
 
   return {
     clientChannel: appChannel ? "app" : mobileWeb ? "mobile-web" : "desktop-web",
     deviceCategory: appChannel ? "App" : mobileWeb ? "Mobile Web" : "Desktop Web",
     userAgent: userAgent.slice(0, 500),
     isLikelyBot: Boolean(navigatorRef?.webdriver) || isLikelyBotUserAgent(userAgent),
-    visitorId: getAnonymousVisitorId()
+    visitorId: getAnonymousVisitorId(),
+    isOwnerTest: isOwnerTestDevice(),
+    referrer: String(documentRef?.referrer || "").slice(0, 1000),
+    landingPath: `${String(browserWindow?.location?.pathname || "")}${search}`.slice(0, 1000),
+    treasureInvite: params.get("treasureInvite") === "1" || Boolean(params.get("challenge")),
+    utmSource: String(params.get("utm_source") || "").slice(0, 200),
+    utmMedium: String(params.get("utm_medium") || "").slice(0, 200),
+    utmCampaign: String(params.get("utm_campaign") || "").slice(0, 200)
   };
 }
 

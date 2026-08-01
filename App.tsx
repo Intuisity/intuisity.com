@@ -41,7 +41,7 @@ import {
 } from "./src/data/mockData";
 import { premiumPlan } from "./src/services/subscriptions";
 import { formatDuration, loadAdminAnalyticsReport, recordPremiumInterest } from "./src/services/adminAnalytics";
-import { backendUserInsightsCsvUrl, clearBackendSyncLog, fetchSavedProfile, getLastAdminReportError, loadAdminSecret, loadBackendAdminReport, loadBackendSyncLog, saveAdminSecret, syncDailyAnswers, syncModuleTime, syncProfile, syncSiteVisit } from "./src/services/backendApi";
+import { backendUserInsightsCsvUrl, clearBackendSyncLog, fetchSavedProfile, getLastAdminReportError, isOwnerTestDevice, loadAdminSecret, loadBackendAdminReport, loadBackendSyncLog, saveAdminSecret, setOwnerTestDevice, syncDailyAnswers, syncModuleTime, syncProfile, syncSiteVisit } from "./src/services/backendApi";
 import { DailyChallengeHub } from "./src/components/DailyChallengeHub";
 import { AdminArticleEditor } from "./src/components/AdminArticleEditor";
 import { UserProfile } from "./src/types/userProfile";
@@ -1855,6 +1855,7 @@ function AdminDashboard() {
   const [backendLogRefresh, setBackendLogRefresh] = useState(0);
   const [reportRefreshId, setReportRefreshId] = useState(0);
   const [reportRefreshedAt, setReportRefreshedAt] = useState("");
+  const [thisIsOwnerTestDevice, setThisIsOwnerTestDevice] = useState(isOwnerTestDevice);
   const localReport = loadAdminAnalyticsReport(reportStartDate, reportEndDate);
   const report = backendReport || localReport;
   const geographicAreas = report.geographicAreas || { cities: [], countries: [], states: [], totalUsers: report.totalUsers, usersWithLocation: 0 };
@@ -1988,6 +1989,8 @@ function AdminDashboard() {
 
         <View style={styles.adminMetricGrid}>
           <Metric icon="person-circle-outline" label="Unique visitors" value={report.uniqueVisitors} />
+          <Metric icon="people-outline" label="Audience visitors" value={report.audienceUniqueVisitors ?? report.uniqueVisitors} />
+          <Metric icon="construct-outline" label="Owner/test" value={report.ownerTestVisitors || 0} />
           <Metric icon="people-outline" label="Saved users" value={report.totalUsers} onPress={() => setAdminReportPage("user-insights")} />
           <Metric icon="pulse-outline" label="Tracked visits" value={report.totalVisits} />
         </View>
@@ -2009,12 +2012,14 @@ function AdminDashboard() {
                 <Text style={styles.adminFeedbackMeta}>
                   {visitor.email || (visitor.visitorId ? `Visitor ID: ${visitor.visitorId}` : "Anonymous visitor")}
                 </Text>
+                {visitor.currentLocation ? <Text style={styles.adminFeedbackMeta}>{visitor.currentLocation}</Text> : null}
               </View>
               <View style={styles.adminUserPill}>
-                <Text style={styles.adminUserPillText}>{visitor.visits} visits</Text>
+                <Text style={styles.adminUserPillText}>{visitor.isOwnerTest ? "Owner/test" : `${visitor.visits} visits`}</Text>
               </View>
             </View>
             <Text style={styles.bodyText}>{visitor.platform}</Text>
+            <Text style={styles.adminFeedbackMeta}>Source: {visitor.source || "Direct or unknown"}</Text>
             <Text style={styles.adminFeedbackMeta}>
               First seen: {visitor.firstSeenAt ? formatReportDateTime(visitor.firstSeenAt) : "Unknown"}
             </Text>
@@ -2029,6 +2034,32 @@ function AdminDashboard() {
             <Text style={styles.bodyText}>Refresh after someone visits the live website or app.</Text>
           </View>
         )}
+
+        <Text style={styles.adminSectionTitle}>Audience visitor geography</Text>
+        <Text style={styles.adminSectionHint}>
+          Location is available for {report.visitorGeographicAreas?.usersWithLocation || 0} of {report.visitorGeographicAreas?.totalVisitors || report.uniqueVisitors} unique visitors in this report. Anonymous visitors without a saved profile remain unknown.
+        </Text>
+        <View style={styles.adminGeographyGrid}>
+          {[
+            { icon: "globe-outline" as const, items: report.visitorGeographicAreas?.countries || [], title: "Countries" },
+            { icon: "map-outline" as const, items: report.visitorGeographicAreas?.states || [], title: "States and regions" },
+            { icon: "location-outline" as const, items: report.visitorGeographicAreas?.cities || [], title: "Cities" }
+          ].map((group) => (
+            <View key={group.title} style={styles.adminGeographyCard}>
+              <View style={styles.adminGeographyTitleRow}>
+                <Ionicons color="#7555C7" name={group.icon} size={22} />
+                <Text style={styles.adminStartTitle}>{group.title}</Text>
+              </View>
+              {group.items.length ? group.items.slice(0, 8).map((area, index) => (
+                <View key={area.label} style={styles.adminGeographyRow}>
+                  <Text style={styles.adminGeographyRank}>{index + 1}</Text>
+                  <Text style={styles.adminGeographyLabel}>{area.label}</Text>
+                  <Text style={styles.adminGeographyCount}>{area.count}</Text>
+                </View>
+              )) : <Text style={styles.adminFeedbackMeta}>No saved location information yet.</Text>}
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
@@ -2145,6 +2176,25 @@ function AdminDashboard() {
           <Text style={styles.adminLightButtonText}>Refresh reports</Text>
         </Pressable>
         <Text style={styles.adminFeedbackMeta}>Use this after testing a new signup or login.</Text>
+      </View>
+
+      <View style={styles.adminInsightOpenCard}>
+        <View style={styles.adminInsightCopy}>
+          <Text style={styles.adminStartTitle}>Owner/test device</Text>
+          <Text style={styles.adminStartText}>Mark this browser or app installation so its future visits are labeled as your testing activity instead of audience traffic.</Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            const nextValue = !thisIsOwnerTestDevice;
+            setOwnerTestDevice(nextValue);
+            setThisIsOwnerTestDevice(nextValue);
+          }}
+          style={[styles.adminLightButton, thisIsOwnerTestDevice && styles.adminRangeButtonSelected]}
+        >
+          <Ionicons color={thisIsOwnerTestDevice ? "#FFFFFF" : "#7555C7"} name={thisIsOwnerTestDevice ? "checkmark-circle-outline" : "construct-outline"} size={17} />
+          <Text style={[styles.adminLightButtonText, thisIsOwnerTestDevice && styles.adminRangeButtonTextSelected]}>{thisIsOwnerTestDevice ? "Marked" : "Mark device"}</Text>
+        </Pressable>
       </View>
 
       <View style={styles.adminSecretCard}>
@@ -2298,6 +2348,20 @@ function AdminDashboard() {
             <Text style={styles.adminFeedbackMeta}>{platform.visits} visits</Text>
           </View>
         ))}
+      </View>
+
+      <Text style={styles.adminSectionTitle}>How visitors found Intuisity</Text>
+      <Text style={styles.adminSectionHint}>Each audience visitor is counted once using the first source recorded in the selected date range. Owner/test activity is excluded.</Text>
+      <View style={styles.adminGeographyCard}>
+        {report.acquisitionSources?.length ? report.acquisitionSources.map((source, index) => (
+          <View key={source.source} style={styles.adminGeographyRow}>
+            <Text style={styles.adminGeographyRank}>{index + 1}</Text>
+            <Text style={styles.adminGeographyLabel}>{source.label}</Text>
+            <Text style={styles.adminGeographyCount}>{source.uniqueVisitors}</Text>
+          </View>
+        )) : (
+          <Text style={styles.adminFeedbackMeta}>New visits will be categorized as search, friend invite, campaign, social, referral, app, or direct.</Text>
+        )}
       </View>
 
       <Text style={styles.adminSectionTitle}>Strongest geographic areas</Text>

@@ -1,6 +1,12 @@
 const { supabaseRequest } = require("./supabase");
 
 const excludedReportEmails = new Set(["admin@intuisity.com", "kathy@intuisity.com"]);
+const ownerTestEmails = new Set([
+  "admin@intuisity.com",
+  "kathy@intuisity.com",
+  "kathy@kathykennedy.biz",
+  ...String(process.env.INTUISITY_OWNER_EMAILS || "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean)
+]);
 const moduleOrder = [
   "Challenge 1: Treasure Chest",
   "Challenge 2: Train Your Knowing",
@@ -36,6 +42,10 @@ async function buildAdminReport(options = {}) {
   const visitorTrend = buildVisitorTrend(rangedVisitorEvents);
   const platformBreakdown = buildPlatformBreakdown(rangedVisitorEvents);
   const geographicAreas = buildGeographicAreas(userProfiles);
+  const visitorGeographicAreas = buildVisitorGeographicAreas(rangedVisitorEvents.filter((event) => !isOwnerTestEvent(event)), userProfiles);
+  const acquisitionSources = buildAcquisitionSources(rangedVisitorEvents.filter((event) => !isOwnerTestEvent(event)));
+  const ownerTestVisitors = countUniqueVisitors(rangedVisitorEvents.filter(isOwnerTestEvent));
+  const audienceUniqueVisitors = countUniqueVisitors(rangedVisitorEvents.filter((event) => !isOwnerTestEvent(event)));
   const moduleDailyTrend = buildModuleDailyTrend(rangedAnalyticsEvents);
 
   const moduleTotals = new Map();
@@ -72,10 +82,14 @@ async function buildAdminReport(options = {}) {
     totalUsers: knownUserCount,
     totalVisits: rangedAnalyticsEvents.length,
     uniqueVisitors: countUniqueVisitors(rangedVisitorEvents),
+    audienceUniqueVisitors,
+    ownerTestVisitors,
     visitorVolume: volume,
     visitorTrend,
     platformBreakdown,
     geographicAreas,
+    visitorGeographicAreas,
+    acquisitionSources,
     moduleDailyTrend,
     dateRange,
     totalTimeMs,
@@ -324,12 +338,19 @@ function buildVisitorInsights(events, profiles) {
       email: anonymous ? "" : email,
       visitorId: anonymous ? (event.event_json?.visitorId || event.event_json?.visitor_id || email.split("@")[0]) : "",
       platform: getPlatformLabel(normalizePlatformChannel(event.event_json?.clientChannel || event.event_json?.deviceCategory || event.module_id)),
+      source: getAcquisitionSource(event).label,
+      currentLocation: profile ? [resolveProfileField(profile, "current_city", "currentCity"), resolveProfileField(profile, "current_state", "currentState"), resolveProfileField(profile, "current_country", "currentCountry")].filter(Boolean).join(", ") : "",
+      isOwnerTest: isOwnerTestEvent(event),
       visits: 0,
       firstSeenAt: recordedAt,
       lastSeenAt: recordedAt
     };
     current.visits += 1;
-    if (recordedAt && (!current.firstSeenAt || recordedAt < current.firstSeenAt)) current.firstSeenAt = recordedAt;
+    if (isOwnerTestEvent(event)) current.isOwnerTest = true;
+    if (recordedAt && (!current.firstSeenAt || recordedAt < current.firstSeenAt)) {
+      current.firstSeenAt = recordedAt;
+      current.source = getAcquisitionSource(event).label;
+    }
     if (recordedAt && (!current.lastSeenAt || recordedAt > current.lastSeenAt)) current.lastSeenAt = recordedAt;
     visitors.set(key, current);
   });
@@ -449,6 +470,51 @@ function getLocalDateKey(date) {
   ].join("-");
 }
 
+function buildVisitorGeographicAreas(events, profiles) {
+  const visitorEmails = new Set(events.map((event) => normalizeEmail(event.email)).filter((email) => email && !isAnonymousVisitorEmail(email)));
+  const geography = buildGeographicAreas(profiles.filter((profile) => visitorEmails.has(normalizeEmail(profile.email))));
+  return {
+    cities: geography.cities,
+    countries: geography.countries,
+    states: geography.states,
+    totalVisitors: countUniqueVisitors(events),
+    usersWithLocation: geography.usersWithLocation
+  };
+}
+
+function buildAcquisitionSources(events) {
+  const firstEventByVisitor = new Map();
+  events.forEach((event) => {
+    const key = getVisitorKey(event);
+    if (!key) return;
+    const recordedAt = event.recorded_at || event.started_at || "";
+    const current = firstEventByVisitor.get(key);
+    if (!current || recordedAt < (current.recorded_at || current.started_at || "")) firstEventByVisitor.set(key, event);
+  });
+  const sources = new Map();
+  firstEventByVisitor.forEach((event) => {
+    const source = getAcquisitionSource(event);
+    const current = sources.get(source.source) || { ...source, uniqueVisitors: 0 };
+    current.uniqueVisitors += 1;
+    sources.set(source.source, current);
+  });
+  return [...sources.values()].sort((a, b) => b.uniqueVisitors - a.uniqueVisitors || a.label.localeCompare(b.label));
+}
+
+function getAcquisitionSource(event) {
+  const payload = event?.event_json || {};
+  const referrer = String(payload.referrer || "").toLowerCase();
+  const utmSource = String(payload.utmSource || payload.utm_source || "").trim();
+  if (payload.treasureInvite === true || /[?&](treasureInvite=1|challenge=)/i.test(String(payload.landingPath || ""))) return { source: "friend-challenge", label: "Friend/Treasure Chest invite" };
+  if (utmSource) return { source: `campaign:${utmSource.toLowerCase()}`, label: `Campaign: ${utmSource}` };
+  if (/google\.|bing\.|yahoo\.|duckduckgo\.|ecosia\.|search\.brave\./.test(referrer)) return { source: "search", label: "Search engine" };
+  if (/facebook\.|instagram\.|tiktok\.|linkedin\.|twitter\.|x\.com|pinterest\.|youtube\./.test(referrer)) return { source: "social", label: "Social media" };
+  if (referrer && !/intuisity\.com/.test(referrer)) return { source: "referral", label: "Other website/referral" };
+  const channel = normalizePlatformChannel(payload.clientChannel || payload.deviceCategory || event.module_id);
+  if (channel === "app") return { source: "app", label: "Opened the app" };
+  return { source: "direct", label: "Direct or unknown" };
+}
+
 function buildGeographicAreas(profiles) {
   const uniqueProfiles = new Map();
   profiles.forEach((profile) => {
@@ -543,6 +609,10 @@ function isExcludedReportEmail(email) {
   return excludedReportEmails.has(normalizeEmail(email));
 }
 
+function isOwnerTestEvent(event) {
+  return ownerTestEmails.has(normalizeEmail(event?.email)) || event?.event_json?.isOwnerTest === true;
+}
+
 function isAnonymousVisitorEmail(email) {
   return normalizeEmail(email).endsWith("@anonymous.intuisity");
 }
@@ -609,7 +679,9 @@ function formatDuration(milliseconds) {
 
 module.exports = {
   buildAdminReport,
+  buildAcquisitionSources,
   buildGeographicAreas,
+  buildVisitorGeographicAreas,
   buildPremiumInterest,
   buildUserInsightsCsv,
   collectKnownEmails,

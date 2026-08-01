@@ -76,4 +76,16 @@ assert.deepEqual(geographicAreas.cities.slice(0, 2), [
   { label: "Austin, Texas", count: 1 }
 ]);
 
+const acquisitionSources = serverReport.buildAcquisitionSources([
+  { email: "search@example.com", started_at: "2026-08-01T10:00:00.000Z", event_json: { referrer: "https://www.google.com/search?q=intuition" } },
+  { email: "friend@example.com", started_at: "2026-08-01T10:00:00.000Z", event_json: { landingPath: "/?treasureInvite=1&challenge=abc", treasureInvite: true } },
+  { email: "direct@example.com", started_at: "2026-08-01T10:00:00.000Z", event_json: {} },
+  { email: "search@example.com", started_at: "2026-08-01T11:00:00.000Z", event_json: {} }
+]);
+assert.deepEqual(acquisitionSources, [
+  { source: "direct", label: "Direct or unknown", uniqueVisitors: 1 },
+  { source: "friend-challenge", label: "Friend/Treasure Chest invite", uniqueVisitors: 1 },
+  { source: "search", label: "Search engine", uniqueVisitors: 1 }
+]);
+
 console.log("Profile report tests passed");
