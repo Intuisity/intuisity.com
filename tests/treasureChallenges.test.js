@@ -111,6 +111,33 @@ const handler = require("../api/treasure-challenges");
   assert.equal(emails.length, emailCountBeforePush + 1, "Registered friends receive email as a reliable backup to push");
   assert.equal(emails.at(-1).to, "registered@example.com");
   assert.equal(rows.get(pushed.payload.id).invite_delivery_status, "sent");
+
+  const emailCountBeforePhoneOnly = emails.length;
+  const phoneOnly = await call("POST", {}, {
+    senderEmail: "sender@example.com",
+    senderName: "Sender",
+    friendEmail: "",
+    friendPhone: "(555) 555-0134",
+    friendName: "Phone Friend",
+    tiles: ["one", "two", "three", "four", "five"],
+    origin: "https://intuisity.com"
+  });
+  assert.equal(phoneOnly.statusCode, 201);
+  assert.equal(phoneOnly.payload.emailDeliveryStatus, "share_required");
+  assert.equal(rows.get(phoneOnly.payload.id).friend_email, "");
+  assert.equal(rows.get(phoneOnly.payload.id).invite_delivery_status, "share_required");
+  assert.equal(emails.length, emailCountBeforePhoneOnly, "Phone-only invitations do not call the email provider");
+
+  const missingContact = await call("POST", {}, {
+    senderEmail: "sender@example.com",
+    senderName: "Sender",
+    friendEmail: "",
+    friendPhone: "",
+    friendName: "No Contact",
+    tiles: ["one", "two", "three", "four", "five"]
+  });
+  assert.equal(missingContact.statusCode, 400);
+  assert.match(missingContact.payload.error, /phone number or email/i);
   console.log("Treasure challenge tests passed");
 })().catch((error) => {
   console.error(error);

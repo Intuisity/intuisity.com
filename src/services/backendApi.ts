@@ -390,6 +390,7 @@ export type TreasureChallengeReceipt = {
 
 export async function createTreasureChallenge(invite: {
   friendEmail: string;
+  friendPhone?: string;
   friendName: string;
   senderEmail: string;
   senderName: string;

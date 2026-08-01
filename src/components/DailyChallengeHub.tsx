@@ -627,6 +627,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const [treasureShareStatus, setTreasureShareStatus] = useState("");
   const [treasureSentChallengeUrl, setTreasureSentChallengeUrl] = useState("");
   const [treasureSentFriendPhone, setTreasureSentFriendPhone] = useState("");
+  const [treasureTextInvites, setTreasureTextInvites] = useState<Array<{ name: string; phone: string; url: string }>>([]);
   const [treasureGuestSenderName, setTreasureGuestSenderName] = useState("");
   const [treasureGuestSenderEmail, setTreasureGuestSenderEmail] = useState("");
   const [treasureNote, setTreasureNote] = useState("");
@@ -1976,6 +1977,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       setFriendInviteStatus("");
       setTreasureWinText("");
       setTreasureShareStatus("");
+      setTreasureTextInvites([]);
       setInvitedTreasureSender("");
       setInvitedTreasureChallengeId("");
       setTreasureResponseStatus("");
@@ -2000,10 +2002,6 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         setFriendPhoneError("Please enter your friend's name.");
         return null;
       }
-      if (!friendEmail.trim()) {
-        setFriendPhoneError("Please enter your friend's email address.");
-        return null;
-      }
       return addFriendPhone();
     };
     const startTreasureChallenge = (
@@ -2012,7 +2010,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       friendList = savedFriends
     ) => {
       if (mode === "friend" && friendKeys.length === 0) {
-        setFriendPhoneError("Select or add at least one friend with an email address.");
+        setFriendPhoneError("Select or add at least one friend with a phone number or email address.");
         return;
       }
       if (mode === "friend") {
@@ -2022,12 +2020,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           return;
         }
         const selectedFriends = friendList.filter((friend) => friendKeys.includes(getFriendKey(friend)));
-        const missingEmail = selectedFriends.some((friend) => !friend.email);
-        if (missingEmail) {
-          setFriendPhoneError("Friend challenges require an email. Phone number is optional.");
-          return;
-        }
-        setFriendInviteStatus("Arrange your five treasure tiles, then submit to send the challenge.");
+        setFriendInviteStatus("Arrange your five treasure tiles, then submit to prepare the invitation.");
       } else {
         setFriendInviteStatus("");
       }
@@ -2173,7 +2166,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       if (!treasureStarted || treasureGuess.some((icon) => !icon) || treasureTriesLeft === 0) return;
       const submittedGuess = [...treasureGuess];
       if (opponent === "friend") {
-        const selectedFriends = savedFriends.filter((friend) => selectedFriendPhones.includes(getFriendKey(friend)) && friend.email);
+        const selectedFriends = savedFriends.filter((friend) => selectedFriendPhones.includes(getFriendKey(friend)) && (friend.email || friend.phone));
         const competitionId = createClientId();
         setTreasureAttemptRows((current) => [...current, submittedGuess]);
         setTreasureGuess(submittedGuess);
@@ -2183,6 +2176,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         Promise.all(selectedFriends.map(async (friend) => {
           const created = await createTreasureChallenge({
             friendEmail: friend.email || "",
+            friendPhone: friend.phone || "",
             friendName: friend.name,
             competitionId,
             origin: getAppOrigin(),
@@ -2197,15 +2191,26 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             const firstChallenge = created[0];
             if (firstChallenge) setTreasureSentChallengeUrl(`${getAppOrigin()}/?treasureInvite=1&challenge=${encodeURIComponent(firstChallenge.id)}`);
             setTreasureSentFriendPhone(selectedFriends[0]?.phone || "");
+            setTreasureTextInvites(created.map((challenge, index) => ({
+              name: selectedFriends[index]?.name || "Friend",
+              phone: selectedFriends[index]?.phone || "",
+              url: `${getAppOrigin()}/?treasureInvite=1&challenge=${encodeURIComponent(challenge.id)}`
+            })).filter((invite) => invite.phone));
             const next = [...created, ...sentTreasureChallenges.filter((existing) => !created.some((item) => item.id === existing.id))];
             setSentTreasureChallenges(next);
             saveSentTreasureChallenges(userProfile.email, next);
             const deliveryProblems = created.filter((challenge) => challenge.emailError);
+            const emailCount = selectedFriends.filter((friend) => friend.email).length;
+            const phoneOnlyCount = selectedFriends.filter((friend) => friend.phone && !friend.email).length;
             const inviteMessage = deliveryProblems.length
               ? `The Treasure Chest was saved, but the email was not sent. ${deliveryProblems[0].emailError}`
-              : `Your invite has been sent to ${selectedFriends.length} ${selectedFriends.length === 1 ? "friend" : "friends"}. Resend accepted the email and its delivery status will appear on this page.`;
+              : phoneOnlyCount && emailCount
+                ? `The email ${emailCount === 1 ? "invite was" : "invites were"} sent. ${phoneOnlyCount} text ${phoneOnlyCount === 1 ? "invite is" : "invites are"} ready below—open Messages and press Send.`
+                : phoneOnlyCount
+                  ? `Your challenge ${phoneOnlyCount === 1 ? "link is" : "links are"} ready below. Open Messages and press Send to deliver ${phoneOnlyCount === 1 ? "it" : "each one"}.`
+                  : `Your invite has been sent to ${emailCount} ${emailCount === 1 ? "friend" : "friends"}. Resend accepted the email and its delivery status will appear on this page.`;
             setFriendInviteStatus(inviteMessage);
-            Alert.alert(deliveryProblems.length ? "Email invitation not sent" : "Your invite has been sent", inviteMessage);
+            Alert.alert(deliveryProblems.length ? "Email invitation not sent" : phoneOnlyCount ? "Challenge ready to text" : "Your invite has been sent", inviteMessage);
             if (Platform.OS === "web") {
               const browserWindow = (globalThis as any).window;
               browserWindow?.requestAnimationFrame?.(() => browserWindow.scrollTo({ behavior: "smooth", left: 0, top: 0 }));
@@ -2312,10 +2317,10 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         setTreasureShareStatus(`Copy this challenge link: ${url}`);
       }
     };
-    const textTreasureChallengeLink = async () => {
-      const url = treasureSentChallengeUrl || "https://www.intuisity.com/treasure-chest.html";
+    const textTreasureChallengeLink = async (preparedInvite?: { name: string; phone: string; url: string }) => {
+      const url = preparedInvite?.url || treasureSentChallengeUrl || "https://www.intuisity.com/treasure-chest.html";
       const message = `${userProfile.name || "A friend"} invited you to an Intuisity Treasure Chest challenge. Open it here: ${url}`;
-      const recipient = treasureSentFriendPhone.replace(/[^\d+]/g, "");
+      const recipient = (preparedInvite?.phone || treasureSentFriendPhone).replace(/[^\d+]/g, "");
       try {
         if (!treasureCanOpenMessages) {
           const clipboard = (globalThis as any).navigator?.clipboard;
@@ -2853,7 +2858,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         {treasureFriendSubmitted && friendInviteStatus && friendInviteStatus !== "Sending friend challenge invite..." ? (
           <View style={styles.treasureResultShareCard}>
             <Ionicons color={friendInviteStatus.includes("rejected") || friendInviteStatus.includes("could not") ? "#B33A3A" : "#43A86B"} name={friendInviteStatus.includes("rejected") || friendInviteStatus.includes("could not") ? "alert-circle-outline" : "checkmark-circle-outline"} size={30} />
-            <Text style={styles.treasureResultShareTitle}>{friendInviteStatus.startsWith("Your invite has been sent") ? "Your invite has been sent" : "Treasure Chest invitation update"}</Text>
+            <Text style={styles.treasureResultShareTitle}>{friendInviteStatus.startsWith("Your invite has been sent") ? "Your invite has been sent" : friendInviteStatus.includes("ready") ? "Your challenge is ready" : "Treasure Chest invitation update"}</Text>
             <Text style={styles.treasureResultShareText}>{friendInviteStatus}</Text>
             {sentTreasureChallenges.slice(0, 5).map((challenge) => (
               <Text
@@ -2969,19 +2974,19 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 setFriendEmail(value);
                 setFriendPhoneError("");
               }}
-              placeholder="Friend email for invite (required)"
+              placeholder="Friend email (optional)"
               placeholderTextColor="#9A93AA"
               style={styles.birthdateInput}
               value={friendEmail}
             />
-            <Text style={styles.savedFriendsLabel}>Email is required so they can receive the challenge. Phone number is optional.</Text>
+            <Text style={styles.savedFriendsLabel}>Enter at least one contact method: a phone number or an email address. Email sends automatically; phone opens a prepared message for you to send.</Text>
             <Text style={styles.treasureCompetitionRules}>Competition rules: invite up to five people. With two players, fewest tries wins. With three or more, fastest solve wins and fewer tries breaks a tie.</Text>
             {friendPhoneError ? <Text style={styles.inputError}>{friendPhoneError}</Text> : null}
             <Pressable
               accessibilityLabel="Save friend and continue to treasure tiles"
-              disabled={!friendName.trim() || !friendEmail.trim() || (userProfile.authProvider === "guest" && (!treasureGuestSenderName.trim() || !validEmailAddress(treasureGuestSenderEmail)))}
+              disabled={!friendName.trim() || (!friendPhone.replace(/\D/g, "") && !friendEmail.trim()) || (userProfile.authProvider === "guest" && (!treasureGuestSenderName.trim() || !validEmailAddress(treasureGuestSenderEmail)))}
               onPress={saveTreasureFriendAndContinue}
-              style={[styles.primaryButton, (!friendName.trim() || !friendEmail.trim() || (userProfile.authProvider === "guest" && (!treasureGuestSenderName.trim() || !validEmailAddress(treasureGuestSenderEmail)))) && styles.disabledButton]}
+              style={[styles.primaryButton, (!friendName.trim() || (!friendPhone.replace(/\D/g, "") && !friendEmail.trim()) || (userProfile.authProvider === "guest" && (!treasureGuestSenderName.trim() || !validEmailAddress(treasureGuestSenderEmail)))) && styles.disabledButton]}
             >
               <Ionicons color="#FFFFFF" name="person-add-outline" size={18} />
               <Text style={styles.primaryButtonText}>Save this friend</Text>
@@ -2990,7 +2995,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               <View style={styles.friendPlayConfirmation}>
                 <Ionicons color="#6544B8" name="people-circle-outline" size={30} />
                 <Text style={styles.friendPlayConfirmationTitle}>Would you like to play {pendingTreasureFriend.contact.name}?</Text>
-                <Text style={styles.friendPlayConfirmationText}>{pendingTreasureFriend.contact.email}</Text>
+                <Text style={styles.friendPlayConfirmationText}>{formatFriendContactDetail(pendingTreasureFriend.contact)}</Text>
                 <Pressable
                   onPress={() => {
                     startTreasureChallenge("friend", pendingTreasureFriend.nextSelected, pendingTreasureFriend.nextSaved);
@@ -3173,12 +3178,19 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             {treasureFriendSubmitted && treasureSentChallengeUrl ? (
               <View style={styles.treasureResultShareCard}>
                 <Ionicons color="#6544B8" name="paper-plane-outline" size={28} />
-                <Text style={styles.treasureResultShareTitle}>Your invite has been sent</Text>
-                <Text style={styles.treasureResultShareText}>Resend accepted the email invitation. Its delivery status appears under Your sent chests. You can also open Messages with your friend's number and challenge link filled in.</Text>
-                <Pressable accessibilityLabel="Text Treasure Chest challenge link" onPress={textTreasureChallengeLink} style={styles.treasureShareButton}>
-                  <Ionicons color="#FFFFFF" name="chatbubble-outline" size={18} />
-                  <Text style={styles.primaryButtonText}>{treasureCanOpenMessages ? "Open Messages to Text" : "Copy Link for Text"}</Text>
-                </Pressable>
+                <Text style={styles.treasureResultShareTitle}>{treasureTextInvites.length ? "Your challenge is ready" : "Your invite has been sent"}</Text>
+                <Text style={styles.treasureResultShareText}>{friendInviteStatus || "Your invitation is ready. Email sends automatically; phone invitations open in Messages for you to review and send."}</Text>
+                {treasureTextInvites.length ? treasureTextInvites.map((invite) => (
+                  <Pressable key={`${invite.phone}-${invite.url}`} accessibilityLabel={`Text Treasure Chest challenge link to ${invite.name}`} onPress={() => textTreasureChallengeLink(invite)} style={styles.treasureShareButton}>
+                    <Ionicons color="#FFFFFF" name="chatbubble-outline" size={18} />
+                    <Text style={styles.primaryButtonText}>{treasureCanOpenMessages ? `Open Messages for ${invite.name}` : `Copy Link for ${invite.name}`}</Text>
+                  </Pressable>
+                )) : (
+                  <Pressable accessibilityLabel="Text Treasure Chest challenge link" onPress={() => textTreasureChallengeLink()} style={styles.treasureShareButton}>
+                    <Ionicons color="#FFFFFF" name="chatbubble-outline" size={18} />
+                    <Text style={styles.primaryButtonText}>{treasureCanOpenMessages ? "Open Messages to Text" : "Copy Link for Text"}</Text>
+                  </Pressable>
+                )}
                 {treasureShareStatus ? <Text style={styles.treasureShareStatus}>{treasureShareStatus}</Text> : null}
               </View>
             ) : null}
@@ -3199,7 +3211,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                   <Ionicons color="#6544B8" name="copy-outline" size={18} />
                   <Text style={styles.treasureCopyLinkButtonText}>Copy challenge link</Text>
                 </Pressable>
-                <Pressable accessibilityLabel="Text Treasure Chest challenge link" onPress={textTreasureChallengeLink} style={styles.treasureCopyLinkButton}>
+                <Pressable accessibilityLabel="Text Treasure Chest challenge link" onPress={() => textTreasureChallengeLink()} style={styles.treasureCopyLinkButton}>
                   <Ionicons color="#6544B8" name="chatbubble-outline" size={18} />
                   <Text style={styles.treasureCopyLinkButtonText}>{treasureCanOpenMessages ? "Open Messages to Text" : "Copy Link for Text"}</Text>
                 </Pressable>
@@ -5056,6 +5068,7 @@ function formatTreasureStatus(status: TreasureChallengeReceipt["status"]) {
 
 function formatEmailDeliveryStatus(status: string) {
   const normalized = String(status || "").toLowerCase();
+  if (normalized === "share_required") return "Text link ready—press Send in Messages";
   if (["delivered", "opened", "clicked"].includes(normalized)) return "Email delivered";
   if (normalized === "bounced") return "Email bounced—check the address";
   if (normalized === "suppressed") return "Email blocked by suppression list";

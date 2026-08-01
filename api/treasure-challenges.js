@@ -26,6 +26,7 @@ module.exports = async function handler(request, response) {
 async function createChallenge(body, response) {
   const senderEmail = normalizeEmail(body.senderEmail);
   const friendEmail = normalizeEmail(body.friendEmail);
+  const friendPhone = String(body.friendPhone || "").replace(/\D/g, "");
   const senderName = cleanText(body.senderName, "A friend");
   const friendName = cleanText(body.friendName, "friend");
   const note = cleanText(body.note, "");
@@ -33,8 +34,17 @@ async function createChallenge(body, response) {
   const origin = validOrigin(body.origin) || "https://intuisity.com";
   const competitionId = validUuid(body.competitionId) ? body.competitionId : crypto.randomUUID();
 
-  if (!validEmail(senderEmail) || !validEmail(friendEmail)) {
-    return sendJson(response, 400, { error: "Valid sender and friend email addresses are required" });
+  if (!validEmail(senderEmail)) {
+    return sendJson(response, 400, { error: "A valid sender email address is required" });
+  }
+  if (!friendEmail && !friendPhone) {
+    return sendJson(response, 400, { error: "A friend phone number or email address is required" });
+  }
+  if (friendEmail && !validEmail(friendEmail)) {
+    return sendJson(response, 400, { error: "Enter a valid friend email address" });
+  }
+  if (friendPhone && friendPhone.length !== 10) {
+    return sendJson(response, 400, { error: "Enter a valid 10-digit friend phone number" });
   }
   if (tiles.length !== 5 || tiles.some((tile) => !tile)) {
     return sendJson(response, 400, { error: "Five treasure tiles are required" });
@@ -62,6 +72,12 @@ async function createChallenge(body, response) {
       updated_at: now
     })
   });
+
+  if (!friendEmail) {
+    await updateChallenge(id, { invite_delivery_status: "share_required", updated_at: new Date().toISOString() });
+    console.info("treasure_challenge_text_link_created", { challengeId: id });
+    return sendJson(response, 201, { id, senderToken, status: "sent", emailDeliveryStatus: "share_required" });
+  }
 
   try {
     const pushToken = await findExpoPushToken(friendEmail);
