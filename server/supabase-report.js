@@ -63,6 +63,7 @@ async function buildAdminReport(options = {}) {
   const ratings = moduleFeedback.filter((entry) => Number(entry.rating || 0));
   const ratingTotal = ratings.reduce((total, entry) => total + Number(entry.rating || 0), 0);
   const userInsights = buildUserInsights({ analyticsEvents: rangedAnalyticsEvents, dailyResults, friends, moduleFeedback, profiles: userProfiles });
+  const premiumInterest = buildPremiumInterest(rangedAnalyticsEvents, userProfiles);
   const knownUserCount = countKnownUsers({ analyticsEvents, dailyResults, friends, moduleFeedback, profiles: userProfiles });
   const visitorInsights = buildVisitorInsights(rangedVisitorEvents, userProfiles);
 
@@ -94,6 +95,7 @@ async function buildAdminReport(options = {}) {
         email: entry.email,
         savedAt: entry.saved_at
       })),
+    premiumInterest,
     userInsights,
     visitorInsights
   };
@@ -445,6 +447,29 @@ function getLocalDateKey(date) {
   ].join("-");
 }
 
+function buildPremiumInterest(analyticsEvents, profiles) {
+  const profileByEmail = new Map(profiles.map((profile) => [normalizeEmail(profile.email), profile]));
+  const interestByEmail = new Map();
+  analyticsEvents
+    .filter((event) => event.module_id === "premium-interest")
+    .forEach((event) => {
+      const email = normalizeEmail(event.email);
+      if (!email || isAnonymousVisitorEmail(email)) return;
+      const requestedAt = event.recorded_at || event.started_at || "";
+      const existing = interestByEmail.get(email);
+      if (existing && existing.requestedAt >= requestedAt) return;
+      const profile = profileByEmail.get(email);
+      interestByEmail.set(email, {
+        email,
+        name: event.event_json?.name || resolveProfileField(profile, "name"),
+        phone: event.event_json?.phone || resolveProfileField(profile, "phone"),
+        requestedAt,
+        platform: getPlatformLabel(normalizePlatformChannel(event.event_json?.clientChannel || event.event_json?.deviceCategory || event.module_id))
+      });
+    });
+  return [...interestByEmail.values()].sort((a, b) => new Date(b.requestedAt || 0).getTime() - new Date(a.requestedAt || 0).getTime());
+}
+
 function getReportingDateKey(date, timeZone = process.env.INTUISITY_REPORT_TIME_ZONE || "America/Los_Angeles") {
   const parts = new Intl.DateTimeFormat("en-US", {
     day: "2-digit",
@@ -536,6 +561,7 @@ function formatDuration(milliseconds) {
 
 module.exports = {
   buildAdminReport,
+  buildPremiumInterest,
   buildUserInsightsCsv,
   collectKnownEmails,
   getReportingDateKey,

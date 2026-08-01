@@ -29,4 +29,32 @@ assert.deepEqual(
   ["admin@intuisity.com", "person@example.com"]
 );
 
+const premiumInterest = serverReport.buildPremiumInterest([
+  {
+    email: "person@example.com",
+    module_id: "premium-interest",
+    recorded_at: "2026-08-01T10:00:00.000Z",
+    event_json: { clientChannel: "mobile-web" }
+  },
+  {
+    email: "person@example.com",
+    module_id: "premium-interest",
+    recorded_at: "2026-08-01T11:00:00.000Z",
+    event_json: { clientChannel: "app" }
+  },
+  {
+    email: "visitor-x@anonymous.intuisity",
+    module_id: "premium-interest",
+    recorded_at: "2026-08-01T12:00:00.000Z",
+    event_json: {}
+  }
+], [{ email: "person@example.com", name: "Pat", phone: "555-555-0100" }]);
+assert.deepEqual(premiumInterest, [{
+  email: "person@example.com",
+  name: "Pat",
+  phone: "555-555-0100",
+  platform: "App",
+  requestedAt: "2026-08-01T11:00:00.000Z"
+}]);
+
 console.log("Profile report tests passed");

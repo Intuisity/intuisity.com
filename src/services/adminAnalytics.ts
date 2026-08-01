@@ -12,6 +12,16 @@ export type AnalyticsEvent = {
   deviceCategory?: string;
   userAgent?: string;
   isLikelyBot?: boolean;
+  name?: string;
+  phone?: string;
+};
+
+export type PremiumInterestReport = {
+  name: string;
+  email: string;
+  phone?: string;
+  requestedAt: string;
+  platform: string;
 };
 
 export type ModuleAnalyticsSummary = {
@@ -67,6 +77,7 @@ export type AdminAnalyticsReport = {
   feedbackCount: number;
   averageRating: number;
   improvementResponses: Array<{ moduleLabel: string; note: string; rating: number; email: string; savedAt?: string }>;
+  premiumInterest: PremiumInterestReport[];
   userInsights: UserInsightReport[];
   visitorInsights: VisitorInsightReport[];
 };
@@ -189,6 +200,25 @@ export function markAnalyticsActivity() {
   lastInteractionAt = Date.now();
 }
 
+export function recordPremiumInterest(email: string, name = "", phone = "") {
+  const requestedAt = new Date();
+  const event: AnalyticsEvent = {
+    activeDurationMs: 1,
+    date: getDateKey(requestedAt.getTime()),
+    durationMs: 1,
+    email: email.trim().toLowerCase(),
+    moduleId: "premium-interest",
+    moduleLabel: "Premium interest signup",
+    name: name.trim(),
+    phone: phone.trim(),
+    startedAt: requestedAt.toISOString(),
+    ...getClientPlatformDetails()
+  };
+  const events = loadAnalyticsEvents();
+  globalThis.localStorage?.setItem(analyticsKey, JSON.stringify([...events, event].slice(-maxStoredEvents)));
+  return syncModuleTime(event);
+}
+
 export function loadAdminAnalyticsReport(startDate = "", endDate = ""): AdminAnalyticsReport {
   const allProfiles = loadProfiles();
   const trafficProfiles = allProfiles.filter((profile) => !isExcludedReportEmail(String(profile.email || "")));
@@ -245,9 +275,33 @@ export function loadAdminAnalyticsReport(startDate = "", endDate = ""): AdminAna
     feedbackCount: feedback.feedbackCount,
     averageRating: feedback.averageRating,
     improvementResponses: feedback.improvementResponses,
+    premiumInterest: buildLocalPremiumInterest(events, allProfiles),
     userInsights: buildLocalUserInsights(events),
     visitorInsights: buildLocalVisitorInsights(rangedVisitorEvents, allProfiles)
   };
+}
+
+function buildLocalPremiumInterest(events: AnalyticsEvent[], profiles: Array<Record<string, any>>): PremiumInterestReport[] {
+  const profileByEmail = new Map(profiles.map((profile) => [String(profile.email || "").trim().toLowerCase(), profile]));
+  const interestByEmail = new Map<string, PremiumInterestReport>();
+  events
+    .filter((event) => event.moduleId === "premium-interest")
+    .forEach((event) => {
+      const email = String(event.email || "").trim().toLowerCase();
+      if (!email || email.endsWith("@anonymous.intuisity")) return;
+      const profile = profileByEmail.get(email);
+      const requestedAt = event.startedAt || "";
+      const existing = interestByEmail.get(email);
+      if (existing && existing.requestedAt >= requestedAt) return;
+      interestByEmail.set(email, {
+        email,
+        name: event.name || profile?.name || "",
+        phone: event.phone || profile?.phone || "",
+        requestedAt,
+        platform: getLocalPlatformLabel(event.clientChannel || event.deviceCategory || "")
+      });
+    });
+  return [...interestByEmail.values()].sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
 }
 
 function buildLocalVisitorInsights(events: AnalyticsEvent[], profiles: Array<Record<string, any>>): VisitorInsightReport[] {

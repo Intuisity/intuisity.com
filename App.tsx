@@ -40,7 +40,7 @@ import {
   remoteViewingTarget
 } from "./src/data/mockData";
 import { premiumPlan } from "./src/services/subscriptions";
-import { formatDuration, loadAdminAnalyticsReport } from "./src/services/adminAnalytics";
+import { formatDuration, loadAdminAnalyticsReport, recordPremiumInterest } from "./src/services/adminAnalytics";
 import { backendUserInsightsCsvUrl, clearBackendSyncLog, fetchSavedProfile, getLastAdminReportError, loadAdminSecret, loadBackendAdminReport, loadBackendSyncLog, saveAdminSecret, syncDailyAnswers, syncModuleTime, syncProfile, syncSiteVisit } from "./src/services/backendApi";
 import { DailyChallengeHub } from "./src/components/DailyChallengeHub";
 import { AdminArticleEditor } from "./src/components/AdminArticleEditor";
@@ -165,6 +165,7 @@ export default function App() {
     return activeProfile ? loadDailyAnswers(activeProfile.email) : {};
   });
   const [subscriptionStatus, setSubscriptionStatus] = useState("Free");
+  const [premiumInterestPending, setPremiumInterestPending] = useState(false);
   const [accountGateNotice, setAccountGateNotice] = useState("");
   const sessionActivityRef = useRef(Date.now());
   const sessionActivityPersistedRef = useRef(0);
@@ -292,17 +293,16 @@ export default function App() {
   }, [answers]);
 
   const startCheckout = async () => {
-    if (userProfile?.email) {
-      const clickedAt = new Date();
-      syncModuleTime({
-        activeDurationMs: 1,
-        date: clickedAt.toISOString().slice(0, 10),
-        durationMs: 1,
-        email: userProfile.email,
-        moduleId: "premium-interest",
-        moduleLabel: "Premium interest signup",
-        startedAt: clickedAt.toISOString()
-      });
+    if (!userProfile?.email || userProfile.authProvider === "guest") {
+      setPremiumInterestPending(true);
+      setAccountGateNotice("Please create an account or log in so we can save your name and email to the Premium early-access list. After you finish, your request will be submitted automatically.");
+      setUserProfile(null);
+      return;
+    }
+    const saved = await recordPremiumInterest(userProfile.email, userProfile.name, userProfile.phone);
+    if (!saved) {
+      Alert.alert("Premium request not saved", "We could not save your request yet. Please check your connection and try again.");
+      return;
     }
     setSubscriptionStatus("Early access requested");
     Alert.alert(
@@ -310,6 +310,12 @@ export default function App() {
       "Premium is not live yet. We will let you know when it becomes available. The first 100 signups will receive Premium free for the first year, including access to other premium services as they are developed."
     );
   };
+
+  useEffect(() => {
+    if (!premiumInterestPending || !userProfile?.email || userProfile.authProvider === "guest") return;
+    setPremiumInterestPending(false);
+    startCheckout();
+  }, [premiumInterestPending, userProfile?.authProvider, userProfile?.email]);
 
   useEffect(() => {
     if (!userProfile) return;
@@ -2377,6 +2383,36 @@ function AdminDashboard() {
           <Ionicons color="#008A94" name="bar-chart-outline" size={24} />
           <Text style={styles.adminEmptyTitle}>No visitor trend yet</Text>
           <Text style={styles.bodyText}>As users visit modules, daily unique visitor and visit counts will appear here.</Text>
+        </View>
+      )}
+
+      <Text style={styles.adminSectionTitle}>Premium interest</Text>
+      <View style={styles.adminInsightOpenCard}>
+        <View style={styles.adminInsightCopy}>
+          <Text style={styles.adminStartTitle}>{report.premiumInterest?.length || 0} interested {(report.premiumInterest?.length || 0) === 1 ? "person" : "people"}</Text>
+          <Text style={styles.adminStartText}>Signed-in users who requested Premium early access appear below with their saved contact information.</Text>
+        </View>
+        <Ionicons color="#7555C7" name="diamond-outline" size={24} />
+      </View>
+      {report.premiumInterest?.length ? report.premiumInterest.map((interest) => (
+        <View key={interest.email} style={styles.adminUserCard}>
+          <View style={styles.adminModuleTopline}>
+            <View style={styles.adminUserIdentity}>
+              <Text style={styles.adminModuleLabel}>{interest.name || "Name not provided"}</Text>
+              <Text style={styles.adminFeedbackMeta}>{interest.email}</Text>
+              {interest.phone ? <Text style={styles.adminFeedbackMeta}>{interest.phone}</Text> : null}
+            </View>
+            <View style={styles.adminUserPill}>
+              <Text style={styles.adminUserPillText}>{interest.platform}</Text>
+            </View>
+          </View>
+          <Text style={styles.adminFeedbackMeta}>Requested: {formatReportDateTime(interest.requestedAt)}</Text>
+        </View>
+      )) : (
+        <View style={styles.adminEmptyCard}>
+          <Ionicons color="#7555C7" name="diamond-outline" size={24} />
+          <Text style={styles.adminEmptyTitle}>No Premium requests yet</Text>
+          <Text style={styles.bodyText}>People will appear here after they sign in and join the Premium early-access list.</Text>
         </View>
       )}
 

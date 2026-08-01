@@ -66,6 +66,13 @@ type BackendAdminReport = {
   feedbackCount: number;
   averageRating: number;
   improvementResponses: Array<{ moduleLabel: string; note: string; rating: number; email: string; savedAt?: string }>;
+  premiumInterest: Array<{
+    name: string;
+    email: string;
+    phone?: string;
+    requestedAt: string;
+    platform: string;
+  }>;
   visitorInsights: Array<{
     key: string;
     name: string;
@@ -228,8 +235,10 @@ export function syncModuleTime(event: {
   date: string;
   clientChannel?: string;
   deviceCategory?: string;
+  name?: string;
+  phone?: string;
 }) {
-  postToBackend("/api/analytics/module-time", {
+  return postToBackend("/api/analytics/module-time", {
     ...getClientPlatformDetails(),
     ...event
   });
