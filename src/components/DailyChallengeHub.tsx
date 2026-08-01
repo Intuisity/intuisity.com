@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Contacts from "expo-contacts";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Animated, Easing, Image, ImageBackground, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
@@ -947,6 +948,29 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     setFriendEmail("");
     setFriendPhoneError("");
     return { contact, contactKey, nextSaved, nextSelected };
+  };
+
+  const chooseFriendFromContacts = async () => {
+    try {
+      if (Platform.OS === "android") {
+        const permission = await Contacts.requestPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert("Contacts permission needed", "Allow contact access to choose a friend, or enter their information manually.");
+          return;
+        }
+      }
+      const contact = await Contacts.presentContactPickerAsync();
+      if (!contact) return;
+      const selectedPhone = contact.phoneNumbers?.find((item) => item.isPrimary)?.number || contact.phoneNumbers?.[0]?.number || "";
+      const selectedEmail = contact.emails?.find((item) => item.isPrimary)?.email || contact.emails?.[0]?.email || "";
+      const selectedName = contact.name || [contact.firstName, contact.lastName].filter(Boolean).join(" ");
+      setFriendName(selectedName || "");
+      setFriendPhone(formatContactPickerPhone(selectedPhone));
+      setFriendEmail(selectedEmail.trim().toLowerCase());
+      setFriendPhoneError(selectedPhone || selectedEmail ? "" : "That contact has no phone number or email. You can add one manually.");
+    } catch {
+      Alert.alert("Contact lookup unavailable", "Please enter your friend's name, phone number, or email manually.");
+    }
   };
 
   const previousPage = getPreviousModulePage(page);
@@ -2942,6 +2966,12 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               </View>
             ) : null}
             <Text style={styles.inputLabel}>Friend connection</Text>
+            {Platform.OS !== "web" ? (
+              <Pressable accessibilityLabel="Choose friend from contacts" onPress={chooseFriendFromContacts} style={styles.contactPickerButton}>
+                <Ionicons color="#6544B8" name="people-outline" size={20} />
+                <Text style={styles.contactPickerButtonText}>Choose from Contacts</Text>
+              </Pressable>
+            ) : null}
             <TextInput
               accessibilityLabel="Friend name"
               autoCapitalize="words"
@@ -5569,6 +5599,11 @@ function prepareCanvas(canvas: any) {
   context.fillStyle = "#30264C";
 }
 
+function formatContactPickerPhone(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return formatFriendPhone(digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits);
+}
+
 function makeSmoothDrawingPaths(points: Array<{ x: number; y: number; start?: boolean }>) {
   const strokes: Array<Array<{ x: number; y: number }>> = [];
   points.forEach((point) => {
@@ -5930,6 +5965,8 @@ const styles = StyleSheet.create({
   friendPhoneRow: { alignItems: "stretch", flexDirection: "row", gap: 7 },
   friendPhoneInput: { flex: 1 },
   addFriendButton: { alignItems: "center", backgroundColor: "#008A94", borderRadius: 8, height: 48, justifyContent: "center", width: 48 },
+  contactPickerButton: { alignItems: "center", backgroundColor: "#F3EEFF", borderColor: "#BFADE8", borderRadius: 9, borderWidth: 1, flexDirection: "row", gap: 8, justifyContent: "center", marginBottom: 10, minHeight: 46, paddingHorizontal: 14 },
+  contactPickerButtonText: { color: "#6544B8", fontSize: 15, fontWeight: "900" },
   savedFriendsLabel: { color: "#706982", fontSize: 11, fontWeight: "800", marginBottom: 7, marginTop: 5 },
   friendPlayConfirmation: { alignItems: "center", backgroundColor: "#F8F5FF", borderColor: "#BFADE8", borderRadius: 8, borderWidth: 2, gap: 8, marginBottom: 12, marginTop: 12, padding: 14 },
   friendPlayConfirmationTitle: { color: "#30264C", fontSize: 17, fontWeight: "900", textAlign: "center" },

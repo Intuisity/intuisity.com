@@ -37,7 +37,13 @@
       "expo-font",
       "expo-secure-store",
       "expo-web-browser",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow Intuisity to let you choose a friend for a Treasure Chest invitation."
+        }
+      ]
     ]
   }
 }
