@@ -84,9 +84,9 @@ async function createChallenge(body, response) {
     const pushDeliveryId = pushToken ? await sendExpoPush({ challengeUrl, friendName, pushToken, senderName }) : "";
     const deliveryId = await sendEmail({
       to: friendEmail,
-      subject: `${senderName} invited you to Intuisity`,
+      subject: `Can you unlock ${senderName}'s Treasure Chest?`,
       html: inviteHtml({ challengeUrl, friendName, note, senderName }),
-      text: `Hi ${friendName},\n\n${senderName} invited you to a Treasure Chest challenge.\n\n${note ? `${note}\n\n` : ""}Open it here: ${challengeUrl}`
+      text: `Hi ${friendName},\n\n${senderName} created an Intuisity Treasure Chest challenge just for you. Trust your first impression, arrange the five treasures, and see if you can unlock the hidden order in four tries.\n\n${note ? `A note from ${senderName}: “${note}”\n\n` : ""}Play the challenge: ${challengeUrl}\n\nNo account is needed to accept this challenge. Have fun!\n\n— Intuisity\nAwaken Your Intuition`
     });
     await updateChallenge(id, { invite_delivery_id: deliveryId, invite_delivery_status: "sent", updated_at: new Date().toISOString() });
     console.info("treasure_challenge_invite_sent", { challengeId: id, deliveryId, pushDeliveryId: pushDeliveryId || null, recipient: maskEmail(friendEmail) });
@@ -145,10 +145,10 @@ async function sendExpoPush({ challengeUrl, friendName, pushToken, senderName })
   try {
     const pushResponse = await fetch("https://exp.host/--/api/v2/push/send", {
       body: JSON.stringify({
-        body: `${senderName} sent you a Treasure Chest challenge.`,
+        body: `${senderName} created a challenge for you. Can you unlock the hidden order?`,
         data: { challengeUrl, type: "treasure-challenge" },
         sound: "default",
-        title: `A Treasure Chest for ${friendName}`,
+        title: `🔐 A Treasure Chest for ${friendName}`,
         to: pushToken
       }),
       headers: { "Content-Type": "application/json" },
@@ -295,7 +295,9 @@ function rankCompetition(rows) {
 }
 
 function inviteHtml({ challengeUrl, friendName, note, senderName }) {
-  return `<div style="font-family:Arial,sans-serif;line-height:1.5;color:#30264C;max-width:560px"><h1 style="color:#6544B8">You have an Intuisity invite</h1><p>Hi ${escapeHtml(friendName)},</p><p>${escapeHtml(senderName)} invited you to try a Treasure Chest challenge.</p>${note ? `<p style="padding:12px;border-left:4px solid #00AEBB;background:#F2FAFA">${escapeHtml(note)}</p>` : ""}<p><a href="${escapeHtml(challengeUrl)}" style="background:#6544B8;color:#fff;display:inline-block;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Open Treasure Chest</a></p></div>`;
+  const safeUrl = escapeHtml(challengeUrl);
+  const safeSender = escapeHtml(senderName);
+  return `<div style="margin:0;padding:24px 12px;background:#F5F1FC;font-family:Arial,sans-serif;color:#30264C"><div style="max-width:580px;margin:0 auto;overflow:hidden;border:1px solid #E1D7F5;border-radius:18px;background:#FFFFFF;box-shadow:0 8px 24px rgba(48,38,76,.12)"><div style="padding:28px 24px;text-align:center;background:linear-gradient(135deg,#51339A,#7654C7);color:#FFFFFF"><div style="font-size:44px;line-height:1">✨🔐✨</div><p style="margin:12px 0 4px;font-size:14px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#CFF8F6">Intuisity Treasure Chest</p><h1 style="margin:4px 0 0;font-size:28px;line-height:1.2;color:#FFFFFF">A challenge is waiting for you!</h1></div><div style="padding:28px 26px;line-height:1.6"><p style="margin-top:0;font-size:17px">Hi ${escapeHtml(friendName)},</p><p style="font-size:17px"><strong>${safeSender}</strong> created a Treasure Chest challenge just for you.</p><p>Trust your first impression, arrange the five treasures, and see if you can unlock the hidden order in four tries.</p>${note ? `<div style="margin:22px 0;padding:16px 18px;border-left:4px solid #00AEBB;border-radius:8px;background:#EDFBFB"><div style="margin-bottom:5px;font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;color:#087E87">A note from ${safeSender}</div><div style="font-size:16px">“${escapeHtml(note)}”</div></div>` : ""}<div style="margin:28px 0;text-align:center"><a href="${safeUrl}" style="display:inline-block;padding:15px 26px;border-radius:10px;background:#00AEBB;color:#FFFFFF;font-size:18px;font-weight:bold;text-decoration:none">Play the Treasure Chest →</a></div><p style="margin-bottom:0;text-align:center;font-size:13px;color:#756D85">No account is needed to accept this challenge.</p></div><div style="padding:18px;text-align:center;background:#FAF8FE;color:#6544B8;font-size:13px;font-weight:bold">Intuisity · Awaken Your Intuition</div></div></div>`;
 }
 
 function statusHtml(message, status) {

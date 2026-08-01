@@ -2319,7 +2319,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     };
     const textTreasureChallengeLink = async (preparedInvite?: { name: string; phone: string; url: string }) => {
       const url = preparedInvite?.url || treasureSentChallengeUrl || "https://www.intuisity.com/treasure-chest.html";
-      const message = `${userProfile.name || "A friend"} invited you to an Intuisity Treasure Chest challenge. Open it here: ${url}`;
+      const message = `✨ ${userProfile.name || "A friend"} created an Intuisity Treasure Chest challenge for you! Trust your first impression and see if you can unlock the hidden order in four tries. Play here: ${url}`;
       const recipient = (preparedInvite?.phone || treasureSentFriendPhone).replace(/[^\d+]/g, "");
       try {
         if (!treasureCanOpenMessages) {

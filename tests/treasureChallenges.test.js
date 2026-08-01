@@ -62,6 +62,10 @@ const handler = require("../api/treasure-challenges");
   assert.equal(created.statusCode, 201);
   assert.equal(emails[0].to, "friend@example.com");
   assert.match(emails[0].html, /challenge=/);
+  assert.match(emails[0].subject, /unlock.*Treasure Chest/i);
+  assert.match(emails[0].html, /A challenge is waiting for you/i);
+  assert.match(emails[0].html, /No account is needed/i);
+  assert.match(emails[0].text, /hidden order in four tries/i);
 
   const id = created.payload.id;
   const opened = await call("POST", {}, { action: "opened", id });
