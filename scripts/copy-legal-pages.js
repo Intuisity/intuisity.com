@@ -86,7 +86,8 @@ const pages = [
   { from: path.join(legal, "llms.txt"), to: path.join(dist, "llms.txt") },
   { from: path.join(legal, "robots.txt"), to: path.join(dist, "robots.txt") },
   { from: path.join(legal, "sitemap.xml"), to: path.join(dist, "sitemap.xml") },
-  { from: path.join(root, "assets", "intuisity-front-banner-v5.png"), to: path.join(dist, "intuisity-share.png") }
+  { from: path.join(root, "assets", "intuisity-front-banner-v5.png"), to: path.join(dist, "intuisity-share.png") },
+  { from: path.join(legal, "f11106c1f9834fc3b1b46139f30654c3.txt"), to: path.join(dist, "f11106c1f9834fc3b1b46139f30654c3.txt") }
 ];
 
 if (!fs.existsSync(dist)) {

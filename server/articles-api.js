@@ -1,5 +1,6 @@
 const crypto = require("node:crypto");
 const { allowCors, readJsonBody, requireAdminSecret, sendJson, supabaseRequest } = require("./supabase");
+const { articleUrls, notifyIndexNow } = require("./indexnow");
 
 module.exports = async function handler(request, response) {
   if (allowCors(request, response)) return;
@@ -50,10 +51,16 @@ async function saveArticle(request, response) {
   if (!article.slug || !article.title || !article.description || !article.body) {
     return sendJson(response, 400, { error: "Title, slug, description, and article body are required" });
   }
-  const existing = await supabaseRequest(`/articles?id=eq.${encodeURIComponent(id)}&select=id&limit=1`);
+  const existing = await supabaseRequest(`/articles?id=eq.${encodeURIComponent(id)}&select=id,slug,status,category&limit=1`);
   const rows = existing?.length
     ? await supabaseRequest(`/articles?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(article) })
     : await supabaseRequest("/articles", { method: "POST", body: JSON.stringify({ ...article, created_at: now }) });
+  const previous = existing?.[0];
+  const changedUrls = [
+    ...(status === "published" ? articleUrls(article) : []),
+    ...(previous?.status === "published" && (status !== "published" || previous.slug !== article.slug) ? articleUrls(previous) : [])
+  ];
+  await notifyIndexNow(changedUrls);
   return sendJson(response, 200, rows?.[0] || article);
 }
 
@@ -61,7 +68,9 @@ async function deleteArticle(request, response) {
   if (requireAdminSecret(request, response)) return;
   const id = String(request.query?.id || "");
   if (!validUuid(id)) return sendJson(response, 400, { error: "Valid article id is required" });
+  const existing = await supabaseRequest(`/articles?id=eq.${encodeURIComponent(id)}&select=slug,status,category&limit=1`);
   await supabaseRequest(`/articles?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (existing?.[0]?.status === "published") await notifyIndexNow(articleUrls(existing[0]));
   return sendJson(response, 200, { ok: true });
 }
 
