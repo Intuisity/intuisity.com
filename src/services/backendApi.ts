@@ -90,6 +90,7 @@ type BackendAdminReport = {
     totalVisitors: number;
   };
   acquisitionSources: Array<{ source: string; label: string; uniqueVisitors: number }>;
+  acquisitionDetails: Array<{ source: string; label: string; uniqueVisitors: number; landingPage?: string; referrer?: string; campaign?: string; keyword?: string; medium?: string }>;
   visitorInsights: Array<{
     key: string;
     name: string;

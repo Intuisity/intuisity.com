@@ -108,4 +108,19 @@ assert.deepEqual(acquisitionSources, [
   { source: "search", label: "Search engine", uniqueVisitors: 1 }
 ]);
 
+const acquisitionDetails = serverReport.buildAcquisitionDetails([
+  { email: "search@example.com", started_at: "2026-08-01T10:00:00.000Z", event_json: { visitorId: "search", referrer: "https://www.google.com/search", landingPath: "/free-intuition-test/?utm_source=google", utmSource: "google", utmMedium: "cpc", utmCampaign: "intuition-practice", utmTerm: "daily intuition exercises" } },
+  { email: "search@example.com", started_at: "2026-08-01T11:00:00.000Z", event_json: { visitorId: "search" } }
+]);
+assert.deepEqual(acquisitionDetails, [{
+  source: "campaign:google",
+  label: "Google search",
+  landingPage: "/free-intuition-test/",
+  referrer: "google.com",
+  campaign: "intuition-practice",
+  keyword: "daily intuition exercises",
+  medium: "cpc",
+  uniqueVisitors: 1
+}]);
+
 console.log("Profile report tests passed");

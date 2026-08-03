@@ -13,6 +13,7 @@ export function AdminArticleEditor({ adminSecret }: { adminSecret: string }) {
   const [article, setArticle] = useState<Partial<ArticleRecord>>(emptyArticle);
   const [status, setStatus] = useState("Enter the admin password above to manage articles.");
   const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const refresh = async () => {
     if (!adminSecret.trim()) return;
@@ -74,7 +75,8 @@ export function AdminArticleEditor({ adminSecret }: { adminSecret: string }) {
 
   return (
     <View style={styles.section}>
-      <View style={styles.heading}><Ionicons color="#7555C7" name="newspaper-outline" size={25} /><View style={styles.headingCopy}><Text style={styles.title}>Article publishing</Text><Text style={styles.help}>Write helpful articles, save drafts, and publish searchable information pages.</Text></View></View>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen((current) => !current)} style={styles.heading}><Ionicons color="#7555C7" name="newspaper-outline" size={25} /><View style={styles.headingCopy}><Text style={styles.title}>Article publishing</Text><Text style={styles.help}>Closed by default. Open to write, edit, or publish an article.</Text></View><Ionicons color="#7555C7" name={open ? "chevron-up-outline" : "chevron-down-outline"} size={22} /></Pressable>
+      {open ? <>
       <View style={styles.toolbar}>
         <Pressable onPress={() => setArticle(emptyArticle)} style={styles.lightButton}><Ionicons color="#7555C7" name="add-outline" size={17} /><Text style={styles.lightButtonText}>New article</Text></Pressable>
         <Pressable disabled={loading} onPress={refresh} style={styles.lightButton}><Ionicons color="#008A94" name="refresh-outline" size={17} /><Text style={styles.lightButtonText}>Refresh</Text></Pressable>
@@ -89,6 +91,7 @@ export function AdminArticleEditor({ adminSecret }: { adminSecret: string }) {
       <View style={styles.twoColumn}><Field label="Button wording" value={article.call_to_action_label || ""} onChangeText={(value) => update("call_to_action_label", value)} placeholder="Try Intuisity" compact /><Field label="Button destination" value={article.call_to_action_url || ""} onChangeText={(value) => update("call_to_action_url", value)} placeholder="/" compact /></View>
       <View style={styles.toolbar}><Pressable disabled={loading} onPress={() => save(false)} style={styles.lightButton}><Ionicons color="#7555C7" name="save-outline" size={18} /><Text style={styles.lightButtonText}>Save draft</Text></Pressable><Pressable disabled={loading} onPress={() => save(true)} style={styles.publishButton}><Ionicons color="#FFFFFF" name="cloud-upload-outline" size={18} /><Text style={styles.publishText}>Publish article</Text></Pressable>{article.id ? <Pressable onPress={remove} style={styles.deleteButton}><Text style={styles.deleteText}>Delete</Text></Pressable> : null}</View>
       <Text style={styles.status}>{loading ? "Working..." : status}</Text>
+      </> : null}
     </View>
   );
 }

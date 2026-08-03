@@ -44,6 +44,7 @@ async function buildAdminReport(options = {}) {
   const geographicAreas = buildGeographicAreas(userProfiles);
   const visitorGeographicAreas = buildVisitorGeographicAreas(rangedVisitorEvents.filter((event) => !isOwnerTestEvent(event)), userProfiles);
   const acquisitionSources = buildAcquisitionSources(rangedVisitorEvents.filter((event) => !isOwnerTestEvent(event)));
+  const acquisitionDetails = buildAcquisitionDetails(rangedVisitorEvents.filter((event) => !isOwnerTestEvent(event)));
   const ownerTestVisitors = countUniqueVisitors(rangedVisitorEvents.filter(isOwnerTestEvent));
   const audienceUniqueVisitors = countUniqueVisitors(rangedVisitorEvents.filter((event) => !isOwnerTestEvent(event)));
   const moduleDailyTrend = buildModuleDailyTrend(rangedAnalyticsEvents);
@@ -90,6 +91,7 @@ async function buildAdminReport(options = {}) {
     geographicAreas,
     visitorGeographicAreas,
     acquisitionSources,
+    acquisitionDetails,
     moduleDailyTrend,
     dateRange,
     totalTimeMs,
@@ -538,6 +540,40 @@ function getAcquisitionSource(event) {
   return { source: "direct", label: "Direct or unknown" };
 }
 
+function buildAcquisitionDetails(events) {
+  const firstEventByVisitor = new Map();
+  events.forEach((event) => {
+    const key = getVisitorKey(event);
+    if (!key) return;
+    const recordedAt = event.recorded_at || event.started_at || "";
+    const current = firstEventByVisitor.get(key);
+    if (!current || recordedAt < (current.recorded_at || current.started_at || "")) firstEventByVisitor.set(key, event);
+  });
+  const details = new Map();
+  firstEventByVisitor.forEach((event) => {
+    const payload = event.event_json || {};
+    const source = getAcquisitionSource(event);
+    const referrer = String(payload.referrer || "");
+    let referrerHost = "";
+    try { referrerHost = referrer ? new URL(referrer).hostname.replace(/^www\./, "") : ""; } catch { referrerHost = ""; }
+    const searchLabel = /google\./i.test(referrer) ? "Google search" : /bing\./i.test(referrer) ? "Bing search" : /duckduckgo\./i.test(referrer) ? "DuckDuckGo search" : /yahoo\./i.test(referrer) ? "Yahoo search" : "";
+    const detail = {
+      source: source.source,
+      label: searchLabel || source.label,
+      landingPage: String(payload.landingPath || "/").split("?")[0] || "/",
+      referrer: referrerHost,
+      campaign: String(payload.utmCampaign || payload.utm_campaign || ""),
+      keyword: String(payload.utmTerm || payload.utm_term || ""),
+      medium: String(payload.utmMedium || payload.utm_medium || "")
+    };
+    const key = [detail.source, detail.landingPage, detail.referrer, detail.campaign, detail.keyword, detail.medium].join("|").toLowerCase();
+    const current = details.get(key) || { ...detail, uniqueVisitors: 0 };
+    current.uniqueVisitors += 1;
+    details.set(key, current);
+  });
+  return [...details.values()].sort((a, b) => b.uniqueVisitors - a.uniqueVisitors || a.label.localeCompare(b.label));
+}
+
 function buildGeographicAreas(profiles) {
   const uniqueProfiles = new Map();
   profiles.forEach((profile) => {
@@ -703,6 +739,7 @@ function formatDuration(milliseconds) {
 module.exports = {
   buildAdminReport,
   buildAcquisitionSources,
+  buildAcquisitionDetails,
   buildGeographicAreas,
   buildVisitorGeographicAreas,
   buildPremiumInterest,

@@ -1898,6 +1898,7 @@ function AdminDashboard() {
   const [showAdminSecret, setShowAdminSecret] = useState(false);
   const [adminReportPage, setAdminReportPage] = useState<"overview" | "user-insights" | "unique-visitors">("overview");
   const [showBackendDetails, setShowBackendDetails] = useState(false);
+  const [showAcquisitionDetails, setShowAcquisitionDetails] = useState(false);
   const [reportStartDate, setReportStartDate] = useState("");
   const [reportEndDate, setReportEndDate] = useState("");
   const [moduleTrendDays, setModuleTrendDays] = useState<1 | 7 | 14 | 30>(7);
@@ -2399,17 +2400,35 @@ function AdminDashboard() {
         ))}
       </View>
 
-      <Text style={styles.adminSectionTitle}>How visitors found Intuisity</Text>
-      <Text style={styles.adminSectionHint}>Each audience visitor is counted once using the first source recorded in the selected date range. Owner/test activity is excluded.</Text>
-      <View style={styles.adminGeographyCard}>
-        {report.acquisitionSources?.length ? report.acquisitionSources.map((source, index) => (
-          <View key={source.source} style={styles.adminGeographyRow}>
-            <Text style={styles.adminGeographyRank}>{index + 1}</Text>
-            <Text style={styles.adminGeographyLabel}>{source.label}</Text>
-            <Text style={styles.adminGeographyCount}>{source.uniqueVisitors}</Text>
+      <View style={styles.adminCollapseCard}>
+        <Pressable onPress={() => setShowAcquisitionDetails((current) => !current)} style={styles.adminCollapseHeader}>
+          <View style={styles.adminCollapseIcon}><Ionicons color="#7555C7" name="navigate-outline" size={20} /></View>
+          <View style={styles.adminInsightCopy}>
+            <Text style={styles.adminStartTitle}>How visitors found Intuisity</Text>
+            <Text style={styles.adminFeedbackMeta}>Search engines, referrals, campaigns, keywords, and landing pages. Owner/test activity is excluded.</Text>
           </View>
-        )) : (
-          <Text style={styles.adminFeedbackMeta}>New visits will be categorized as search, friend invite, campaign, social, referral, app, or direct.</Text>
+          <Ionicons color="#7555C7" name={showAcquisitionDetails ? "chevron-up-outline" : "chevron-down-outline"} size={22} />
+        </Pressable>
+        {showAcquisitionDetails && (
+          <View style={styles.adminCollapseBody}>
+            <Text style={styles.adminSectionHint}>Each audience visitor is counted once using their first source in the selected date range. Search keywords appear when supplied through campaign tracking; Google commonly withholds organic query text.</Text>
+            <View style={styles.adminGeographyCard}>
+              {(report.acquisitionDetails?.length ? report.acquisitionDetails : report.acquisitionSources || []).map((source: any, index: number) => (
+                <View key={`${source.source}-${source.landingPage || ""}-${index}`} style={styles.adminAcquisitionRow}>
+                  <Text style={styles.adminGeographyRank}>{index + 1}</Text>
+                  <View style={styles.adminInsightCopy}>
+                    <Text style={styles.adminGeographyLabel}>{source.label}</Text>
+                    {source.keyword ? <Text style={styles.adminFeedbackMeta}>Keyword: {source.keyword}</Text> : null}
+                    {source.campaign ? <Text style={styles.adminFeedbackMeta}>Campaign: {source.campaign}{source.medium ? ` · ${source.medium}` : ""}</Text> : null}
+                    {source.referrer ? <Text style={styles.adminFeedbackMeta}>Referrer: {source.referrer}</Text> : null}
+                    {source.landingPage ? <Text style={styles.adminFeedbackMeta}>Landing page: {source.landingPage}</Text> : null}
+                  </View>
+                  <Text style={styles.adminGeographyCount}>{source.uniqueVisitors}</Text>
+                </View>
+              ))}
+              {!report.acquisitionSources?.length && <Text style={styles.adminFeedbackMeta}>New visits will be categorized as search, friend invite, campaign, social, referral, app, or direct.</Text>}
+            </View>
+          </View>
         )}
       </View>
 
@@ -3009,6 +3028,7 @@ const styles = StyleSheet.create({
     minHeight: 42,
     paddingVertical: 8
   },
+  adminAcquisitionRow: { alignItems: "flex-start", borderTopColor: "#EEEAF5", borderTopWidth: 1, flexDirection: "row", gap: 10, paddingVertical: 11 },
   adminGeographyRank: {
     color: "#7555C7",
     fontSize: 13,

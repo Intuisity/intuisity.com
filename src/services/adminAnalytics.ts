@@ -22,6 +22,8 @@ export type AnalyticsEvent = {
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;
+  utmTerm?: string;
+  utmContent?: string;
 };
 
 export type PremiumInterestReport = {
@@ -68,6 +70,7 @@ export type AdminAnalyticsReport = {
   geographicAreas: GeographicAreasReport;
   visitorGeographicAreas: VisitorGeographicAreasReport;
   acquisitionSources: Array<{ source: string; label: string; uniqueVisitors: number }>;
+  acquisitionDetails: Array<{ source: string; label: string; uniqueVisitors: number; landingPage?: string; referrer?: string; campaign?: string; keyword?: string; medium?: string }>;
   moduleDailyTrend: Array<{
     date: string;
     modules: Array<{
@@ -298,6 +301,7 @@ export function loadAdminAnalyticsReport(startDate = "", endDate = ""): AdminAna
     geographicAreas: buildLocalGeographicAreas(allProfiles),
     visitorGeographicAreas: buildLocalVisitorGeographicAreas(rangedVisitorEvents.filter((event) => !isLocalOwnerTestEvent(event)), allProfiles),
     acquisitionSources: buildLocalAcquisitionSources(rangedVisitorEvents.filter((event) => !isLocalOwnerTestEvent(event))),
+    acquisitionDetails: buildLocalAcquisitionDetails(rangedVisitorEvents.filter((event) => !isLocalOwnerTestEvent(event))),
     moduleDailyTrend: buildModuleDailyTrend(events),
     dateRange,
     totalTimeMs,
@@ -444,6 +448,42 @@ function getLocalAcquisitionSource(event: AnalyticsEvent) {
   if (referrer && !/intuisity\.com/.test(referrer)) return { source: "referral", label: "Other website/referral" };
   if (normalizePlatformChannel(event.clientChannel || event.deviceCategory || "") === "app") return { source: "app", label: "Opened the app" };
   return { source: "direct", label: "Direct or unknown" };
+}
+
+function buildLocalAcquisitionDetails(events: AnalyticsEvent[]) {
+  const firstEventByVisitor = new Map<string, AnalyticsEvent>();
+  events.forEach((event) => {
+    const key = getVisitorKey(event);
+    const current = firstEventByVisitor.get(key);
+    if (key && (!current || event.startedAt < current.startedAt)) firstEventByVisitor.set(key, event);
+  });
+  const details = new Map<string, any>();
+  firstEventByVisitor.forEach((event) => {
+    const source = getLocalAcquisitionSource(event);
+    const detail = getAcquisitionDetail(source, event);
+    const key = [detail.source, detail.landingPage, detail.referrer, detail.campaign, detail.keyword, detail.medium].join("|").toLowerCase();
+    const current = details.get(key) || { ...detail, uniqueVisitors: 0 };
+    current.uniqueVisitors += 1;
+    details.set(key, current);
+  });
+  return [...details.values()].sort((a, b) => b.uniqueVisitors - a.uniqueVisitors || a.label.localeCompare(b.label));
+}
+
+function getAcquisitionDetail(source: { source: string; label: string }, event: AnalyticsEvent) {
+  const referrer = String(event.referrer || "");
+  let referrerHost = "";
+  try { referrerHost = referrer ? new URL(referrer).hostname.replace(/^www\./, "") : ""; } catch { referrerHost = ""; }
+  const landingPage = String(event.landingPath || "/").split("?")[0] || "/";
+  const searchEngine = /google\./i.test(referrer) ? "Google search" : /bing\./i.test(referrer) ? "Bing search" : /duckduckgo\./i.test(referrer) ? "DuckDuckGo search" : /yahoo\./i.test(referrer) ? "Yahoo search" : "";
+  return {
+    ...source,
+    label: searchEngine || source.label,
+    landingPage,
+    referrer: referrerHost,
+    campaign: String(event.utmCampaign || ""),
+    keyword: String(event.utmTerm || ""),
+    medium: String(event.utmMedium || "")
+  };
 }
 
 function isLocalOwnerTestEvent(event: AnalyticsEvent) {
@@ -739,7 +779,9 @@ function getClientPlatformDetails() {
     treasureInvite: params.get("treasureInvite") === "1" || Boolean(params.get("challenge")),
     utmSource: String(params.get("utm_source") || "").slice(0, 200),
     utmMedium: String(params.get("utm_medium") || "").slice(0, 200),
-    utmCampaign: String(params.get("utm_campaign") || "").slice(0, 200)
+    utmCampaign: String(params.get("utm_campaign") || "").slice(0, 200),
+    utmTerm: String(params.get("utm_term") || "").slice(0, 200),
+    utmContent: String(params.get("utm_content") || "").slice(0, 200)
   };
 }
 
