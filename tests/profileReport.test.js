@@ -1,5 +1,12 @@
 const assert = require("node:assert/strict");
 const serverReport = require("../server/supabase-report");
+const moduleTimeHandler = require("../api/analytics/module-time");
+
+assert.deepEqual(moduleTimeHandler.getRequestGeography({ headers: {
+  "x-vercel-ip-city": "San%20Diego",
+  "x-vercel-ip-country-region": "CA",
+  "x-vercel-ip-country": "us"
+} }), { city: "San Diego", region: "CA", country: "US" });
 
 assert.equal(serverReport.resolveProfileField({ name: "Kathy", profile_json: { name: "Old name" } }, "name"), "Kathy");
 assert.equal(serverReport.resolveProfileField({ name: "", profile_json: { name: "Kathy Kennedy" } }, "name"), "Kathy Kennedy");
@@ -74,6 +81,19 @@ assert.deepEqual(geographicAreas.states.slice(0, 2), [
 assert.deepEqual(geographicAreas.cities.slice(0, 2), [
   { label: "San Diego, California", count: 2 },
   { label: "Austin, Texas", count: 1 }
+]);
+
+const visitorGeography = serverReport.buildVisitorGeographicAreas([
+  { email: "visitor-one@anonymous.intuisity", event_json: { visitorId: "one", requestGeography: { city: "San Diego", region: "CA", country: "US" } } },
+  { email: "visitor-one@anonymous.intuisity", event_json: { visitorId: "one", requestGeography: { city: "San Diego", region: "CA", country: "US" } } },
+  { email: "person@example.com", event_json: { visitorId: "two" } }
+], [{ email: "person@example.com", current_city: "Austin", current_state: "Texas", current_country: "United States" }]);
+assert.equal(visitorGeography.totalVisitors, 2);
+assert.equal(visitorGeography.usersWithLocation, 2);
+assert.deepEqual(visitorGeography.countries, [{ label: "United States", count: 2 }]);
+assert.deepEqual(visitorGeography.cities, [
+  { label: "Austin, Texas", count: 1 },
+  { label: "San Diego, CA", count: 1 }
 ]);
 
 const acquisitionSources = serverReport.buildAcquisitionSources([

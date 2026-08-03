@@ -471,8 +471,21 @@ function getLocalDateKey(date) {
 }
 
 function buildVisitorGeographicAreas(events, profiles) {
-  const visitorEmails = new Set(events.map((event) => normalizeEmail(event.email)).filter((email) => email && !isAnonymousVisitorEmail(email)));
-  const geography = buildGeographicAreas(profiles.filter((profile) => visitorEmails.has(normalizeEmail(profile.email))));
+  const profileByEmail = new Map(profiles.map((profile) => [normalizeEmail(profile.email), profile]));
+  const locationByVisitor = new Map();
+  events.forEach((event) => {
+    const visitorKey = getVisitorKey(event);
+    if (!visitorKey || locationByVisitor.has(visitorKey)) return;
+    const requestGeography = event.event_json?.requestGeography || event.event_json?.request_geography || {};
+    const email = normalizeEmail(event.email);
+    const profile = profileByEmail.get(email);
+    const city = String(requestGeography.city || resolveProfileField(profile, "current_city", "currentCity") || "").trim();
+    const state = String(requestGeography.region || requestGeography.state || resolveProfileField(profile, "current_state", "currentState") || "").trim();
+    const rawCountry = String(requestGeography.country || resolveProfileField(profile, "current_country", "currentCountry") || "").trim();
+    const country = getCountryDisplayName(rawCountry);
+    if (city || state || country) locationByVisitor.set(visitorKey, { email: `${visitorKey}@visitor.intuisity`, current_city: city, current_state: state, current_country: country });
+  });
+  const geography = buildGeographicAreas([...locationByVisitor.values()]);
   return {
     cities: geography.cities,
     countries: geography.countries,
@@ -480,6 +493,16 @@ function buildVisitorGeographicAreas(events, profiles) {
     totalVisitors: countUniqueVisitors(events),
     usersWithLocation: geography.usersWithLocation
   };
+}
+
+function getCountryDisplayName(country) {
+  const cleanCountry = String(country || "").trim();
+  if (!/^[A-Za-z]{2}$/.test(cleanCountry)) return cleanCountry;
+  try {
+    return new Intl.DisplayNames(["en"], { type: "region" }).of(cleanCountry.toUpperCase()) || cleanCountry.toUpperCase();
+  } catch {
+    return cleanCountry.toUpperCase();
+  }
 }
 
 function buildAcquisitionSources(events) {

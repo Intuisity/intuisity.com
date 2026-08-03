@@ -2037,7 +2037,7 @@ function AdminDashboard() {
 
         <Text style={styles.adminSectionTitle}>Audience visitor geography</Text>
         <Text style={styles.adminSectionHint}>
-          Location is available for {report.visitorGeographicAreas?.usersWithLocation || 0} of {report.visitorGeographicAreas?.totalVisitors || report.uniqueVisitors} unique visitors in this report. Anonymous visitors without a saved profile remain unknown.
+          Approximate location is available for {report.visitorGeographicAreas?.usersWithLocation || 0} of {report.visitorGeographicAreas?.totalVisitors || report.uniqueVisitors} unique visitors in this report. It comes from the hosting network or a saved profile; Intuisity does not store an IP address or use GPS.
         </Text>
         <View style={styles.adminGeographyGrid}>
           {[
