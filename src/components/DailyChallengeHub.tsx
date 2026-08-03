@@ -448,6 +448,29 @@ const treasureWinClosers = [
 const treasureWinMessages = treasureWinOpeners.flatMap((opener) =>
   treasureWinClosers.map((closer) => `${opener}, ${closer}`)
 );
+const treasurePositiveMessages = [
+  "You are bright, brave, and guided.",
+  "Trust the quiet wisdom already growing within you.",
+  "Your first impression deserves a moment of attention.",
+  "Each playful guess helps you notice your natural signals.",
+  "Stay curious—the next clue may arrive softly.",
+  "Your awareness becomes clearer each time you practice.",
+  "Let curiosity lead and perfection take a rest.",
+  "You are learning to recognize what your inner voice feels like.",
+  "A calm mind can make room for a surprisingly clear hunch.",
+  "Celebrate the noticing, not only the answer.",
+  "Your intuition grows through patience, play, and honest feedback.",
+  "Pause, breathe, and give your first knowing a chance.",
+  "Every round is a fresh opportunity to listen inward.",
+  "You can be open to an impression without forcing it.",
+  "Small moments of awareness can become meaningful practice.",
+  "Keep exploring what feels light, clear, or quietly familiar.",
+  "You bring your own unique way of sensing to every challenge.",
+  "Notice what draws your attention before your mind explains it.",
+  "Practice with kindness toward yourself and curiosity about the result.",
+  "Your willingness to explore is part of the discovery."
+];
+let lastTreasurePositiveMessage = "";
 const treasureChestClosedImage = require("../../assets/treasure-chest/realistic-chest-closed.png");
 const treasureChestOpenImage = require("../../assets/treasure-chest/realistic-chest-open.png");
 const treasureSceneImages = [
@@ -633,6 +656,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const [treasureGuestSenderName, setTreasureGuestSenderName] = useState("");
   const [treasureGuestSenderEmail, setTreasureGuestSenderEmail] = useState("");
   const [treasureNote, setTreasureNote] = useState("");
+  const [treasureComputerMessage, setTreasureComputerMessage] = useState(makeTreasurePositiveMessage);
   const [treasureSceneImage, setTreasureSceneImage] = useState(() => treasureSceneImages[0]);
   const [invitedTreasureSender, setInvitedTreasureSender] = useState("");
   const [invitedTreasureChallengeId, setInvitedTreasureChallengeId] = useState("");
@@ -2019,7 +2043,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     const treasureInspirationMessage =
       (opponent === "friend" || invitedTreasureSender) && treasureNote.trim()
         ? treasureNote.trim()
-        : "You are bright, brave, and guided.";
+        : treasureComputerMessage;
     const treasureInspirationWords = treasureInspirationMessage.split(/\s+/).filter(Boolean);
     const treasureCanOpenMessages = Platform.OS !== "web" || /Android|iPhone|iPad|iPod/i.test((globalThis as any).navigator?.userAgent || "");
     const treasureSceneStyle = [
@@ -2081,6 +2105,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         setFriendInviteStatus("Arrange your five treasure tiles, then submit to prepare the invitation.");
       } else {
         setFriendInviteStatus("");
+        setTreasureComputerMessage(makeTreasurePositiveMessage());
       }
       const nextIcons = makeTreasureChestIcons();
       setTreasureIcons(nextIcons);
@@ -5631,6 +5656,34 @@ function prepareCanvas(canvas: any) {
   context.lineWidth = 5;
   context.strokeStyle = "#30264C";
   context.fillStyle = "#30264C";
+}
+
+function makeTreasurePositiveMessage() {
+  const historyKey = "intuisity-treasure-positive-message-history";
+  let previousMessages: string[] = [];
+  try {
+    const stored = JSON.parse(globalThis.localStorage?.getItem(historyKey) || "[]");
+    previousMessages = Array.isArray(stored) ? stored.filter((message) => typeof message === "string") : [];
+  } catch {
+    previousMessages = [];
+  }
+
+  let availableMessages = treasurePositiveMessages.filter(
+    (message) => !previousMessages.includes(message) && message !== lastTreasurePositiveMessage
+  );
+  if (!availableMessages.length) {
+    previousMessages = [];
+    availableMessages = treasurePositiveMessages.filter((message) => message !== lastTreasurePositiveMessage);
+  }
+  const message = shuffle(availableMessages)[0] || treasurePositiveMessages[0];
+  lastTreasurePositiveMessage = message;
+
+  try {
+    globalThis.localStorage?.setItem(historyKey, JSON.stringify([...previousMessages, message].slice(-treasurePositiveMessages.length)));
+  } catch {
+    // Native apps and private browser sessions still use the in-memory last-message guard.
+  }
+  return message;
 }
 
 function formatContactPickerPhone(value: string) {
