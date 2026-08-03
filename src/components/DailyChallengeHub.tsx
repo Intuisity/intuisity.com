@@ -16,6 +16,7 @@ type Answers = Record<string, string>;
 type AstrologyJournalEntry = {
   date: string;
   plan: string;
+  question?: string;
   update?: string;
 };
 
@@ -624,6 +625,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const [birthLocationStatus, setBirthLocationStatus] = useState("");
   const [birthLocationSuggestionsOpen, setBirthLocationSuggestionsOpen] = useState(false);
   const [priorAstrologyEntry, setPriorAstrologyEntry] = useState<AstrologyJournalEntry | null>(null);
+  const [astrologyHistory, setAstrologyHistory] = useState<AstrologyJournalEntry[]>([]);
   const [astrologyUpdate, setAstrologyUpdate] = useState("");
   const [friendName, setFriendName] = useState("");
   const [friendPhone, setFriendPhone] = useState("");
@@ -682,6 +684,8 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const [priorLearningEntry, setPriorLearningEntry] = useState<LearningJournalEntry | null>(null);
   const [learningResponse, setLearningResponse] = useState("");
   const [learningHistory, setLearningHistory] = useState<LearningJournalEntry[]>([]);
+  const [positivityHistory, setPositivityHistory] = useState<LearningJournalEntry[]>([]);
+  const [resultsJournalOpen, setResultsJournalOpen] = useState({ astrology: false, positivity: false });
   const [remoteRound, setRemoteRound] = useState(0);
   const [remotePhase, setRemotePhase] = useState<"sense" | "choose" | "result">("sense");
   const [remoteCorrect, setRemoteCorrect] = useState(0);
@@ -1233,7 +1237,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   }, [choice, page, round, setAnswers]);
 
   useEffect(() => {
-    const entries = loadAstrologyJournal();
+    const entries = userProfile.astrologyJournal?.length ? userProfile.astrologyJournal : loadAstrologyJournal(userProfile.email);
     const today = getDateKey();
     const todayEntry = entries.find((entry) => entry.date === today);
     const prior = [...entries]
@@ -1243,8 +1247,9 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     setAstrologyUpdate(prior?.update || "");
     setAstrologyPlan(todayEntry?.plan || "");
     setPlanSaved(Boolean(todayEntry));
+    setAstrologyHistory([...entries].sort((first, second) => second.date.localeCompare(first.date)));
 
-    const learningEntries = loadLearningJournal();
+    const learningEntries = userProfile.positivityJournal?.length ? userProfile.positivityJournal : loadLearningJournal(userProfile.email);
     const todayLearning = learningEntries.find((entry) => entry.date === today);
     const priorLearning = [...learningEntries]
       .reverse()
@@ -1254,7 +1259,8 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     setPriorLearningEntry(priorLearning || null);
     setLearningResponse(priorLearning?.response || "");
     setLearningHistory(learningEntries.filter((entry) => Boolean(entry.response)).reverse());
-  }, []);
+    setPositivityHistory([...learningEntries].sort((first, second) => second.date.localeCompare(first.date)));
+  }, [userProfile.email]);
 
   if (page === "knowing-results") {
     return (
@@ -1419,9 +1425,10 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             <Pressable
               disabled={!learningResponse.trim()}
               onPress={() => {
-                saveLearningResponse(priorLearningEntry.date, learningResponse.trim());
-                const updated = loadLearningJournal();
+                const updated = saveLearningResponse(userProfile.email, priorLearningEntry.date, learningResponse.trim(), positivityHistory);
+                onUpdateProfile({ ...userProfile, positivityJournal: updated });
                 setLearningHistory(updated.filter((entry) => Boolean(entry.response)).reverse());
+                setPositivityHistory([...updated].sort((first, second) => second.date.localeCompare(first.date)));
                 setPriorLearningEntry(null);
                 setAnswers((current) => ({
                   ...current,
@@ -1522,7 +1529,9 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           <Pressable
             disabled={!learningChallenge.trim()}
             onPress={() => {
-              saveLearningChallenge(learningChallenge.trim());
+              const updated = saveLearningChallenge(userProfile.email, learningChallenge.trim(), positivityHistory);
+              onUpdateProfile({ ...userProfile, positivityJournal: updated });
+              setPositivityHistory([...updated].sort((first, second) => second.date.localeCompare(first.date)));
               setLearningTaskSaved(true);
               setAnswers((current) => ({
                 ...current,
@@ -2003,7 +2012,9 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 <Pressable
                   disabled={!astrologyUpdate.trim()}
                   onPress={() => {
-                    saveAstrologyUpdate(priorAstrologyEntry.date, astrologyUpdate.trim());
+                    const updated = saveAstrologyUpdate(userProfile.email, priorAstrologyEntry.date, astrologyUpdate.trim(), astrologyHistory);
+                    onUpdateProfile({ ...userProfile, astrologyJournal: updated });
+                    setAstrologyHistory([...updated].sort((first, second) => second.date.localeCompare(first.date)));
                     setPriorAstrologyEntry(null);
                   }}
                   style={[styles.secondaryButton, !astrologyUpdate.trim() && styles.disabledButton]}
@@ -2031,7 +2042,9 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               <Pressable
                 disabled={!astrologyPlan.trim() || planSaved}
                 onPress={() => {
-                  saveAstrologyPlan(astrologyPlan.trim());
+                  const updated = saveAstrologyPlan(userProfile.email, astrologyPlan.trim(), astrologyReading.dailyQuestion, astrologyHistory);
+                  onUpdateProfile({ ...userProfile, astrologyJournal: updated });
+                  setAstrologyHistory([...updated].sort((first, second) => second.date.localeCompare(first.date)));
                   setPlanSaved(true);
                 }}
                 style={[
@@ -4059,6 +4072,75 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           </View>
         ))}
 
+        <Text style={styles.resultsSectionTitle}>Your saved daily answers</Text>
+        <Text style={styles.feedbackIntro}>Open either journal to review the answers and updates you have saved over time.</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: resultsJournalOpen.positivity }}
+          onPress={() => setResultsJournalOpen((current) => ({ ...current, positivity: !current.positivity }))}
+          style={styles.resultsJournalHeader}
+        >
+          <View style={styles.resultsJournalHeaderCopy}>
+            <Ionicons color="#008A94" name="sunny-outline" size={23} />
+            <View style={styles.menuCopy}>
+              <Text style={styles.resultsJournalTitle}>Positivity answers</Text>
+              <Text style={styles.resultsJournalCount}>{positivityHistory.length} saved {positivityHistory.length === 1 ? "day" : "days"}</Text>
+            </View>
+          </View>
+          <Ionicons color="#6544B8" name={resultsJournalOpen.positivity ? "chevron-up-outline" : "chevron-down-outline"} size={22} />
+        </Pressable>
+        {resultsJournalOpen.positivity && (
+          <View style={styles.resultsJournalBody}>
+            {positivityHistory.length ? positivityHistory.map((entry) => (
+              <View key={`results-positivity-${entry.date}`} style={styles.resultsJournalEntry}>
+                <Text style={styles.historyDate}>{formatFullDateKey(entry.date)}</Text>
+                <Text style={styles.resultsJournalLabel}>Challenge</Text>
+                <Text style={styles.historyChallenge}>{entry.challenge}</Text>
+                {entry.response ? (
+                  <>
+                    <Text style={styles.resultsJournalLabel}>What happened</Text>
+                    <Text style={styles.historyResponse}>{entry.response}</Text>
+                  </>
+                ) : <Text style={styles.resultsJournalPending}>Your follow-up can be added during your next Positivity Practice.</Text>}
+              </View>
+            )) : <Text style={styles.resultsJournalEmpty}>Your saved Positivity answers will appear here.</Text>}
+          </View>
+        )}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: resultsJournalOpen.astrology }}
+          onPress={() => setResultsJournalOpen((current) => ({ ...current, astrology: !current.astrology }))}
+          style={styles.resultsJournalHeader}
+        >
+          <View style={styles.resultsJournalHeaderCopy}>
+            <Ionicons color="#7555C7" name="moon-outline" size={23} />
+            <View style={styles.menuCopy}>
+              <Text style={styles.resultsJournalTitle}>Astrology answers</Text>
+              <Text style={styles.resultsJournalCount}>{astrologyHistory.length} saved {astrologyHistory.length === 1 ? "day" : "days"}</Text>
+            </View>
+          </View>
+          <Ionicons color="#6544B8" name={resultsJournalOpen.astrology ? "chevron-up-outline" : "chevron-down-outline"} size={22} />
+        </Pressable>
+        {resultsJournalOpen.astrology && (
+          <View style={styles.resultsJournalBody}>
+            {astrologyHistory.length ? astrologyHistory.map((entry) => (
+              <View key={`results-astrology-${entry.date}`} style={styles.resultsJournalEntry}>
+                <Text style={styles.historyDate}>{formatFullDateKey(entry.date)}</Text>
+                {entry.question ? <Text style={styles.resultsJournalQuestion}>{entry.question}</Text> : null}
+                <Text style={styles.resultsJournalLabel}>Your answer</Text>
+                <Text style={styles.historyChallenge}>{entry.plan}</Text>
+                {entry.update ? (
+                  <>
+                    <Text style={styles.resultsJournalLabel}>Your follow-up</Text>
+                    <Text style={styles.historyResponse}>{entry.update}</Text>
+                  </>
+                ) : null}
+              </View>
+            )) : <Text style={styles.resultsJournalEmpty}>Your saved Astrology answers will appear here.</Text>}
+          </View>
+        )}
+
         <Text style={styles.resultsSectionTitle}>Help improve your modules</Text>
         <Text style={styles.feedbackIntro}>
           Rate how much you liked each module and share anything that would make it better.
@@ -4432,64 +4514,83 @@ function formatDateKey(value: string) {
   });
 }
 
-function loadAstrologyJournal(): AstrologyJournalEntry[] {
+function formatFullDateKey(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  });
+}
+
+function getUserJournalKey(baseKey: string, email: string) {
+  return `${baseKey}-${email.trim().toLowerCase()}`;
+}
+
+function loadAstrologyJournal(email: string): AstrologyJournalEntry[] {
   try {
-    const stored = globalThis.localStorage?.getItem(astrologyJournalKey);
+    const stored = globalThis.localStorage?.getItem(getUserJournalKey(astrologyJournalKey, email)) || globalThis.localStorage?.getItem(astrologyJournalKey);
     return stored ? JSON.parse(stored) : [];
   } catch {
     return [];
   }
 }
 
-function saveAstrologyJournal(entries: AstrologyJournalEntry[]) {
+function saveAstrologyJournal(email: string, entries: AstrologyJournalEntry[]) {
   try {
-    globalThis.localStorage?.setItem(astrologyJournalKey, JSON.stringify(entries));
+    globalThis.localStorage?.setItem(getUserJournalKey(astrologyJournalKey, email), JSON.stringify(entries));
   } catch {
     // Browser storage may be unavailable in private mode.
   }
 }
 
-function saveAstrologyPlan(plan: string) {
+function saveAstrologyPlan(email: string, plan: string, question: string, currentEntries?: AstrologyJournalEntry[]) {
   const date = getDateKey();
-  const entries = loadAstrologyJournal().filter((entry) => entry.date !== date);
-  saveAstrologyJournal([...entries, { date, plan }]);
+  const entries = (currentEntries || loadAstrologyJournal(email)).filter((entry) => entry.date !== date);
+  const updated = [...entries, { date, plan, question }];
+  saveAstrologyJournal(email, updated);
+  return updated;
 }
 
-function saveAstrologyUpdate(date: string, update: string) {
-  const entries = loadAstrologyJournal().map((entry) =>
+function saveAstrologyUpdate(email: string, date: string, update: string, currentEntries?: AstrologyJournalEntry[]) {
+  const entries = (currentEntries || loadAstrologyJournal(email)).map((entry) =>
     entry.date === date ? { ...entry, update } : entry
   );
-  saveAstrologyJournal(entries);
+  saveAstrologyJournal(email, entries);
+  return entries;
 }
 
-function loadLearningJournal(): LearningJournalEntry[] {
+function loadLearningJournal(email: string): LearningJournalEntry[] {
   try {
-    const stored = globalThis.localStorage?.getItem(learningJournalKey);
+    const stored = globalThis.localStorage?.getItem(getUserJournalKey(learningJournalKey, email)) || globalThis.localStorage?.getItem(learningJournalKey);
     return stored ? JSON.parse(stored) : [];
   } catch {
     return [];
   }
 }
 
-function saveLearningJournal(entries: LearningJournalEntry[]) {
+function saveLearningJournal(email: string, entries: LearningJournalEntry[]) {
   try {
-    globalThis.localStorage?.setItem(learningJournalKey, JSON.stringify(entries));
+    globalThis.localStorage?.setItem(getUserJournalKey(learningJournalKey, email), JSON.stringify(entries));
   } catch {
     // Browser storage may be unavailable in private mode.
   }
 }
 
-function saveLearningChallenge(challenge: string) {
+function saveLearningChallenge(email: string, challenge: string, currentEntries?: LearningJournalEntry[]) {
   const date = getDateKey();
-  const entries = loadLearningJournal().filter((entry) => entry.date !== date);
-  saveLearningJournal([...entries, { date, challenge }]);
+  const entries = (currentEntries || loadLearningJournal(email)).filter((entry) => entry.date !== date);
+  const updated = [...entries, { date, challenge }];
+  saveLearningJournal(email, updated);
+  return updated;
 }
 
-function saveLearningResponse(date: string, response: string) {
-  const entries = loadLearningJournal().map((entry) =>
+function saveLearningResponse(email: string, date: string, response: string, currentEntries?: LearningJournalEntry[]) {
+  const entries = (currentEntries || loadLearningJournal(email)).map((entry) =>
     entry.date === date ? { ...entry, response } : entry
   );
-  saveLearningJournal(entries);
+  saveLearningJournal(email, entries);
+  return entries;
 }
 
 function makeColorOrders(targets: string[]) {
@@ -6276,6 +6377,16 @@ const styles = StyleSheet.create({
   strengthFill: { backgroundColor: "#00AEBB", borderRadius: 8, height: "100%" },
   strengthDetail: { color: "#81798F", fontSize: 10, marginTop: 5 },
   feedbackIntro: { color: "#706982", fontSize: 13, lineHeight: 19, marginBottom: 10 },
+  resultsJournalHeader: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", marginBottom: 8, minHeight: 66, padding: 13 },
+  resultsJournalHeaderCopy: { alignItems: "center", flex: 1, flexDirection: "row", gap: 10 },
+  resultsJournalTitle: { color: "#30264C", fontSize: 16, fontWeight: "900" },
+  resultsJournalCount: { color: "#706982", fontSize: 12, fontWeight: "700", marginTop: 2 },
+  resultsJournalBody: { backgroundColor: "#F8F7FC", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, marginBottom: 10, padding: 10 },
+  resultsJournalEntry: { backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, marginBottom: 8, padding: 13 },
+  resultsJournalLabel: { color: "#008A94", fontSize: 11, fontWeight: "900", marginTop: 9, textTransform: "uppercase" },
+  resultsJournalQuestion: { color: "#6544B8", fontSize: 14, fontWeight: "800", lineHeight: 20, marginBottom: 4 },
+  resultsJournalPending: { color: "#8A8198", fontSize: 12, fontStyle: "italic", lineHeight: 18, marginTop: 8 },
+  resultsJournalEmpty: { color: "#706982", fontSize: 14, lineHeight: 20, padding: 8, textAlign: "center" },
   feedbackCard: { backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, marginBottom: 10, padding: 12 },
   feedbackModuleTitle: { color: "#30264C", fontSize: 15, fontWeight: "900" },
   feedbackPrompt: { color: "#706982", fontSize: 11, fontWeight: "700", marginTop: 5 },

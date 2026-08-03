@@ -28,6 +28,8 @@ export type UserProfile = {
   birthLongitude?: number;
   birthLocationLabel?: string;
   birthChart?: BirthChartProfile;
+  astrologyJournal?: Array<{ date: string; plan: string; question?: string; update?: string }>;
+  positivityJournal?: Array<{ date: string; challenge: string; response?: string }>;
   currentCity: string;
   currentState: string;
   currentCountry: string;
