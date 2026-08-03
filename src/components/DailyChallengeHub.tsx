@@ -559,6 +559,9 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     ? savedPersonProfile
     : pickBalancedPersonProfile(userProfile.email);
   const [page, setPage] = useState("hub");
+  const webPageHistoryReadyRef = useRef(false);
+  const webPagePopRef = useRef(false);
+  const lastWebPageRef = useRef("hub");
   const analyticsPageRef = useRef(page);
   const analyticsStartedRef = useRef(Date.now());
   const [round, setRound] = useState(0);
@@ -697,6 +700,51 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const [drawingPoints, setDrawingPoints] = useState<Array<{ x: number; y: number; start?: boolean }>>([]);
   const [moduleFeedback, setModuleFeedback] = useState<ModuleFeedback>(() => loadModuleFeedback(userProfile.email));
   const [feedbackSaved, setFeedbackSaved] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const browserWindow = (globalThis as any).window;
+    if (!browserWindow?.history) return;
+    const initialPage = String(browserWindow.history.state?.intuisityPage || "hub");
+    lastWebPageRef.current = initialPage;
+    if (initialPage !== page) {
+      webPagePopRef.current = true;
+      setPage(initialPage);
+    }
+    browserWindow.history.replaceState(
+      { ...(browserWindow.history.state || {}), intuisityPage: initialPage },
+      "",
+      browserWindow.location.href
+    );
+    webPageHistoryReadyRef.current = true;
+    const handlePopState = (event: any) => {
+      const nextPage = event.state?.intuisityPage;
+      if (typeof nextPage !== "string" || !nextPage) return;
+      if (lastWebPageRef.current === nextPage) return;
+      webPagePopRef.current = true;
+      lastWebPageRef.current = nextPage;
+      setPage(nextPage);
+    };
+    browserWindow.addEventListener("popstate", handlePopState);
+    return () => browserWindow.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || !webPageHistoryReadyRef.current) return;
+    if (webPagePopRef.current) {
+      webPagePopRef.current = false;
+      lastWebPageRef.current = page;
+      return;
+    }
+    if (lastWebPageRef.current === page) return;
+    const browserWindow = (globalThis as any).window;
+    browserWindow?.history?.pushState(
+      { ...(browserWindow.history.state || {}), intuisityPage: page },
+      "",
+      browserWindow.location.href
+    );
+    lastWebPageRef.current = page;
+  }, [page]);
 
   useEffect(() => {
     if (page !== "social-prediction" || Platform.OS !== "web") return;

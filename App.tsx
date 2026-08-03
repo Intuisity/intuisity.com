@@ -156,6 +156,9 @@ export default function App() {
   const [sessionRestoring, setSessionRestoring] = useState(Platform.OS !== "web");
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("today");
+  const webTabHistoryReadyRef = useRef(false);
+  const webTabPopRef = useRef(false);
+  const lastWebTabRef = useRef<TabKey>("today");
   const [homeRequestId, setHomeRequestId] = useState(0);
   const [drawingActive, setDrawingActive] = useState(false);
   const [friendChallengeRequestId, setFriendChallengeRequestId] = useState(0);
@@ -174,6 +177,52 @@ export default function App() {
     () => tabs.filter((tab) => tab.key !== "admin" || userIsAdmin),
     [userIsAdmin]
   );
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const browserWindow = (globalThis as any).window;
+    if (!browserWindow?.history) return;
+    const existingTab = browserWindow.history.state?.intuisityTab as TabKey | undefined;
+    const initialTab = tabs.some((tab) => tab.key === existingTab) ? existingTab! : "today";
+    lastWebTabRef.current = initialTab;
+    if (initialTab !== activeTab) {
+      webTabPopRef.current = true;
+      setActiveTab(initialTab);
+    }
+    browserWindow.history.replaceState(
+      { ...(browserWindow.history.state || {}), intuisityTab: initialTab },
+      "",
+      browserWindow.location.href
+    );
+    webTabHistoryReadyRef.current = true;
+    const handlePopState = (event: any) => {
+      const nextTab = event.state?.intuisityTab as TabKey | undefined;
+      if (!tabs.some((tab) => tab.key === nextTab)) return;
+      if (lastWebTabRef.current === nextTab) return;
+      webTabPopRef.current = true;
+      lastWebTabRef.current = nextTab!;
+      setActiveTab(nextTab!);
+    };
+    browserWindow.addEventListener("popstate", handlePopState);
+    return () => browserWindow.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || !webTabHistoryReadyRef.current) return;
+    if (webTabPopRef.current) {
+      webTabPopRef.current = false;
+      lastWebTabRef.current = activeTab;
+      return;
+    }
+    if (lastWebTabRef.current === activeTab) return;
+    const browserWindow = (globalThis as any).window;
+    browserWindow?.history?.pushState(
+      { ...(browserWindow.history.state || {}), intuisityTab: activeTab },
+      "",
+      browserWindow.location.href
+    );
+    lastWebTabRef.current = activeTab;
+  }, [activeTab]);
 
   const markSessionActivity = useCallback(() => {
     if (!userProfile) return;
