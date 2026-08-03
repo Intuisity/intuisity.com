@@ -96,7 +96,7 @@ type Props = {
 
 const personChoiceLimit = 3;
 const personMaximumScore = 3;
-const guestPlayLimit = 3;
+const guestPlayLimit = 2;
 const personPortraitSearchLimit = 100;
 const portraitCache = new Map<string, string | null>();
 const photographicPersonProfileIds = new Set([
@@ -2091,6 +2091,10 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       friendKeys = selectedFriendPhones,
       friendList = savedFriends
     ) => {
+      if (userProfile.authProvider === "guest" && getCompletedGuestPlayCount(answers) >= guestPlayLimit) {
+        onRequireAccount();
+        return;
+      }
       if (mode === "friend" && friendKeys.length === 0) {
         setFriendPhoneError("Select or add at least one friend with a phone number or email address.");
         return;
@@ -2331,6 +2335,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         setTreasureWinText(makeTreasureWinMessage(triesUsed));
         setAnswers((current) => ({
           ...current,
+          ...(userProfile.authProvider === "guest" ? { "guest-play-count": String(getCompletedGuestPlayCount(current) + 1) } : {}),
           "social-prediction": "Completed",
           "friend-score": String(treasurePoints),
           "friend-points": String(treasurePoints),
@@ -2342,6 +2347,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         setTreasureWinText("The treasure stayed hidden this time. Try again tomorrow.");
         setAnswers((current) => ({
           ...current,
+          ...(userProfile.authProvider === "guest" ? { "guest-play-count": String(getCompletedGuestPlayCount(current) + 1) } : {}),
           "social-prediction": "Completed",
           "friend-score": "0",
           "friend-points": "0",
@@ -4831,6 +4837,8 @@ function calculateModulePoints(score: number, maximum: number, possiblePoints: n
 }
 
 function getCompletedGuestPlayCount(answers: Answers) {
+  const recordedPlayCount = Number.parseInt(answers["guest-play-count"] || "", 10);
+  if (Number.isFinite(recordedPlayCount) && recordedPlayCount >= 0) return recordedPlayCount;
   return [
     answers["social-prediction"] === "Completed",
     Object.prototype.hasOwnProperty.call(answers, "knowing-score"),
