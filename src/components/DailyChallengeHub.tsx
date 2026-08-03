@@ -5,7 +5,7 @@ import { Alert, Animated, Easing, Image, ImageBackground, Linking, Platform, Pre
 import Svg, { Path } from "react-native-svg";
 import { getAstrologyReading, getBirthLocationSuggestions, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
-import { dailyIntuitionLessons } from "../data/dailyLessons";
+import { getDailyPositivityChoices } from "../data/dailyLessons";
 import { PersonProfile, personProfiles } from "../data/personProfiles";
 import { recordModuleTime, startActivityTracking } from "../services/adminAnalytics";
 import { completeTreasureChallenge, createTreasureChallenge, fetchTreasureChallenge, lookupBirthLocation, markTreasureChallengeOpened, syncDailyResult, syncFriends, syncModuleFeedback, TreasureChallengeReceipt } from "../services/backendApi";
@@ -1384,7 +1384,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   }
 
   if (page === "remote-viewing-arena") {
-    const lessonChoices = getTodaysLessonChoices();
+    const lessonChoices = getDailyPositivityChoices(userProfile.email, getDateKey());
     const selectedLesson = lessonChoices.find((lesson) => learningChallenge === lesson.practice);
     const visibleHistory = isPremium ? learningHistory : learningHistory.slice(0, 1);
     return (
@@ -4709,13 +4709,6 @@ function shuffle<T>(items: T[]) {
     [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
   }
   return shuffled;
-}
-
-function getTodaysLessonChoices() {
-  const daysSinceStart = getDaysSinceLearningStart(getDateKey());
-  const firstIndex = (daysSinceStart * 2) % dailyIntuitionLessons.length;
-  const secondIndex = (firstIndex + 1) % dailyIntuitionLessons.length;
-  return [dailyIntuitionLessons[firstIndex], dailyIntuitionLessons[secondIndex]];
 }
 
 function getDaysSinceLearningStart(dateKey: string) {

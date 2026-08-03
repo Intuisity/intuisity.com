@@ -10,19 +10,33 @@ const compiled = ts.transpile(source, {
 const moduleShim = { exports: {} };
 new Function("require", "module", "exports", compiled)(require, moduleShim, moduleShim.exports);
 
-const { dailyIntuitionLessons } = moduleShim.exports;
+const { dailyIntuitionLessons, getDailyPositivityChoices } = moduleShim.exports;
 
-assert.equal(dailyIntuitionLessons.length, 600);
+assert.equal(dailyIntuitionLessons.length, 50);
+assert.equal(new Set(dailyIntuitionLessons.map((lesson) => lesson.title)).size, 50);
+assert.equal(new Set(dailyIntuitionLessons.map((lesson) => lesson.practice)).size, 50);
 
 const seen = new Set();
-for (let dayIndex = 0; dayIndex < 300; dayIndex += 1) {
-  const firstIndex = (dayIndex * 2) % dailyIntuitionLessons.length;
-  const secondIndex = (firstIndex + 1) % dailyIntuitionLessons.length;
-  seen.add(dailyIntuitionLessons[firstIndex].practice);
-  seen.add(dailyIntuitionLessons[secondIndex].practice);
+for (let dayIndex = 0; dayIndex < 25; dayIndex += 1) {
+  const date = new Date(Date.UTC(2026, 0, 1 + dayIndex)).toISOString().slice(0, 10);
+  const choices = getDailyPositivityChoices("person@example.com", date);
+  assert.equal(choices.length, 2);
+  assert.notEqual(choices[0].title, choices[1].title);
+  choices.forEach((lesson) => {
+    assert.equal(seen.has(lesson.practice), false);
+    seen.add(lesson.practice);
+  });
 }
 
-assert.equal(seen.size, 600);
+assert.equal(seen.size, 50);
+assert.deepEqual(
+  getDailyPositivityChoices("person@example.com", "2026-01-10"),
+  getDailyPositivityChoices("person@example.com", "2026-01-10")
+);
+assert.notDeepEqual(
+  getDailyPositivityChoices("person@example.com", "2026-01-10"),
+  getDailyPositivityChoices("another@example.com", "2026-01-10")
+);
 assert.ok(dailyIntuitionLessons.every((lesson) => lesson.practice.length > 20));
 assert.ok(dailyIntuitionLessons.every((lesson) => lesson.reflection.length > 20));
 

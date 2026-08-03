@@ -57,66 +57,49 @@ const simpleIdeas: DailyPositivityIdea[] = [
   { title: "Energy Check", practice: "Notice which task gives you energy and which task drains you today.", reflection: "What did your energy reveal about your priorities?" }
 ];
 
-const gentleFrames = [
-  {
-    prefix: "",
-    reflectionPrefix: ""
-  },
-  {
-    prefix: "Today, keep it simple: ",
-    reflectionPrefix: "When you kept it simple, "
-  },
-  {
-    prefix: "As a light intuition practice, ",
-    reflectionPrefix: "As an intuition practice, "
-  },
-  {
-    prefix: "If it feels easy and natural, ",
-    reflectionPrefix: "When it felt easy or natural, "
-  },
-  {
-    prefix: "For a small awareness practice, ",
-    reflectionPrefix: "As an awareness practice, "
-  },
-  {
-    prefix: "Without overthinking it, ",
-    reflectionPrefix: "Without overthinking it, "
-  },
-  {
-    prefix: "For today's gentle challenge, ",
-    reflectionPrefix: "After today's gentle challenge, "
-  },
-  {
-    prefix: "Let your first impression guide this: ",
-    reflectionPrefix: "When your first impression guided you, "
-  },
-  {
-    prefix: "For a mindful moment, ",
-    reflectionPrefix: "During that mindful moment, "
-  },
-  {
-    prefix: "As a small act of awareness, ",
-    reflectionPrefix: "As a small act of awareness, "
-  },
-  {
-    prefix: "Try this as a simple experiment: ",
-    reflectionPrefix: "As a simple experiment, "
-  },
-  {
-    prefix: "Let the day show you something: ",
-    reflectionPrefix: "When the day showed you something, "
-  }
-];
+export const dailyIntuitionLessons = simpleIdeas.map((idea) => ({
+  ...idea,
+  points: [
+    "Choose one gentle idea for today.",
+    "Let awareness, mindfulness, and inner knowing guide the moment.",
+    "Keep it simple enough to actually try in real life."
+  ]
+}));
 
-export const dailyIntuitionLessons = simpleIdeas.flatMap((idea) =>
-  gentleFrames.map((frame) => ({
-    title: idea.title,
-    points: [
-      "Choose one gentle idea for today.",
-      "Let awareness, mindfulness, and inner knowing guide the moment.",
-      "Keep it simple enough to actually try in real life."
-    ],
-    practice: `${frame.prefix}${idea.practice.charAt(0).toLowerCase()}${idea.practice.slice(1)}`,
-    reflection: `${frame.reflectionPrefix}${idea.reflection.charAt(0).toLowerCase()}${idea.reflection.slice(1)}`
-  }))
-);
+export function getDailyPositivityChoices(userKey: string, dateKey: string) {
+  const remaining = [...dailyIntuitionLessons].sort((first, second) =>
+    stableHash(`${userKey.toLowerCase()}-${first.title}`) - stableHash(`${userKey.toLowerCase()}-${second.title}`)
+  );
+  const pairs: Array<typeof dailyIntuitionLessons> = [];
+  while (remaining.length >= 2) {
+    const first = remaining.shift()!;
+    const differentThemeIndex = remaining.findIndex((candidate) => getIdeaTheme(candidate.title) !== getIdeaTheme(first.title));
+    const second = remaining.splice(differentThemeIndex >= 0 ? differentThemeIndex : 0, 1)[0];
+    pairs.push([first, second]);
+  }
+  const dayNumber = daysSinceStart(dateKey);
+  return pairs[dayNumber % pairs.length];
+}
+
+function getIdeaTheme(title: string) {
+  const connection = new Set(["First Friend", "Lunch Invitation", "Kind Message", "Simple Thank You", "Helpful Reach", "One Good Question", "Small Invitation", "One Compliment", "Gentle Repair", "Message Draft"]);
+  const prediction = new Set(["Next Call Guess", "Notification Guess", "Color Watch", "Song Sense", "Conversation Guess", "Future Guess", "Inbox Feeling", "Calendar Sense"]);
+  const innerCheck = new Set(["Attention Question", "Calmest Choice", "Heart Check", "Body Signal", "Coin Choice", "Inner Compass", "Energy Check"]);
+  const noticing = new Set(["Morning Image", "Window Notice", "Daily Word", "Object Pull", "Book Line", "Nature Signal", "Mood Weather", "Synchronicity Watch", "Photo Prompt", "Ask for a Sign", "Name Pop-In", "Dream Clue", "Five Senses"]);
+  const action = new Set(["Different Route", "Lighter Day", "Tiny Yes", "Tiny No", "Intuitive Errand", "Small Declutter", "Random Kindness", "Five-Minute Reset", "Fresh Air Pause"]);
+  if (connection.has(title)) return "connection";
+  if (prediction.has(title)) return "prediction";
+  if (innerCheck.has(title)) return "inner-check";
+  if (noticing.has(title)) return "noticing";
+  if (action.has(title)) return "action";
+  return "reflection";
+}
+
+function stableHash(value: string) {
+  return Math.abs([...value].reduce((hash, character) => ((hash << 5) - hash + character.charCodeAt(0)) | 0, 0));
+}
+
+function daysSinceStart(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return Math.max(0, Math.floor((Date.UTC(year, month - 1, day) - Date.UTC(2026, 0, 1)) / 86400000));
+}
