@@ -12,12 +12,13 @@ new Function("require", "module", "exports", compiled)(require, moduleShim, modu
 
 const { dailyIntuitionLessons, getDailyPositivityChoices } = moduleShim.exports;
 
-assert.equal(dailyIntuitionLessons.length, 50);
-assert.equal(new Set(dailyIntuitionLessons.map((lesson) => lesson.title)).size, 50);
-assert.equal(new Set(dailyIntuitionLessons.map((lesson) => lesson.practice)).size, 50);
+assert.equal(dailyIntuitionLessons.length, 1000);
+assert.equal(new Set(dailyIntuitionLessons.map((lesson) => lesson.title)).size, 1000);
+assert.equal(new Set(dailyIntuitionLessons.map((lesson) => lesson.practice)).size, 1000);
 
 const seen = new Set();
-for (let dayIndex = 0; dayIndex < 25; dayIndex += 1) {
+const lastDayByBaseTitle = new Map();
+for (let dayIndex = 0; dayIndex < 500; dayIndex += 1) {
   const date = new Date(Date.UTC(2026, 0, 1 + dayIndex)).toISOString().slice(0, 10);
   const choices = getDailyPositivityChoices("person@example.com", date);
   assert.equal(choices.length, 2);
@@ -25,10 +26,13 @@ for (let dayIndex = 0; dayIndex < 25; dayIndex += 1) {
   choices.forEach((lesson) => {
     assert.equal(seen.has(lesson.practice), false);
     seen.add(lesson.practice);
+    const priorDay = lastDayByBaseTitle.get(lesson.baseTitle);
+    if (priorDay !== undefined) assert.ok(dayIndex - priorDay >= 50);
+    lastDayByBaseTitle.set(lesson.baseTitle, dayIndex);
   });
 }
 
-assert.equal(seen.size, 50);
+assert.equal(seen.size, 1000);
 assert.deepEqual(
   getDailyPositivityChoices("person@example.com", "2026-01-10"),
   getDailyPositivityChoices("person@example.com", "2026-01-10")
