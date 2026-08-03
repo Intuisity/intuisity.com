@@ -2526,10 +2526,14 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       if (!treasureStarted) return null;
       if (typeof (globalThis as any).document === "undefined") {
         const sparklePositions = [
-          { left: "12%", top: "48%", size: 5 }, { left: "24%", top: "24%", size: 8 },
-          { left: "39%", top: "57%", size: 4 }, { left: "50%", top: "12%", size: 7 },
-          { left: "62%", top: "43%", size: 5 }, { left: "74%", top: "20%", size: 8 },
-          { left: "86%", top: "54%", size: 4 }, { left: "46%", top: "76%", size: 6 }
+          { left: "8%", top: "70%", size: 3 }, { left: "15%", top: "47%", size: 5 },
+          { left: "22%", top: "27%", size: 4 }, { left: "29%", top: "61%", size: 3 },
+          { left: "35%", top: "15%", size: 6 }, { left: "41%", top: "43%", size: 3 },
+          { left: "48%", top: "4%", size: 4 }, { left: "53%", top: "55%", size: 5 },
+          { left: "60%", top: "25%", size: 3 }, { left: "67%", top: "68%", size: 4 },
+          { left: "73%", top: "13%", size: 6 }, { left: "79%", top: "43%", size: 3 },
+          { left: "87%", top: "60%", size: 5 }, { left: "93%", top: "31%", size: 3 },
+          { left: "44%", top: "78%", size: 3 }, { left: "57%", top: "82%", size: 4 }
         ];
         return (
           <Animated.View
@@ -2537,13 +2541,13 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             style={[
               styles.realTreasureGlow,
               {
-                opacity: treasureGlowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }),
-                transform: [{ scale: treasureGlowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.12] }) }]
+                opacity: treasureGlowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }),
+                transform: [{ scale: treasureGlowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.16] }) }]
               }
             ]}
           >
             {sparklePositions.map((sparkle, index) => (
-              <View
+              <Animated.View
                 key={`native-treasure-sparkle-${index}`}
                 style={[
                   styles.realTreasureSparkle,
@@ -2552,7 +2556,11 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                     height: sparkle.size,
                     left: sparkle.left as any,
                     top: sparkle.top as any,
-                    width: sparkle.size
+                    width: sparkle.size,
+                    transform: [
+                      { translateY: treasureGlowPulse.interpolate({ inputRange: [0, 1], outputRange: [4 + (index % 3), -5 - (index % 4)] }) },
+                      { scale: treasureGlowPulse.interpolate({ inputRange: [0, 0.45, 1], outputRange: [0.45, 1.2, 0.75] }) }
+                    ]
                   }
                 ]}
               />
@@ -3225,7 +3233,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             <ImageBackground source={treasureSceneImage} resizeMode="stretch" style={treasureSceneStyle} imageStyle={styles.treasureSceneImage}>
          <View style={styles.treasureSceneShade} />
          <View style={styles.realTreasureChestWrap}>
-           <View style={styles.realTreasureShadow} />
+           {Platform.OS === "web" ? <View style={styles.realTreasureShadow} /> : null}
            <Image
              accessibilityLabel={treasureWon ? "Open treasure chest" : "Closed treasure chest"}
              resizeMode="contain"
@@ -6101,8 +6109,8 @@ const styles = StyleSheet.create({
   realTreasureChestWrap: { alignItems: "center", bottom: -36, height: "78%", justifyContent: "flex-end", left: -20, position: "absolute", right: -20, zIndex: 2 },
   realTreasureChestImage: { height: "100%", width: "112%" },
   realTreasureShadow: { backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 999, bottom: 16, height: 30, left: "12%", position: "absolute", right: "12%" },
-  realTreasureGlow: { height: "25%", left: "27%", position: "absolute", right: "27%", shadowColor: "#FFE77A", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.72, shadowRadius: 18, top: "47%", zIndex: 3 },
-  realTreasureSparkle: { borderRadius: 999, position: "absolute", shadowColor: "#FFFFFF", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 7 },
+  realTreasureGlow: { bottom: "15%", left: "7%", position: "absolute", right: "7%", top: "8%", zIndex: 3 },
+  realTreasureSparkle: { borderRadius: 999, position: "absolute", shadowColor: "#FFE77A", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 13 },
   treasureInspirationLayer: { alignItems: "center", bottom: "48%", flexDirection: "row", flexWrap: "wrap", gap: 7, justifyContent: "center", left: "8%", position: "absolute", right: "8%", zIndex: 6 },
   treasureInspirationWord: { color: "#FFFFFF", fontSize: 18, fontWeight: "900", textShadowColor: "rgba(88, 49, 8, 0.55)", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
   treasureMoon: { backgroundColor: "#FFF9E8", borderRadius: 24, height: 48, position: "absolute", right: 22, top: 15, width: 48 },
