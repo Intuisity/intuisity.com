@@ -625,8 +625,7 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
   }
 
   if (mode === "reset") {
-    const passwordRules = getPasswordRules(password);
-    const newPasswordReady = passwordRules.every((rule) => rule.passed) && password === confirmPassword;
+    const newPasswordReady = passwordMeetsCriteria(password) && password === confirmPassword;
     const resetReady = profile.email.trim() && profile.phone.replace(/\D/g, "").length >= 10 && newPasswordReady;
 
     return (
@@ -685,8 +684,7 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
   }
 
 
-  const passwordRules = getPasswordRules(password);
-  const passwordReady = passwordRules.every((rule) => rule.passed) && password === confirmPassword;
+  const passwordReady = passwordMeetsCriteria(password) && password === confirmPassword;
   const requiredComplete = profile.name.trim() && profile.email.trim() && profile.phone.replace(/\D/g, "").length >= 10 && passwordReady;
   const detectedTimeZone = detectTimeZone();
 
@@ -1110,6 +1108,14 @@ function getPasswordRules(password: string) {
     { label: "Special characters (e.g. !@#$%^&*)", passed: /[^A-Za-z0-9]/.test(password) },
     { label: "No more than 2 identical characters in a row", passed: !/(.)\1\1/.test(password) }
   ];
+}
+
+function passwordMeetsCriteria(password: string) {
+  const rules = getPasswordRules(password);
+  const minimumLength = rules[0]?.passed;
+  const enoughCharacterTypes = rules[1]?.passed;
+  const noLongRepeats = rules[rules.length - 1]?.passed;
+  return Boolean(minimumLength && enoughCharacterTypes && noLongRepeats);
 }
 
 function detectTimeZone() {

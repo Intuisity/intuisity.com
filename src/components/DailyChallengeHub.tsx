@@ -730,6 +730,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
 
   const historyReadyRef = useRef(false);
   const handlingBrowserBackRef = useRef(false);
+  const lastHomeChallengeOpenRef = useRef(0);
 
   useEffect(() => {
     const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
@@ -922,6 +923,16 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
   const previousPage = getPreviousModulePage(page);
   const nextPage = getNextModulePage(page);
   const homeChallenges = getDailyChallenges();
+  const openHomeChallenge = (challengeId: string) => {
+    const now = Date.now();
+    if (now - lastHomeChallengeOpenRef.current < 400) return;
+    lastHomeChallengeOpenRef.current = now;
+    if (challengeId === "daily-intuition") {
+      resetKnowing();
+      return;
+    }
+    navigateToPage(challengeId);
+  };
   const goToPreviousModule = () => {
     const destination = getPreviousModulePage(page) || "hub";
     navigateToPage(destination);
@@ -1663,6 +1674,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
       <View>
         <ChallengePageHeader
           eyebrow="Challenge 5 · Daily Astrology Tips"
+          hideHome
           title={astrologyReading ? `${astrologyReading.sign.name} guidance for ${userProfile.name}` : "Add your birthdate for astrology guidance"}
           subtitle={
             astrologyReading
@@ -3753,13 +3765,9 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             <Pressable
               accessibilityLabel={`Open ${challenge.title} from banner`}
               key={`feature-${challenge.id}`}
-              onPress={() => {
-                if (challenge.id === "daily-intuition") {
-                  resetKnowing();
-                } else {
-                  navigateToPage(challenge.id);
-                }
-              }}
+              onClick={() => openHomeChallenge(challenge.id)}
+              onMouseDown={() => openHomeChallenge(challenge.id)}
+              onPress={() => openHomeChallenge(challenge.id)}
               style={({ pressed }) => [
                 styles.forestFeatureLink,
                 pressed && styles.bannerIconLinkPressed
@@ -3775,13 +3783,9 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             <Pressable
               accessibilityLabel={`Open ${challenge.title} from banner`}
               key={`banner-${challenge.id}`}
-              onPress={() => {
-                if (challenge.id === "daily-intuition") {
-                  resetKnowing();
-                } else {
-                  navigateToPage(challenge.id);
-                }
-              }}
+              onClick={() => openHomeChallenge(challenge.id)}
+              onMouseDown={() => openHomeChallenge(challenge.id)}
+              onPress={() => openHomeChallenge(challenge.id)}
               style={({ pressed }) => [
                 styles.bannerIconLink,
                 pressed && styles.bannerIconLinkPressed
@@ -3792,29 +3796,29 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
       </View>
       <View style={styles.moduleGrid}>
         {homeChallenges.map((challenge) => (
-          <View key={challenge.id} style={styles.moduleGridItem}>
-            <Pressable
-              accessibilityLabel={`Open ${challenge.title}`}
-              onPress={() => {
-                if (challenge.id === "daily-intuition") {
-                  resetKnowing();
-                } else {
-                  navigateToPage(challenge.id);
-                }
-              }}
-              style={styles.moduleIconButton}
-            >
+          <Pressable
+            accessibilityLabel={`Open ${challenge.title}`}
+            key={challenge.id}
+            onClick={() => openHomeChallenge(challenge.id)}
+            onMouseDown={() => openHomeChallenge(challenge.id)}
+            onPress={() => openHomeChallenge(challenge.id)}
+            style={({ pressed }) => [
+              styles.moduleGridItem,
+              pressed && styles.moduleGridItemPressed
+            ]}
+          >
+            <View pointerEvents="none" style={styles.moduleIconButton}>
               <Ionicons
                 color="#d79b16"
                 name={challengeIcons[challenge.id]}
                 size={38}
               />
-            </Pressable>
-            <View style={styles.moduleGridCopy}>
+            </View>
+            <View pointerEvents="none" style={styles.moduleGridCopy}>
               <Text style={styles.moduleGridTitle}>{challenge.title}</Text>
               <Text style={styles.moduleGridTagline}>{challenge.prompt}</Text>
             </View>
-          </View>
+          </Pressable>
         ))}
       </View>
       <Pressable
@@ -5381,6 +5385,7 @@ const styles = StyleSheet.create({
   menuTagline: { color: "#00AEBB", fontSize: 13, fontWeight: "800", marginTop: 3 },
   moduleGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "space-between" },
   moduleGridItem: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 18, borderWidth: 1, elevation: 3, minHeight: 172, padding: 16, shadowColor: "#b87908", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.1, shadowRadius: 12, width: "48%" },
+  moduleGridItemPressed: { backgroundColor: "#fff4cf", borderColor: "#d79b16", transform: [{ scale: 0.99 }] },
   moduleIconButton: { alignItems: "center", backgroundColor: "transparent", borderColor: "transparent", borderRadius: 0, borderWidth: 0, height: 48, justifyContent: "center", marginBottom: 2, width: 58 },
   moduleIconButtonPurple: { backgroundColor: "#6537c7", borderColor: "#f3c64d", shadowColor: "#6537c7" },
   moduleIconButtonTeal: { backgroundColor: "#008A94", borderColor: "#63E3E0", shadowColor: "#00AEBB" },
