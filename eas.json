@@ -5,7 +5,7 @@
   "build": {
     "production": {
       "ios": {
-        "image": "macos-ventura-13.6-xcode-15.2",
+        "image": "latest",
         "node": "20.19.4"
       },
       "android": {

@@ -14,6 +14,8 @@ expo-web.log
 expo-web.err.log
 
 npm-cache/
+.npm-cache-temp/
+apple-screenshot-contact-sheet.png
 labs/
 expo-web.log
 expo-web.err.log
