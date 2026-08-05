@@ -8,3 +8,12 @@ work/
 .env.*
 npm-debug.log*
 backend/data/*.json
+
+npm-cache/
+expo-web.log
+expo-web.err.log
+
+npm-cache/
+labs/
+expo-web.log
+expo-web.err.log
