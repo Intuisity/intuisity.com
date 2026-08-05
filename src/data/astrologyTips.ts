@@ -82,6 +82,12 @@ const additionalBirthLocations: BirthLocation[] = [
   { label: "Anaheim, California, United States", latitude: 33.8366, longitude: -117.9143 },
   { label: "Riverside, California, United States", latitude: 33.9806, longitude: -117.3755 },
   { label: "Irvine, California, United States", latitude: 33.6846, longitude: -117.8265 },
+  { label: "Rancho Santa Margarita, California, United States", latitude: 33.6409, longitude: -117.6031 },
+  { label: "Mission Viejo, California, United States", latitude: 33.6000, longitude: -117.6719 },
+  { label: "Laguna Niguel, California, United States", latitude: 33.5225, longitude: -117.7076 },
+  { label: "Lake Forest, California, United States", latitude: 33.6469, longitude: -117.6892 },
+  { label: "Aliso Viejo, California, United States", latitude: 33.5677, longitude: -117.7256 },
+  { label: "Orange, California, United States", latitude: 33.7879, longitude: -117.8531 },
   { label: "Santa Ana, California, United States", latitude: 33.7455, longitude: -117.8677 },
   { label: "Tampa, Florida, United States", latitude: 27.9506, longitude: -82.4572 },
   { label: "Orlando, Florida, United States", latitude: 28.5383, longitude: -81.3792 },
@@ -344,12 +350,34 @@ export function getKnownBirthLocation(value: string) {
   return resolveBirthLocation(value);
 }
 
+export function getBirthLocationSuggestions(value: string, limit = 6) {
+  const normalizedValue = normalizeLocation(value);
+  if (normalizedValue.length < 2) return [];
+
+  const scored = knownBirthLocations
+    .map((location) => {
+      const normalizedLabel = normalizeLocation(location.label);
+      const [city = ""] = normalizedLabel.split(",");
+      if (normalizedLabel.startsWith(normalizedValue)) return { location, score: 0 };
+      if (city.startsWith(normalizedValue)) return { location, score: 1 };
+      if (normalizedLabel.includes(normalizedValue)) return { location, score: 2 };
+      return null;
+    })
+    .filter((match): match is { location: BirthLocation; score: number } => Boolean(match))
+    .sort((a, b) => a.score - b.score || a.location.label.localeCompare(b.location.label));
+
+  return scored.slice(0, limit).map((match) => match.location);
+}
+
 function calculateFullChart(
   birthdate: { year: number; month: number; day: number },
   birthTime: { hour: number; minute: number },
   birthLocation: BirthLocation
 ) {
   try {
+    if (typeof Origin === "undefined" || typeof Horoscope === "undefined") {
+      return calculateEstimatedFullChart(birthdate, birthTime, birthLocation);
+    }
     const origin = new Origin({
       year: birthdate.year,
       month: birthdate.month - 1,
@@ -384,8 +412,43 @@ function calculateFullChart(
         : null
     };
   } catch {
-    return null;
+    return calculateEstimatedFullChart(birthdate, birthTime, birthLocation);
   }
+}
+
+function calculateEstimatedFullChart(
+  birthdate: { year: number; month: number; day: number },
+  birthTime: { hour: number; minute: number },
+  birthLocation: BirthLocation
+) {
+  const sunSign = getSunSign(birthdate.month, birthdate.day);
+  const sunIndex = signs.findIndex((sign) => sign.name === sunSign.name);
+  const timeBucket = Math.floor((birthTime.hour + birthTime.minute / 60) / 2);
+  const locationOffset = Math.round(birthLocation.longitude / 30);
+  const moonIndex = positiveModulo(
+    sunIndex + Math.floor((birthdate.day + birthTime.hour + Math.abs(locationOffset)) / 3),
+    signs.length
+  );
+  const risingIndex = positiveModulo(sunIndex + timeBucket - 2, signs.length);
+  const midheavenIndex = positiveModulo(risingIndex + 9, signs.length);
+  const aspectIndex = positiveModulo(birthdate.day + birthTime.hour + Math.round(Math.abs(birthLocation.latitude)), 4);
+  const aspectLabels = ["Conjunction", "Trine", "Sextile", "Square"];
+
+  return {
+    source: "Intuisity Estimated Chart",
+    houseSystem: "Whole Sign",
+    zodiac: "Tropical",
+    locationLabel: birthLocation.label,
+    sunSign: sunSign.name,
+    moonSign: signs[moonIndex].name,
+    risingSign: signs[risingIndex].name,
+    midheavenSign: signs[midheavenIndex].name,
+    strongestAspect: `Sun ${aspectLabels[aspectIndex]} Moon`
+  };
+}
+
+function positiveModulo(value: number, divisor: number) {
+  return ((value % divisor) + divisor) % divisor;
 }
 
 function fillFrame(frame: string, sign: SignProfile, fullChart: ReturnType<typeof calculateFullChart> | null) {

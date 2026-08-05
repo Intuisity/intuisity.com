@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -32,6 +32,7 @@ type TabKey = "today" | "remote" | "friends" | "premium" | "admin";
 type Answers = Record<string, string>;
 const profilesKey = "intuisity-user-profiles";
 const activeProfileKey = "intuisity-active-profile";
+const activeTabKey = "intuisity-active-tab";
 const dailyAnswersKeyPrefix = "intuisity-daily-answers";
 const supportedLanguages = [
   { code: "en", name: "English", nativeName: "English" },
@@ -67,6 +68,26 @@ const knowingColors: Record<string, string> = {
   Green: "#22A968",
   Yellow: "#F4C542",
   Blue: "#3274E8"
+};
+
+const intuTheme = {
+  purple950: "#2e126f",
+  purple900: "#3f1b91",
+  purple800: "#5126ad",
+  purple700: "#6537c7",
+  purple600: "#7548d6",
+  purple500: "#8659e5",
+  goldDark: "#b87908",
+  gold: "#d79b16",
+  goldLight: "#f3c64d",
+  goldPale: "#fff4cf",
+  teal: "#19aeb4",
+  tealLight: "#dff8f8",
+  ink: "#211842",
+  muted: "#6f6881",
+  border: "#e2dff0",
+  surface: "#ffffff",
+  surfaceSoft: "#faf8ff"
 };
 
 const tabs: Array<{ key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
@@ -126,13 +147,16 @@ function isAdminUser(profile: UserProfile | null) {
 export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => loadActiveProfile() || loadTreasureInviteGuestProfile());
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>("today");
+  const [activeTab, setActiveTab] = useState<TabKey>(() => loadSavedActiveTab());
   const [homeRequestId, setHomeRequestId] = useState(0);
   const [answers, setAnswers] = useState<Answers>(() => {
     const activeProfile = loadActiveProfile();
     return activeProfile ? loadDailyAnswers(activeProfile.email) : {};
   });
   const [subscriptionStatus, setSubscriptionStatus] = useState("Free");
+  const tabHistoryReadyRef = useRef(false);
+  const handlingTabBrowserBackRef = useRef(false);
+  const mainScrollRef = useRef<any>(null);
   const userIsAdmin = isAdminUser(userProfile);
   const visibleTabs = useMemo(
     () => tabs.filter((tab) => tab.key !== "admin" || userIsAdmin),
@@ -147,8 +171,53 @@ export default function App() {
   useEffect(() => {
     if (activeTab === "admin" && !userIsAdmin) {
       setActiveTab("today");
+      saveActiveTab("today");
     }
   }, [activeTab, userIsAdmin]);
+
+  useEffect(() => {
+    saveActiveTab(activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+    if (!browserWindow?.history || !browserWindow?.addEventListener) return;
+
+    const handlePopState = (event: any) => {
+      const nextTab = event.state?.intuisityTab;
+      if (!tabs.some((tab) => tab.key === nextTab)) return;
+      handlingTabBrowserBackRef.current = true;
+      setActiveTab(nextTab);
+    };
+
+    browserWindow.addEventListener("popstate", handlePopState);
+    return () => browserWindow.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+    if (!browserWindow?.history) return;
+
+    const nextState = {
+      ...(browserWindow.history.state || {}),
+      intuisityTab: activeTab
+    };
+
+    if (!tabHistoryReadyRef.current) {
+      browserWindow.history.replaceState(nextState, "", browserWindow.location.href);
+      tabHistoryReadyRef.current = true;
+      return;
+    }
+
+    if (handlingTabBrowserBackRef.current) {
+      handlingTabBrowserBackRef.current = false;
+      return;
+    }
+
+    if (browserWindow.history.state?.intuisityTab !== activeTab) {
+      browserWindow.history.pushState(nextState, "", browserWindow.location.href);
+    }
+  }, [activeTab]);
 
   const dailyScore = useMemo(() => {
     const baseScore = scoreDailyChallenge(dailyChallenges, answers);
@@ -209,8 +278,10 @@ export default function App() {
 
   const logout = () => {
     globalThis.localStorage?.removeItem(activeProfileKey);
+    saveActiveTab("today");
     setAnswers({});
     setUserProfile(null);
+    setActiveTab("today");
   };
 
   const confirmLogout = () => {
@@ -231,6 +302,14 @@ export default function App() {
     setShowLanguageMenu(false);
   };
 
+  const scrollMainToTop = () => {
+    mainScrollRef.current?.scrollTo?.({ y: 0, animated: false });
+    const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+    const documentRef = typeof globalThis !== "undefined" ? (globalThis as any).document : undefined;
+    browserWindow?.scrollTo?.(0, 0);
+    documentRef?.scrollingElement?.scrollTo?.(0, 0);
+  };
+
   return (
     <SafeAreaView style={styles.app}>
       <StatusBar style="dark" />
@@ -240,16 +319,22 @@ export default function App() {
           onPress={returnHome}
           style={styles.profileBadge}
         >
-          <Ionicons color="#6544B8" name="home-outline" size={22} />
+          <Ionicons color="#f3c64d" name="home-outline" size={22} />
           <Text style={styles.profileBadgeText}>Home</Text>
         </Pressable>
+        <Image
+          accessibilityLabel="Intuisity gold logo"
+          resizeMode="contain"
+          source={require("./assets/intuisity-logo-gold-transparent.png")}
+          style={styles.topBrandLogo}
+        />
         <View style={styles.topRightActions}>
           <Pressable
             accessibilityLabel="Change language"
             onPress={() => setShowLanguageMenu((current) => !current)}
             style={styles.languageButton}
           >
-            <Ionicons color="#6544B8" name="language-outline" size={21} />
+            <Ionicons color="#f3c64d" name="language-outline" size={21} />
             <Text style={styles.languageButtonText}>{userProfile.language.toUpperCase()}</Text>
           </Pressable>
           <Pressable
@@ -257,7 +342,7 @@ export default function App() {
             onPress={confirmLogout}
             style={styles.logoutIconButton}
           >
-            <Ionicons color="#6544B8" name="log-out-outline" size={22} />
+            <Ionicons color="#f3c64d" name="log-out-outline" size={22} />
             <Text style={styles.logoutIconText}>Logout</Text>
           </Pressable>
         </View>
@@ -282,13 +367,15 @@ export default function App() {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={mainScrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {activeTab === "today" && (
           <DailyChallengeHub
             answers={answers}
             homeRequestId={homeRequestId}
             isPremium={subscriptionStatus !== "Free"}
+            onCreateAccount={logout}
             onLogout={confirmLogout}
+            onRequestScrollTop={scrollMainToTop}
             onUpdateProfile={(updatedProfile) => {
               saveProfile(updatedProfile);
               setUserProfile(updatedProfile);
@@ -315,7 +402,7 @@ export default function App() {
               style={[styles.tabButton, selected && styles.tabButtonSelected]}
             >
               <Ionicons
-                color={selected ? "#6544B8" : "#756D87"}
+                color={selected ? "#f3c64d" : "#b87908"}
                 name={tab.icon}
                 size={20}
               />
@@ -393,33 +480,35 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
   if (mode === "welcome") {
     return (
       <SafeAreaView style={styles.accountScreen}>
-        <View style={styles.accountHero}>
-          <Ionicons color="#FFFFFF" name="sparkles-outline" size={34} />
-          <Text style={styles.accountHeroTitle}>Welcome to Intuisity</Text>
-          <Text style={styles.accountHeroText}>Awaken your intuition. Expand your awareness. Unlock your inner wisdom.</Text>
-          <View style={styles.freePlayBadge}>
-            <Ionicons color="#008A94" name="gift-outline" size={17} />
-            <Text style={styles.freePlayBadgeText}>Free to play daily challenges</Text>
+        <ScrollView contentContainerStyle={styles.accountScreenContent} keyboardShouldPersistTaps="handled">
+          <View style={styles.accountHero}>
+            <Ionicons color="#FFFFFF" name="sparkles-outline" size={34} />
+            <Text style={styles.accountHeroTitle}>Welcome to Intuisity</Text>
+            <Text style={styles.accountHeroText}>Awaken your intuition. Expand your awareness. Unlock your inner wisdom.</Text>
+            <View style={styles.freePlayBadge}>
+              <Ionicons color="#008A94" name="gift-outline" size={17} />
+              <Text style={styles.freePlayBadgeText}>Free to play daily challenges</Text>
+            </View>
           </View>
-        </View>
-        <Pressable onPress={() => setMode("create")} style={styles.primaryButton}>
-          <Ionicons color="#FFFFFF" name="person-add-outline" size={18} />
-          <Text style={styles.primaryButtonText}>Create my account</Text>
-        </Pressable>
-        <GoogleSignInButton onPress={handleGoogleSignIn} />
-        <Pressable
-          onPress={() => {
-            if (savedProfiles.length > 0) {
-              setProfile({ ...emptyProfile, email: savedProfiles[0].email });
-            }
-            setMode("login");
-          }}
-          style={styles.accountSecondaryButton}
-        >
-          <Text style={styles.accountSecondaryText}>I already have an account</Text>
-        </Pressable>
-        {error ? <Text style={styles.accountError}>{error}</Text> : null}
-        <LegalLinks />
+          <Pressable onPress={() => setMode("create")} style={styles.primaryButton}>
+            <Ionicons color="#FFFFFF" name="person-add-outline" size={18} />
+            <Text style={styles.primaryButtonText}>Create my account</Text>
+          </Pressable>
+          <GoogleSignInButton onPress={handleGoogleSignIn} />
+          <Pressable
+            onPress={() => {
+              if (savedProfiles.length > 0) {
+                setProfile({ ...emptyProfile, email: savedProfiles[0].email });
+              }
+              setMode("login");
+            }}
+            style={styles.accountSecondaryButton}
+          >
+            <Text style={styles.accountSecondaryText}>I already have an account</Text>
+          </Pressable>
+          {error ? <Text style={styles.accountError}>{error}</Text> : null}
+          <LegalLinks />
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -427,108 +516,110 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
   if (mode === "login") {
     return (
       <SafeAreaView style={styles.accountScreen}>
-        <Text style={styles.accountTitle}>Welcome back</Text>
-        <Text style={styles.accountSubtitle}>Enter your email and password to return to your saved Intuisity profile.</Text>
-        <View style={styles.loginFreePlayNote}>
-          <Ionicons color="#008A94" name="sparkles-outline" size={17} />
-          <Text style={styles.loginFreePlayText}>Free to play. Premium extras are optional.</Text>
-        </View>
-        <GoogleSignInButton onPress={handleGoogleSignIn} />
-        <View style={styles.loginDivider}>
-          <View style={styles.loginDividerLine} />
-          <Text style={styles.loginDividerText}>or use email</Text>
-          <View style={styles.loginDividerLine} />
-        </View>
-        <ProfileInput autoComplete="email" label="Email address" textContentType="emailAddress" value={profile.email} onChangeText={(email) => setProfile({ ...profile, email })} />
-        <ProfileInput autoComplete="current-password" label="Password" secure textContentType="password" value={password} onChangeText={setPassword} />
-        <Pressable
-          onPress={() => {
-            setPassword("");
-            setConfirmPassword("");
-            setError("");
-            setLoginNotice("");
-            setMode("reset");
-          }}
-          style={styles.forgotPasswordButton}
-        >
-          <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-        </Pressable>
-        {savedProfiles.length > 0 && (
-          <View style={styles.savedAccountList}>
-            <Text style={styles.savedAccountLabel}>Saved accounts</Text>
-            {savedProfiles.map((savedProfile) => (
-              <Pressable
-                accessibilityLabel={`Use saved account ${savedProfile.email}`}
-                key={savedProfile.email}
-                onPress={() => {
-                  if (savedProfile.authProvider === "google" && !savedProfile.passwordHash) {
-                    authenticate(savedProfile);
-                    return;
-                  }
-                  setProfile({ ...emptyProfile, email: savedProfile.email });
-                  setPassword("");
-                  setError("");
-                  setLoginNotice("Saved account selected. Enter your password above, then click Log in.");
-                }}
-                style={[
-                  styles.savedAccountButton,
-                  profile.email.toLowerCase() === savedProfile.email.toLowerCase() && styles.savedAccountButtonSelected
-                ]}
-              >
-                <Ionicons
-                  color={profile.email.toLowerCase() === savedProfile.email.toLowerCase() ? "#FFFFFF" : "#7555C7"}
-                  name="person-circle-outline"
-                  size={20}
-                />
-                <View style={styles.savedAccountCopy}>
-                  <Text style={[styles.savedAccountName, profile.email.toLowerCase() === savedProfile.email.toLowerCase() && styles.savedAccountTextSelected]}>{savedProfile.name}</Text>
-                  <Text style={[styles.savedAccountEmail, profile.email.toLowerCase() === savedProfile.email.toLowerCase() && styles.savedAccountTextSelected]}>
-                    {savedProfile.email}
-                  </Text>
-                  <Text style={[styles.savedAccountAction, profile.email.toLowerCase() === savedProfile.email.toLowerCase() && styles.savedAccountTextSelected]}>
-                    {savedProfile.authProvider === "google" && !savedProfile.passwordHash ? "Tap to continue" : "Tap to fill email, then enter password"}
-                  </Text>
-                </View>
-                {profile.email.toLowerCase() === savedProfile.email.toLowerCase() && (
-                  <Ionicons color="#FFFFFF" name="checkmark-circle" size={19} />
-                )}
-              </Pressable>
-            ))}
+        <ScrollView contentContainerStyle={styles.accountScreenContent} keyboardShouldPersistTaps="handled">
+          <Text style={styles.accountTitle}>Welcome back</Text>
+          <Text style={styles.accountSubtitle}>Enter your email and password to return to your saved Intuisity profile.</Text>
+          <View style={styles.loginFreePlayNote}>
+            <Ionicons color="#008A94" name="sparkles-outline" size={17} />
+            <Text style={styles.loginFreePlayText}>Free to play. Premium extras are optional.</Text>
           </View>
-        )}
-        {loginNotice ? <Text style={styles.accountHint}>{loginNotice}</Text> : null}
-        {error ? <Text style={styles.accountError}>{error}</Text> : null}
-        <Pressable
-          onPress={async () => {
-            setLoginNotice("");
-            setError("");
-            const saved = await findSavedProfile(profile.email);
-            if (!saved) {
-              setError("We could not find a saved profile with that email. Create an account first, or check that the email is typed correctly.");
-              return;
-            }
-            if (password.trim().length < 8) {
-              setError("Please enter your password.");
-              return;
-            }
-            const passwordHash = createPasswordHash(saved.email, password);
-            if (saved.passwordHash && saved.passwordHash !== passwordHash) {
-              setError("That password does not match this account.");
-              return;
-            }
-            const profileToUse: UserProfile = saved.passwordHash
-              ? { ...saved, authProvider: saved.authProvider || "password" }
-              : { ...saved, authProvider: "password", passwordHash };
-            authenticate(profileToUse);
-          }}
-          style={styles.primaryButton}
-        >
-          <Text style={styles.primaryButtonText}>Log in</Text>
-        </Pressable>
-        <Pressable onPress={() => setMode("welcome")} style={styles.accountSecondaryButton}>
-          <Text style={styles.accountSecondaryText}>Back</Text>
-        </Pressable>
-        <LegalLinks />
+          <GoogleSignInButton onPress={handleGoogleSignIn} />
+          <View style={styles.loginDivider}>
+            <View style={styles.loginDividerLine} />
+            <Text style={styles.loginDividerText}>or use email</Text>
+            <View style={styles.loginDividerLine} />
+          </View>
+          <ProfileInput autoComplete="email" label="Email address" textContentType="emailAddress" value={profile.email} onChangeText={(email) => setProfile({ ...profile, email })} />
+          <ProfileInput autoComplete="current-password" label="Password" secure textContentType="password" value={password} onChangeText={setPassword} />
+          <Pressable
+            onPress={() => {
+              setPassword("");
+              setConfirmPassword("");
+              setError("");
+              setLoginNotice("");
+              setMode("reset");
+            }}
+            style={styles.forgotPasswordButton}
+          >
+            <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+          </Pressable>
+          {savedProfiles.length > 0 && (
+            <View style={styles.savedAccountList}>
+              <Text style={styles.savedAccountLabel}>Saved accounts</Text>
+              {savedProfiles.map((savedProfile) => (
+                <Pressable
+                  accessibilityLabel={`Use saved account ${savedProfile.email}`}
+                  key={savedProfile.email}
+                  onPress={() => {
+                    if (savedProfile.authProvider === "google" && !savedProfile.passwordHash) {
+                      authenticate(savedProfile);
+                      return;
+                    }
+                    setProfile({ ...emptyProfile, email: savedProfile.email });
+                    setPassword("");
+                    setError("");
+                    setLoginNotice("Saved account selected. Enter your password above, then click Log in.");
+                  }}
+                  style={[
+                    styles.savedAccountButton,
+                    profile.email.toLowerCase() === savedProfile.email.toLowerCase() && styles.savedAccountButtonSelected
+                  ]}
+                >
+                  <Ionicons
+                    color={profile.email.toLowerCase() === savedProfile.email.toLowerCase() ? "#FFFFFF" : "#7555C7"}
+                    name="person-circle-outline"
+                    size={20}
+                  />
+                  <View style={styles.savedAccountCopy}>
+                    <Text style={[styles.savedAccountName, profile.email.toLowerCase() === savedProfile.email.toLowerCase() && styles.savedAccountTextSelected]}>{savedProfile.name}</Text>
+                    <Text style={[styles.savedAccountEmail, profile.email.toLowerCase() === savedProfile.email.toLowerCase() && styles.savedAccountTextSelected]}>
+                      {savedProfile.email}
+                    </Text>
+                    <Text style={[styles.savedAccountAction, profile.email.toLowerCase() === savedProfile.email.toLowerCase() && styles.savedAccountTextSelected]}>
+                      {savedProfile.authProvider === "google" && !savedProfile.passwordHash ? "Tap to continue" : "Tap to fill email, then enter password"}
+                    </Text>
+                  </View>
+                  {profile.email.toLowerCase() === savedProfile.email.toLowerCase() && (
+                    <Ionicons color="#FFFFFF" name="checkmark-circle" size={19} />
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          )}
+          {loginNotice ? <Text style={styles.accountHint}>{loginNotice}</Text> : null}
+          {error ? <Text style={styles.accountError}>{error}</Text> : null}
+          <Pressable
+            onPress={async () => {
+              setLoginNotice("");
+              setError("");
+              const saved = await findSavedProfile(profile.email);
+              if (!saved) {
+                setError("We could not find a saved profile with that email. Create an account first, or check that the email is typed correctly.");
+                return;
+              }
+              if (password.trim().length < 8) {
+                setError("Please enter your password.");
+                return;
+              }
+              const passwordHash = createPasswordHash(saved.email, password);
+              if (saved.passwordHash && saved.passwordHash !== passwordHash) {
+                setError("That password does not match this account.");
+                return;
+              }
+              const profileToUse: UserProfile = saved.passwordHash
+                ? { ...saved, authProvider: saved.authProvider || "password" }
+                : { ...saved, authProvider: "password", passwordHash };
+              authenticate(profileToUse);
+            }}
+            style={styles.primaryButton}
+          >
+            <Text style={styles.primaryButtonText}>Log in</Text>
+          </Pressable>
+          <Pressable onPress={() => setMode("welcome")} style={styles.accountSecondaryButton}>
+            <Text style={styles.accountSecondaryText}>Back</Text>
+          </Pressable>
+          <LegalLinks />
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -540,56 +631,59 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
 
     return (
       <SafeAreaView style={styles.accountScreen}>
-        <Text style={styles.accountTitle}>Reset password</Text>
-        <Text style={styles.accountSubtitle}>Enter the email and phone number from your profile, then choose a new password.</Text>
-        <ProfileInput autoComplete="email" label="Email address" textContentType="emailAddress" value={profile.email} onChangeText={(email) => setProfile({ ...profile, email })} />
-        <ProfileInput autoComplete="tel" label="Phone number" placeholder="(555) 555-5555" textContentType="telephoneNumber" value={profile.phone} onChangeText={(phone) => setProfile({ ...profile, phone: formatPhoneNumber(phone) })} />
-        <ProfileInput autoComplete="new-password" label="New password" secure textContentType="newPassword" value={password} onChangeText={setPassword} />
-        <PasswordRequirementList password={password} />
-        <ProfileInput autoComplete="new-password" label="Confirm new password" secure textContentType="newPassword" value={confirmPassword} onChangeText={setConfirmPassword} />
-        {confirmPassword.length > 0 && password !== confirmPassword ? <Text style={styles.accountError}>Passwords do not match yet.</Text> : null}
-        {error ? <Text style={styles.accountError}>{error}</Text> : null}
-        <Pressable
-          disabled={!resetReady}
-          onPress={async () => {
-            const saved = await findSavedProfile(profile.email);
-            if (!saved) {
-              setError("We could not find a saved profile with that email.");
-              return;
-            }
-            if (saved.phone.replace(/\D/g, "") !== profile.phone.replace(/\D/g, "")) {
-              setError("That phone number does not match this saved profile.");
-              return;
-            }
-            const updatedProfile = {
-              ...saved,
-              authProvider: "password" as const,
-              passwordHash: createPasswordHash(saved.email, password)
-            };
-            setPassword("");
-            setConfirmPassword("");
-            setError("");
-            authenticate(updatedProfile);
-          }}
-          style={[styles.primaryButton, !resetReady && styles.disabledButton]}
-        >
-          <Text style={styles.primaryButtonText}>Reset password and log in</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            setPassword("");
-            setConfirmPassword("");
-            setError("");
-            setMode("login");
-          }}
-          style={styles.accountSecondaryButton}
-        >
-          <Text style={styles.accountSecondaryText}>Back to login</Text>
-        </Pressable>
-        <LegalLinks />
+        <ScrollView contentContainerStyle={styles.accountScreenContent} keyboardShouldPersistTaps="handled">
+          <Text style={styles.accountTitle}>Reset password</Text>
+          <Text style={styles.accountSubtitle}>Enter the email and phone number from your profile, then choose a new password.</Text>
+          <ProfileInput autoComplete="email" label="Email address" textContentType="emailAddress" value={profile.email} onChangeText={(email) => setProfile({ ...profile, email })} />
+          <ProfileInput autoComplete="tel" label="Phone number" placeholder="(555) 555-5555" textContentType="telephoneNumber" value={profile.phone} onChangeText={(phone) => setProfile({ ...profile, phone: formatPhoneNumber(phone) })} />
+          <ProfileInput autoComplete="new-password" label="New password" secure textContentType="newPassword" value={password} onChangeText={setPassword} />
+          <PasswordRequirementList password={password} />
+          <ProfileInput autoComplete="new-password" label="Confirm new password" secure textContentType="newPassword" value={confirmPassword} onChangeText={setConfirmPassword} />
+          {confirmPassword.length > 0 && password !== confirmPassword ? <Text style={styles.accountError}>Passwords do not match yet.</Text> : null}
+          {error ? <Text style={styles.accountError}>{error}</Text> : null}
+          <Pressable
+            disabled={!resetReady}
+            onPress={async () => {
+              const saved = await findSavedProfile(profile.email);
+              if (!saved) {
+                setError("We could not find a saved profile with that email.");
+                return;
+              }
+              if (saved.phone.replace(/\D/g, "") !== profile.phone.replace(/\D/g, "")) {
+                setError("That phone number does not match this saved profile.");
+                return;
+              }
+              const updatedProfile = {
+                ...saved,
+                authProvider: "password" as const,
+                passwordHash: createPasswordHash(saved.email, password)
+              };
+              setPassword("");
+              setConfirmPassword("");
+              setError("");
+              authenticate(updatedProfile);
+            }}
+            style={[styles.primaryButton, !resetReady && styles.disabledButton]}
+          >
+            <Text style={styles.primaryButtonText}>Reset password and log in</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              setPassword("");
+              setConfirmPassword("");
+              setError("");
+              setMode("login");
+            }}
+            style={styles.accountSecondaryButton}
+          >
+            <Text style={styles.accountSecondaryText}>Back to login</Text>
+          </Pressable>
+          <LegalLinks />
+        </ScrollView>
       </SafeAreaView>
     );
   }
+
 
   const passwordRules = getPasswordRules(password);
   const passwordReady = passwordRules.every((rule) => rule.passed) && password === confirmPassword;
@@ -926,6 +1020,23 @@ function loadActiveProfile(): UserProfile | null {
     return loadProfiles().find((profile) => profile.email === activeEmail) || null;
   } catch {
     return null;
+  }
+}
+
+function loadSavedActiveTab(): TabKey {
+  try {
+    const savedTab = globalThis.localStorage?.getItem(activeTabKey) as TabKey | null;
+    return tabs.some((tab) => tab.key === savedTab) ? savedTab : "today";
+  } catch {
+    return "today";
+  }
+}
+
+function saveActiveTab(tab: TabKey) {
+  try {
+    globalThis.localStorage?.setItem(activeTabKey, tab);
+  } catch {
+    // The app still works; the selected tab just will not be restored after refresh.
   }
 }
 
@@ -2075,6 +2186,11 @@ function updateWebMetadata() {
   setMetaTag("keywords", seoKeywords.join(", "));
   setMetaTag("og:title", "Intuisity | Awaken Your Intuition. Expand Your Awareness.", "property");
   setMetaTag("og:description", seoDescription, "property");
+  setMetaTag("og:type", "website", "property");
+  setMetaTag("og:url", "https://www.intuisity.com/", "property");
+  setMetaTag("og:image", "https://www.intuisity.com/intuisity-preview.png", "property");
+  setMetaTag("twitter:card", "summary_large_image");
+  setMetaTag("twitter:image", "https://www.intuisity.com/intuisity-preview.png");
 }
 
 function setMetaTag(name: string, content: string, attribute = "name") {
@@ -2090,20 +2206,21 @@ function setMetaTag(name: string, content: string, attribute = "name") {
 }
 
 const styles = StyleSheet.create({
-  accountScreen: { backgroundColor: "#FFFFFF", flex: 1, justifyContent: "center", padding: 24 },
+  accountScreen: { backgroundColor: "#FFFFFF", flex: 1 },
+  accountScreenContent: { alignSelf: "center", justifyContent: "center", maxWidth: 560, minHeight: "100%", padding: 20, width: "100%" },
   accountFormScreen: { backgroundColor: "#FFFFFF", flex: 1 },
   accountFormContent: { padding: 24, paddingBottom: 50 },
-  signupBanner: { alignSelf: "stretch", borderRadius: 10, height: 150, marginBottom: 18, width: "100%" },
-  accountHero: { alignItems: "center", backgroundColor: "#6544B8", borderColor: "#63E3E0", borderRadius: 8, borderWidth: 2, marginBottom: 20, padding: 30 },
-  accountHeroTitle: { color: "#FFFFFF", fontSize: 28, fontWeight: "900", marginTop: 12, textAlign: "center" },
-  accountHeroText: { color: "#EEE8FF", fontSize: 15, lineHeight: 22, marginTop: 10, textAlign: "center" },
-  freePlayBadge: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#63E3E0", borderRadius: 999, borderWidth: 1, flexDirection: "row", gap: 7, marginTop: 16, paddingHorizontal: 14, paddingVertical: 8 },
-  freePlayBadgeText: { color: "#6544B8", fontSize: 13, fontWeight: "900" },
-  accountTitle: { color: "#201B35", fontSize: 28, fontWeight: "900", marginBottom: 8 },
-  accountSubtitle: { color: "#706982", fontSize: 15, lineHeight: 22, marginBottom: 20 },
+  signupBanner: { alignSelf: "stretch", borderRadius: 20, height: 150, marginBottom: 18, width: "100%" },
+  accountHero: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 22, borderWidth: 1, elevation: 7, marginBottom: 16, padding: 22, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 18 },
+  accountHeroTitle: { color: "#f3c64d", fontFamily: "Georgia", fontSize: 28, fontWeight: "700", marginTop: 10, textAlign: "center" },
+  accountHeroText: { color: "#FFFFFF", fontSize: 15, lineHeight: 23, marginTop: 10, textAlign: "center" },
+  freePlayBadge: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f3c64d", borderRadius: 999, borderWidth: 1, flexDirection: "row", gap: 7, marginTop: 16, paddingHorizontal: 14, paddingVertical: 8 },
+  freePlayBadgeText: { color: "#3f1b91", fontSize: 13, fontWeight: "900" },
+  accountTitle: { color: "#b87908", fontFamily: "Georgia", fontSize: 29, fontWeight: "700", marginBottom: 7 },
+  accountSubtitle: { color: "#706982", fontSize: 15, lineHeight: 22, marginBottom: 16 },
   loginFreePlayNote: { alignItems: "center", alignSelf: "flex-start", backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 999, borderWidth: 1, flexDirection: "row", gap: 7, marginBottom: 16, marginTop: -8, paddingHorizontal: 12, paddingVertical: 8 },
   loginFreePlayText: { color: "#008A94", fontSize: 12, fontWeight: "900" },
-  googleButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#DAD3E8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 10, justifyContent: "center", marginBottom: 12, minHeight: 48, padding: 12 },
+  googleButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#e2dff0", borderRadius: 16, borderWidth: 1, flexDirection: "row", gap: 10, justifyContent: "center", marginBottom: 12, minHeight: 50, padding: 12 },
   googleIconCircle: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 999, borderWidth: 1, height: 26, justifyContent: "center", width: 26 },
   googleIconText: { color: "#4285F4", fontSize: 16, fontWeight: "900" },
   googleButtonText: { color: "#30264C", fontSize: 15, fontWeight: "900" },
@@ -2116,9 +2233,9 @@ const styles = StyleSheet.create({
   languageSetupDefault: { color: "#706982", fontSize: 11, lineHeight: 16 },
   signupLanguageMenu: { backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, marginTop: 6, padding: 6 },
   accountField: { marginBottom: 12 },
-  accountFieldLabel: { color: "#393149", fontSize: 13, fontWeight: "800", marginBottom: 6 },
+  accountFieldLabel: { color: "#211842", fontSize: 13, fontWeight: "900", marginBottom: 6 },
   accountInputWrap: { position: "relative" },
-  accountInput: { backgroundColor: "#FFFFFF", borderColor: "#DAD3E8", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 16, paddingHorizontal: 14, paddingVertical: 12 },
+  accountInput: { backgroundColor: "#FFFFFF", borderColor: "#e2dff0", borderRadius: 14, borderWidth: 1, color: "#211842", fontSize: 16, paddingHorizontal: 14, paddingVertical: 12 },
   accountPasswordInput: { paddingRight: 50 },
   passwordVisibilityButton: { alignItems: "center", bottom: 0, justifyContent: "center", position: "absolute", right: 6, top: 0, width: 42 },
   savedAccountList: { marginBottom: 14 },
@@ -2148,8 +2265,8 @@ const styles = StyleSheet.create({
   passwordRuleTextPassed: { color: "#008A94" },
   forgotPasswordButton: { alignSelf: "flex-end", marginBottom: 14, marginTop: -4, paddingHorizontal: 4, paddingVertical: 4 },
   forgotPasswordText: { color: "#6544B8", fontSize: 13, fontWeight: "900" },
-  accountSecondaryButton: { alignItems: "center", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, justifyContent: "center", minHeight: 48, padding: 12 },
-  accountSecondaryText: { color: "#008A94", fontSize: 15, fontWeight: "900" },
+  accountSecondaryButton: { alignItems: "center", backgroundColor: "#fffdf7", borderColor: "#e2dff0", borderRadius: 16, borderWidth: 1, justifyContent: "center", minHeight: 48, padding: 12 },
+  accountSecondaryText: { color: "#3f1b91", fontSize: 15, fontWeight: "900" },
   legalLinks: { alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "center", marginTop: 16 },
   legalLinkButton: { paddingHorizontal: 4, paddingVertical: 4 },
   legalLinkDivider: { color: "#B8AFCB", fontSize: 12, fontWeight: "800" },
@@ -2166,13 +2283,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 8
   },
-  profileBadge: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 6, minHeight: 42, paddingHorizontal: 12, paddingVertical: 8 },
-  profileBadgeText: { color: "#30264C", flexShrink: 1, fontSize: 13, fontWeight: "800" },
+  topBrandLogo: { flex: 1, height: 55, marginHorizontal: 8, maxWidth: 312 },
+  profileBadge: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 16, borderWidth: 1, flexDirection: "row", gap: 6, minHeight: 42, paddingHorizontal: 12, paddingVertical: 8, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 7 },
+  profileBadgeText: { color: "#fff4cf", flexShrink: 1, fontSize: 13, fontWeight: "900" },
   topRightActions: { alignItems: "center", flexDirection: "row", gap: 8 },
-  languageButton: { alignItems: "center", backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 3, height: 42, justifyContent: "center", paddingHorizontal: 8 },
-  languageButtonText: { color: "#008A94", fontSize: 10, fontWeight: "900" },
-  logoutIconButton: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 6, height: 42, justifyContent: "center", paddingHorizontal: 10 },
-  logoutIconText: { color: "#6544B8", fontSize: 12, fontWeight: "900" },
+  languageButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 16, borderWidth: 1, flexDirection: "row", gap: 3, height: 42, justifyContent: "center", paddingHorizontal: 8, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.16, shadowRadius: 6 },
+  languageButtonText: { color: "#fff4cf", fontSize: 10, fontWeight: "900" },
+  logoutIconButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 16, borderWidth: 1, flexDirection: "row", gap: 6, height: 42, justifyContent: "center", paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.16, shadowRadius: 6 },
+  logoutIconText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
   languageMenu: { backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, elevation: 12, left: 18, padding: 6, position: "absolute", right: 18, shadowColor: "#30264C", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, top: 58, zIndex: 20 },
   languageMenuOption: { alignItems: "center", borderRadius: 7, flexDirection: "row", justifyContent: "space-between", minHeight: 38, paddingHorizontal: 10, paddingVertical: 6 },
   languageMenuOptionSelected: { backgroundColor: "#008A94" },
@@ -2194,7 +2312,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 18,
-    paddingBottom: 112
+    paddingBottom: 190
   },
   sectionHeader: {
     marginBottom: 16
@@ -2440,17 +2558,22 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignItems: "center",
-    backgroundColor: "#7555C7",
-    borderColor: "#63E3E0",
-    borderRadius: 8,
+    backgroundColor: "#6537c7",
+    borderColor: "#f3c64d",
+    borderRadius: 16,
     borderWidth: 1,
+    elevation: 3,
     flexDirection: "row",
     gap: 8,
     justifyContent: "center",
     marginBottom: 14,
-    minHeight: 48,
+    minHeight: 50,
     paddingHorizontal: 14,
-    paddingVertical: 12
+    paddingVertical: 12,
+    shadowColor: "#5126ad",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10
   },
   disabledButton: {
     opacity: 0.45
@@ -3042,37 +3165,44 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   tabBar: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E7E3F2",
+    backgroundColor: "#fffaf0",
+    borderColor: "#f3c64d",
     borderTopWidth: 1,
     bottom: 0,
+    elevation: 18,
     flexDirection: "row",
     gap: 6,
     left: 0,
     paddingHorizontal: 8,
     paddingVertical: 10,
     position: "absolute",
-    right: 0
+    right: 0,
+    shadowColor: "#b87908",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16
   },
   tabButton: {
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: 16,
     flex: 1,
     minHeight: 58,
     justifyContent: "center",
     paddingVertical: 6
   },
   tabButtonSelected: {
-    backgroundColor: "#F1EDFF"
+    backgroundColor: "#6537c7",
+    borderColor: "#f3c64d",
+    borderWidth: 1
   },
   tabLabel: {
-    color: "#756D87",
+    color: "#b87908",
     fontSize: 11,
-    fontWeight: "800",
+    fontWeight: "900",
     marginTop: 4
   },
   tabLabelSelected: {
-    color: "#6544B8"
+    color: "#fff4cf"
   },
   hero: {
     borderRadius: 8,

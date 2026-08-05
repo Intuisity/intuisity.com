@@ -1,13 +1,35 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { getAstrologyReading, getKnownBirthLocation } from "../data/astrologyTips";
+import { getAstrologyReading, getBirthLocationSuggestions, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
 import { dailyIntuitionLessons } from "../data/dailyLessons";
 import { PersonProfile, personProfiles } from "../data/personProfiles";
 import { recordModuleTime, startActivityTracking } from "../services/adminAnalytics";
-import { lookupBirthLocation, sendFriendInviteEmail, syncDailyResult, syncFriends, syncModuleFeedback } from "../services/backendApi";
+import { lookupBirthLocation, sendFriendInviteEmail, sendTreasureCompletionResponse, syncDailyResult, syncFriends, syncModuleFeedback } from "../services/backendApi";
 import { BirthChartProfile, UserProfile } from "../types/userProfile";
+
+const intuTheme = {
+  purple950: "#2e126f",
+  purple900: "#3f1b91",
+  purple800: "#5126ad",
+  purple700: "#6537c7",
+  purple600: "#7548d6",
+  purple500: "#8659e5",
+  goldDark: "#b87908",
+  gold: "#d79b16",
+  goldLight: "#f3c64d",
+  goldPale: "#fff4cf",
+  teal: "#19aeb4",
+  tealLight: "#dff8f8",
+  ink: "#211842",
+  muted: "#6f6881",
+  border: "#e2dff0",
+  surface: "#ffffff",
+  surfaceSoft: "#faf8ff"
+};
+
+const purpleGoldHeaderBanner = require("../../assets/intuisity-purple-gold-banner.png");
 
 type Answers = Record<string, string>;
 
@@ -78,7 +100,9 @@ type Props = {
   answers: Answers;
   homeRequestId?: number;
   isPremium: boolean;
+  onCreateAccount: () => void;
   onLogout: () => void;
+  onRequestScrollTop?: () => void;
   onUpdateProfile: (profile: UserProfile) => void;
   setAnswers: React.Dispatch<React.SetStateAction<Answers>>;
   userProfile: UserProfile;
@@ -302,7 +326,7 @@ const remoteViewingPictures: PictureItem[] = remoteViewingThemes.flatMap((theme,
       id: `remote-target-${number}`,
       label: `${theme.label} ${variantIndex + 1}`,
       source: {
-        uri: `https://loremflickr.com/900/700/${theme.query}?lock=${9200 + number}`
+        uri: `https://picsum.photos/seed/intuisity-remote-${number}/900/700`
       }
     };
   })
@@ -376,10 +400,10 @@ const birthTimeMinutes = Array.from({ length: 60 }, (_, index) => String(index).
 const challengeIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
   "daily-intuition": "color-palette-outline",
   "remote-viewing-arena": "bulb-outline",
-  "third-eye-activation": "eye-outline",
+  "third-eye-activation": "book-outline",
   "psychic-potential-score": "moon-outline",
-  "social-prediction": "gift-outline",
-  "remote-viewing-test": "radio-outline"
+  "social-prediction": "archive-outline",
+  "remote-viewing-test": "wifi-outline"
 };
 
 const treasureChestIcons = ["💎", "👑", "🪙", "🔮", "💍", "🗝️", "📿", "🏺", "📜", "🦪", "🐚", "🎖️", "🏆", "🎁", "🧿"];
@@ -515,7 +539,7 @@ const personImages: Record<string, any> = {
   mei: require("../../assets/person-mei.png")
 };
 
-export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLogout, onUpdateProfile, setAnswers, userProfile }: Props) {
+export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCreateAccount, onLogout, onRequestScrollTop, onUpdateProfile, setAnswers, userProfile }: Props) {
   const savedPersonChallengeRef = useRef(loadTodaysPersonChallenge(userProfile.email));
   const savedPersonChallenge = savedPersonChallengeRef.current;
   const savedPersonProfile = savedPersonChallenge
@@ -524,7 +548,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
   const initialPersonProfile = savedPersonProfile && isPhotographicPersonProfile(savedPersonProfile)
     ? savedPersonProfile
     : pickBalancedPersonProfile(userProfile.email);
-  const [page, setPage] = useState("hub");
+  const [page, setPage] = useState(loadInitialIntuisityPage);
   const analyticsPageRef = useRef(page);
   const analyticsStartedRef = useRef(Date.now());
   const [round, setRound] = useState(0);
@@ -536,10 +560,10 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
   const [person, setPerson] = useState(initialPersonProfile);
   const [personPortraitUri, setPersonPortraitUri] = useState<string | null>(savedPersonChallenge?.portraitUri || initialPersonProfile.portraitUri || null);
   const [personAttributeChoices, setPersonAttributeChoices] = useState(() =>
-    savedPersonChallenge?.attributeChoices?.length ? savedPersonChallenge.attributeChoices : shuffle(initialPersonProfile.attributes)
+    savedPersonChallenge?.attributeChoices?.length ? sanitizePersonAttributeChoices(savedPersonChallenge.attributeChoices) : getPersonAttributeChoices(initialPersonProfile)
   );
   const [personPortraitLoading, setPersonPortraitLoading] = useState(!savedPersonChallenge?.portraitUri && !initialPersonProfile.portraitUri);
-  const [personSelections, setPersonSelections] = useState<string[]>(savedPersonChallenge?.selections || []);
+  const [personSelections, setPersonSelections] = useState<string[]>(sanitizePersonAttributeChoices(savedPersonChallenge?.selections || []));
   const [showPersonResults, setShowPersonResults] = useState(Boolean(savedPersonChallenge?.completed));
   const [personPracticeMode, setPersonPracticeMode] = useState(false);
   const [birthDetails, setBirthDetails] = useState({
@@ -612,6 +636,13 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
   const [treasureNote, setTreasureNote] = useState("");
   const [treasureSceneImage, setTreasureSceneImage] = useState(() => treasureSceneImages[0]);
   const [invitedTreasureSender, setInvitedTreasureSender] = useState("");
+  const [invitedTreasureSenderEmail, setInvitedTreasureSenderEmail] = useState("");
+  const [invitedTreasureChallengeId, setInvitedTreasureChallengeId] = useState("");
+  const [treasureCompletionTries, setTreasureCompletionTries] = useState(0);
+  const [treasureCompletionSuccess, setTreasureCompletionSuccess] = useState(false);
+  const [treasureResponseMessage, setTreasureResponseMessage] = useState("");
+  const [treasureResponseStatus, setTreasureResponseStatus] = useState("");
+  const [treasureResponseSent, setTreasureResponseSent] = useState(false);
   const [selectedTreasureDrag, setSelectedTreasureDrag] = useState<TreasureDragItem | null>(null);
   const treasurePointerDragRef = useRef<TreasureDragItem | null>(null);
   const treasureIgnoreClickRef = useRef(false);
@@ -630,6 +661,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
   const [remoteCorrect, setRemoteCorrect] = useState(0);
   const [remoteChoice, setRemoteChoice] = useState<string | null>(null);
   const [remoteTargets, setRemoteTargets] = useState(makeRemoteViewingPairs);
+  const previousRemoteRoundRef = useRef(0);
   const [drawingPoints, setDrawingPoints] = useState<Array<{ x: number; y: number; start?: boolean }>>([]);
   const [moduleFeedback, setModuleFeedback] = useState<ModuleFeedback>(() => loadModuleFeedback(userProfile.email));
   const [feedbackSaved, setFeedbackSaved] = useState(false);
@@ -652,6 +684,25 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
   }, [homeRequestId]);
 
   useEffect(() => {
+    if (previousRemoteRoundRef.current === remoteRound) return;
+    previousRemoteRoundRef.current = remoteRound;
+    setRemotePhase("sense");
+    setRemoteChoice(null);
+    setDrawingPoints([]);
+  }, [remoteRound]);
+
+  useEffect(() => {
+    onRequestScrollTop?.();
+    const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+    const documentRef = typeof globalThis !== "undefined" ? (globalThis as any).document : undefined;
+    browserWindow?.requestAnimationFrame?.(() => {
+      onRequestScrollTop?.();
+      browserWindow?.scrollTo?.(0, 0);
+      documentRef?.scrollingElement?.scrollTo?.(0, 0);
+    });
+  }, [onRequestScrollTop, page]);
+
+  useEffect(() => {
     const invite = loadTreasureInviteFromUrl();
     if (!invite) return;
     setPage("social-prediction");
@@ -666,14 +717,78 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
     setTreasureWinText("");
     setTreasureNote(invite.note);
     setInvitedTreasureSender(invite.senderName);
+    setInvitedTreasureSenderEmail(invite.senderEmail);
+    setInvitedTreasureChallengeId(invite.challengeId);
+    setTreasureCompletionTries(0);
+    setTreasureCompletionSuccess(false);
+    setTreasureResponseMessage("");
+    setTreasureResponseStatus("");
+    setTreasureResponseSent(false);
     setTreasureSceneImage(shuffle(treasureSceneImages)[0]);
     setComputerResult(false);
   }, []);
+
+  const historyReadyRef = useRef(false);
+  const handlingBrowserBackRef = useRef(false);
+
+  useEffect(() => {
+    const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+    if (!browserWindow?.history || !browserWindow?.addEventListener) return;
+
+    const handlePopState = (event: any) => {
+      const nextPage = event.state?.intuisityPage || "hub";
+      if (!getKnownIntuisityPages().has(nextPage)) return;
+      handlingBrowserBackRef.current = true;
+      setPage(nextPage);
+    };
+
+    browserWindow.addEventListener("popstate", handlePopState);
+    return () => browserWindow.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+    if (!browserWindow?.history) return;
+
+    const nextState = {
+      ...(browserWindow.history.state || {}),
+      intuisityPage: page
+    };
+    const nextUrl = getIntuisityPageUrl(page);
+
+    if (!historyReadyRef.current) {
+      browserWindow.history.replaceState(nextState, "", nextUrl);
+      historyReadyRef.current = true;
+      return;
+    }
+
+    if (handlingBrowserBackRef.current) {
+      handlingBrowserBackRef.current = false;
+      return;
+    }
+
+    if (browserWindow.history.state?.intuisityPage !== page) {
+      browserWindow.history.pushState(nextState, "", nextUrl);
+    }
+  }, [page]);
 
   const updateBirthDetail = (field: keyof typeof birthDetails, value: string) => {
     setBirthDetails({ ...birthDetails, [field]: value });
     setBirthDetailsSaved(false);
     setBirthLocationStatus("");
+  };
+  const birthLocationQuery = [birthDetails.birthCity, birthDetails.birthState, birthDetails.birthCountry].filter(Boolean).join(", ");
+  const birthLocationSuggestions = getBirthLocationSuggestions(birthLocationQuery || birthDetails.birthCity);
+  const applyBirthLocationSuggestion = (label: string) => {
+    const [city = "", state = "", country = ""] = label.split(",").map((part) => part.trim());
+    setBirthDetails((current) => ({
+      ...current,
+      birthCity: city || current.birthCity,
+      birthState: state || current.birthState,
+      birthCountry: country || current.birthCountry
+    }));
+    setBirthDetailsSaved(false);
+    setBirthLocationStatus(`Birthplace selected: ${label}`);
   };
 
   const saveBirthDetails = async () => {
@@ -807,17 +922,27 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
   const previousPage = getPreviousModulePage(page);
   const nextPage = getNextModulePage(page);
   const homeChallenges = getDailyChallenges();
+  const goToPreviousModule = () => {
+    const destination = getPreviousModulePage(page) || "hub";
+    navigateToPage(destination);
+  };
+  const goToNextModule = () => {
+    const destination = getNextModulePage(page);
+    if (destination) navigateToPage(destination);
+  };
   const ChallengePageHeader = (props: {
     eyebrow: string;
+    hideHome?: boolean;
+    homeLayout?: boolean;
     title: string;
     subtitle: string;
     compact?: boolean;
   }) => (
     <PageHeader
       {...props}
-      onHome={page === "hub" ? undefined : () => setPage("hub")}
-      onBack={page === "hub" ? undefined : () => navigateToPage(previousPage || "hub")}
-      onNext={page === "daily-results" ? undefined : nextPage ? () => navigateToPage(nextPage) : undefined}
+      onHome={props.hideHome || page === "hub" ? undefined : () => navigateToPage("hub")}
+      onBack={page === "hub" ? undefined : goToPreviousModule}
+      onNext={page === "daily-results" ? undefined : nextPage ? goToNextModule : undefined}
     />
   );
   const persistPersonChallenge = (
@@ -846,7 +971,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
         setPerson(candidate);
         setPersonPortraitUri(portraitUri);
         rememberPersonPortrait(userProfile.email, candidate.id);
-        setPersonAttributeChoices(shuffle(candidate.attributes));
+        setPersonAttributeChoices(getPersonAttributeChoices(candidate));
         setPersonSelections([]);
         setShowPersonResults(false);
         setPersonPortraitLoading(false);
@@ -891,8 +1016,8 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
         if (!active) return;
         setPerson(lockedProfile);
         setPersonPortraitUri(savedPortrait || null);
-        setPersonAttributeChoices(savedChallenge.attributeChoices?.length ? savedChallenge.attributeChoices : shuffle(lockedProfile.attributes));
-        setPersonSelections(savedChallenge.selections || []);
+        setPersonAttributeChoices(savedChallenge.attributeChoices?.length ? sanitizePersonAttributeChoices(savedChallenge.attributeChoices) : getPersonAttributeChoices(lockedProfile));
+        setPersonSelections(sanitizePersonAttributeChoices(savedChallenge.selections || []));
         setShowPersonResults(Boolean(savedChallenge.completed));
         if (savedPortrait && savedPortrait !== savedChallenge.portraitUri) {
           savedPersonChallengeRef.current = saveTodaysPersonChallenge(userProfile.email, {
@@ -927,7 +1052,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
           setPerson(candidate);
           setPersonPortraitUri(portraitUri);
           rememberPersonPortrait(userProfile.email, candidate.id);
-          const nextAttributeChoices = shuffle(candidate.attributes);
+          const nextAttributeChoices = getPersonAttributeChoices(candidate);
           setPersonAttributeChoices(nextAttributeChoices);
           setPersonSelections([]);
           setShowPersonResults(false);
@@ -1055,7 +1180,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
           />
         </View>
         <View style={styles.knowingGuidance}>
-          <Ionicons color="#7555C7" name="sparkles-outline" size={23} />
+          <Ionicons color="#d79b16" name="sparkles-outline" size={23} />
           <Text style={styles.knowingGuidanceText}>
             Sit comfortably and take a slow breath. One of the colored squares has a picture hidden underneath it. Before tapping, soften your focus and feel which square seems to be holding the picture. Trust the first gentle impression that comes to you.
           </Text>
@@ -1128,6 +1253,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
       <View>
         <ChallengePageHeader
           eyebrow="Challenge 3 · Positivity Practice"
+          hideHome
           title="Choose today's gentle idea"
           subtitle="Pick one simple thing to try, notice, or follow through on today."
           compact
@@ -1135,7 +1261,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
         {priorLearningEntry && (
           <View style={[styles.learningReminder, styles.learningReminderCompact]}>
             <View style={styles.reminderHeading}>
-              <Ionicons color="#7555C7" name="notifications-outline" size={23} />
+              <Ionicons color="#d79b16" name="notifications-outline" size={23} />
               <Text style={styles.reminderTitle}>How did yesterday's task go?</Text>
             </View>
             <Text style={styles.followUpPlan}>{priorLearningEntry.challenge}</Text>
@@ -1170,12 +1296,12 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
         )}
         <View style={styles.lessonCard}>
           {[
-            "Choose one gentle idea for today.",
-            "Let awareness, mindfulness, and inner knowing guide the moment.",
-            "Keep it simple enough to actually try in real life."
+            "Choose one simple action to try today.",
+            "Pick something you can complete, write down, or check later.",
+            "Come back tomorrow and reflect on what happened."
           ].map((point) => (
             <View key={point} style={styles.lessonPoint}>
-              <Ionicons color="#00AEBB" name="checkmark-circle-outline" size={21} />
+              <Ionicons color="#d79b16" name="checkmark-circle-outline" size={21} />
               <Text style={styles.lessonPointText}>{point}</Text>
             </View>
           ))}
@@ -1196,7 +1322,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
                     <Text style={[styles.learningIdeaNumberText, selected && styles.learningIdeaNumberTextSelected]}>{index + 1}</Text>
                   </View>
                   <Text style={[styles.learningIdeaTitle, selected && styles.learningIdeaTitleSelected]}>{lesson.title}</Text>
-                  {selected && <Ionicons color="#008A94" name="checkmark-circle" size={20} />}
+                  {selected && <Ionicons color="#b87908" name="checkmark-circle" size={20} />}
                 </View>
                 <Text style={styles.learningIdeaText}>{lesson.practice}</Text>
                 <Text style={styles.learningIdeaReflection}>{lesson.reflection}</Text>
@@ -1225,7 +1351,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
           )}
           {learningTaskSaved && (
             <View style={styles.savedTaskBanner}>
-              <Ionicons color="#239963" name="lock-closed-outline" size={18} />
+              <Ionicons color="#b87908" name="lock-closed-outline" size={18} />
               <Text style={styles.savedTaskText}>Your task is locked in for today.</Text>
             </View>
           )}
@@ -1240,7 +1366,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
               onPress={() => setLearningTaskSaved(false)}
               style={[styles.secondaryButton, styles.taskEditButton]}
             >
-              <Ionicons color="#6544B8" name="create-outline" size={18} />
+              <Ionicons color="#d79b16" name="create-outline" size={18} />
               <Text style={styles.taskEditButtonText}>Edit task</Text>
             </Pressable>
             <Pressable
@@ -1296,8 +1422,9 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
   }
 
   if (page === "third-eye-activation") {
+    const personCorrectAttributes = getPersonCorrectAttributes(person);
     const personCorrect = personSelections.filter((attribute) =>
-      person.correctAttributes.includes(attribute)
+      personCorrectAttributes.includes(attribute)
     ).length;
     const personPortraitSource = personPortraitUri ? { uri: personPortraitUri } : personImages[person.id];
 
@@ -1344,7 +1471,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
                   setPerson(candidate);
                   setPersonPortraitUri(portraitUri);
                   rememberPersonPortrait(userProfile.email, candidate.id);
-                  const nextAttributeChoices = shuffle(candidate.attributes);
+                  const nextAttributeChoices = getPersonAttributeChoices(candidate);
                   setPersonAttributeChoices(nextAttributeChoices);
                   setPersonSelections([]);
                   setShowPersonResults(false);
@@ -1375,7 +1502,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
         <View style={styles.attributeList}>
           {personAttributeChoices.map((attribute) => {
             const selectedAttribute = personSelections.includes(attribute);
-            const correctAttribute = person.correctAttributes.includes(attribute);
+            const correctAttribute = personCorrectAttributes.includes(attribute);
             return (
               <Pressable
                 disabled={showPersonResults}
@@ -1399,7 +1526,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
 
                   if (nextSelections.length === personChoiceLimit) {
                     const correctCount = nextSelections.filter((item) =>
-                      person.correctAttributes.includes(item)
+                      personCorrectAttributes.includes(item)
                     ).length;
                     setShowPersonResults(true);
                     if (!personPracticeMode && !savedPersonChallengeRef.current?.completed) {
@@ -1551,7 +1678,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
               onPress={() => setBirthDetailsOpen(!birthDetailsOpen)}
               style={styles.birthDetailsDropdown}
             >
-              <Ionicons color="#7555C7" name="planet-outline" size={25} />
+              <Ionicons color="#d79b16" name="planet-outline" size={25} />
               <View style={styles.menuCopy}>
                 <Text style={styles.birthChartTitle}>{birthDetailsComplete ? "Birth details saved" : "Birth details started"}</Text>
                 <Text style={styles.birthDetailsSummary}>{birthDetailsSummary || "Tap to review your birth details"}</Text>
@@ -1559,11 +1686,11 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
                   <Text style={styles.birthDetailsSummary}>Add later when you know: {birthDetailsMissingList}</Text>
                 )}
               </View>
-              <Ionicons color="#7555C7" name={birthDetailsOpen ? "chevron-up-outline" : "chevron-down-outline"} size={22} />
+              <Ionicons color="#d79b16" name={birthDetailsOpen ? "chevron-up-outline" : "chevron-down-outline"} size={22} />
             </Pressable>
           ) : (
             <View style={styles.birthDetailsHeader}>
-              <Ionicons color="#7555C7" name="planet-outline" size={25} />
+              <Ionicons color="#d79b16" name="planet-outline" size={25} />
               <View style={styles.menuCopy}>
                 <Text style={styles.birthChartTitle}>Birth details for astrology</Text>
                 <Text style={styles.birthChartNote}>Saved to your profile after you tap save.</Text>
@@ -1613,6 +1740,24 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
                 style={styles.birthdateInput}
                 value={birthDetails.birthCountry}
               />
+              {birthLocationSuggestions.length > 0 && (
+                <View style={styles.birthLocationSuggestions}>
+                  <Text style={styles.birthLocationSuggestionLabel}>Tap a matching birthplace to fill city, state, and country:</Text>
+                  <View style={styles.birthLocationSuggestionList}>
+                    {birthLocationSuggestions.map((location) => (
+                      <Pressable
+                        accessibilityLabel={`Use birthplace ${location.label}`}
+                        key={location.label}
+                        onPress={() => applyBirthLocationSuggestion(location.label)}
+                        style={styles.birthLocationSuggestionChip}
+                      >
+                        <Ionicons color="#B87908" name="location-outline" size={16} />
+                        <Text style={styles.birthLocationSuggestionText}>{location.label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              )}
               <BirthTimePicker
                 onChange={(birthTime) => updateBirthDetail("birthTime", birthTime)}
                 value={birthDetails.birthTime}
@@ -1640,7 +1785,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
 
         {!astrologyReading ? (
           <View style={styles.birthdateCard}>
-            <Ionicons color="#7555C7" name="person-circle-outline" size={42} />
+            <Ionicons color="#d79b16" name="person-circle-outline" size={42} />
             <Text style={styles.birthChartNote}>
               Save your birthdate above to open your daily astrology guidance.
             </Text>
@@ -1704,7 +1849,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
               </View>
             )}
             <View style={styles.astrologyChoicesHeading}>
-              <Ionicons color="#7555C7" name="sparkles-outline" size={22} />
+              <Ionicons color="#d79b16" name="sparkles-outline" size={22} />
               <View style={styles.menuCopy}>
                 <Text style={styles.astrologyChoicesTitle}>Today's Chart Synopsis</Text>
                 <Text style={styles.astrologyChoicesSubtitle}>
@@ -1714,7 +1859,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
             </View>
             <View style={styles.chartSynopsisCard}>
               <View style={styles.chartSynopsisHeading}>
-                <Ionicons color="#7555C7" name="planet-outline" size={24} />
+                <Ionicons color="#d79b16" name="planet-outline" size={24} />
                 <Text style={styles.chartSynopsisTitle}>Your daily astrology</Text>
               </View>
               <Text style={styles.chartSynopsisText}>{astrologyReading.synopsis}</Text>
@@ -1781,7 +1926,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
             {planSaved && (
               <View style={styles.chartSynopsisCard}>
                 <View style={styles.chartSynopsisHeading}>
-                  <Ionicons color="#7555C7" name="star-outline" size={24} />
+                  <Ionicons color="#d79b16" name="star-outline" size={24} />
                   <Text style={styles.chartSynopsisTitle}>Your Daily Chart Highlights</Text>
                 </View>
                 <Text style={styles.chartSynopsisText}>
@@ -1820,6 +1965,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
     const treasureLost = treasureWinText.startsWith("The treasure");
     const treasureFriendSubmitted = treasureWinText.startsWith("Your treasure tiles");
     const treasureWon = Boolean(treasureWinText) && !treasureLost && !treasureFriendSubmitted;
+    const invitedTreasureFinished = Boolean(invitedTreasureSender && treasureWinText && !treasureFriendSubmitted);
     const treasureInspirationMessage =
       (opponent === "friend" || invitedTreasureSender) && treasureNote.trim()
         ? treasureNote.trim()
@@ -1835,7 +1981,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
     const chooseTreasureMode = (mode: "friend" | "computer") => {
       if (mode === "friend" && userProfile.authProvider === "guest") {
         setFriendPhoneError("Please create or sign in to your Intuisity account before inviting your own friends.");
-        onLogout();
+        onCreateAccount();
         return;
       }
       setOpponent(mode);
@@ -1843,6 +1989,13 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
       setFriendInviteStatus("");
       setTreasureWinText("");
       setInvitedTreasureSender("");
+      setInvitedTreasureSenderEmail("");
+      setInvitedTreasureChallengeId("");
+      setTreasureCompletionTries(0);
+      setTreasureCompletionSuccess(false);
+      setTreasureResponseMessage("");
+      setTreasureResponseStatus("");
+      setTreasureResponseSent(false);
       if (mode === "friend") {
         setTreasureSecret([]);
         setTreasureGuess(Array(5).fill(null));
@@ -1898,6 +2051,13 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
       setTreasureSceneImage(shuffle(treasureSceneImages)[0]);
       setOpponent(mode);
       setInvitedTreasureSender("");
+      setInvitedTreasureSenderEmail("");
+      setInvitedTreasureChallengeId("");
+      setTreasureCompletionTries(0);
+      setTreasureCompletionSuccess(false);
+      setTreasureResponseMessage("");
+      setTreasureResponseStatus("");
+      setTreasureResponseSent(false);
       setTreasureFlowStep("play");
       setComputerResult(false);
       setAnswers((current) => {
@@ -2021,10 +2181,11 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
         setTreasureWinText("Your treasure tiles were submitted. Your friend will be invited to answer your game.");
         setFriendInviteStatus("Sending friend challenge invite...");
         Promise.all(selectedFriends.map((friend) => sendFriendInviteEmail({
-          challengeUrl: getTreasureInviteUrl(submittedGuess, treasureNote.trim(), userProfile.name || "A friend"),
+          challengeUrl: getTreasureInviteUrl(submittedGuess, treasureNote.trim(), userProfile.name || "A friend", userProfile.email),
           friendEmail: friend.email || "",
           friendName: friend.name,
           note: treasureNote.trim(),
+          senderEmail: userProfile.email,
           senderName: userProfile.name || "A friend"
         })))
           .then(() => setFriendInviteStatus(`Challenge sent to ${selectedFriends.length} ${selectedFriends.length === 1 ? "friend" : "friends"}. When a friend sends you their tiles, you will get a notification to answer their game.`))
@@ -2040,6 +2201,8 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
       if (correctCount === 5) {
         const triesUsed = 4 - nextTriesLeft;
         const treasurePoints = calculateTreasurePoints(triesUsed);
+        setTreasureCompletionTries(triesUsed);
+        setTreasureCompletionSuccess(true);
         setTreasureWinText(makeTreasureWinMessage(triesUsed));
         setAnswers((current) => ({
           ...current,
@@ -2051,6 +2214,8 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
         return;
       }
       if (nextTriesLeft === 0) {
+        setTreasureCompletionTries(4);
+        setTreasureCompletionSuccess(false);
         setTreasureWinText("The treasure stayed hidden this time. Try again tomorrow.");
         setAnswers((current) => ({
           ...current,
@@ -2062,6 +2227,26 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
       } else {
         setSelectedTreasureDrag(null);
         setTreasureGuess(submittedGuess.map((icon, index) => nextLocked[index] ? icon : null));
+      }
+    };
+    const sendTreasureResponse = async () => {
+      if (!invitedTreasureSenderEmail || treasureResponseSent) return;
+      setTreasureResponseStatus("Sending your response...");
+      try {
+        await sendTreasureCompletionResponse({
+          challengeId: invitedTreasureChallengeId || `treasure-${Date.now()}`,
+          friendName: userProfile.name || "Invited friend",
+          responseMessage: treasureResponseMessage.trim(),
+          score: Number(answers["friend-points"] || 0),
+          senderEmail: invitedTreasureSenderEmail,
+          senderName: invitedTreasureSender || "your friend",
+          success: treasureCompletionSuccess,
+          triesUsed: treasureCompletionTries || 4
+        });
+        setTreasureResponseSent(true);
+        setTreasureResponseStatus("Sent. Your friend will receive your response by email.");
+      } catch (error) {
+        setTreasureResponseStatus(error instanceof Error ? error.message : "Your response could not be sent yet.");
       }
     };
     const renderTreasureInspirationBurst = () => {
@@ -2180,8 +2365,8 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
       if (typeof (globalThis as any).document !== "undefined") {
         const webTokenStyle = (disabled: boolean, active: boolean): any => ({
           alignItems: "center",
-          background: active ? "#FFF9E8" : "#EDFBFB",
-          border: active ? "3px solid #F4B740" : "2px solid #00AEBB",
+          background: active ? "#FFF9E8" : "#FFFFFF",
+          border: active ? "3px solid #F4B740" : "2px solid #f3c64d",
           borderRadius: 8,
           color: "#30264C",
           cursor: disabled ? "default" : "grab",
@@ -2233,10 +2418,50 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
             onPointerUp: finishTreasurePointerDrag,
             style: { overflow: "visible", paddingBottom: 18, touchAction: "pan-y" }
           },
-          React.createElement("div", { style: { color: "#706982", fontSize: 12, fontWeight: 900, marginBottom: 8, textTransform: "uppercase" } }, opponent === "friend" ? "Step 1: Your five empty boxes" : "Your order"),
+          React.createElement("div", { style: { color: "#706982", fontSize: 12, fontWeight: 900, marginBottom: 8, textTransform: "uppercase" } }, opponent === "friend" ? "Step 1: Tap treasures from the top row" : "Available treasures"),
           React.createElement(
             "div",
             { style: { display: "flex", gap: 8, justifyContent: "center", marginBottom: 12 } },
+            treasureIcons.map((icon) => {
+              const disabled = treasureUsed.includes(icon);
+              const active = treasurePointerDrag?.from === "palette" && treasurePointerDrag.icon === icon;
+              return React.createElement(
+                "div",
+                {
+                  draggable: false,
+                  key: icon,
+                  onClick: () => tapTreasureIcon({ icon, from: "palette" }),
+                  onDragStart: (event: any) => event.preventDefault(),
+                  onPointerDown: (event: any) => !disabled && startTreasurePointerDrag(event, { icon, from: "palette" }),
+                  style: webTokenStyle(disabled, active)
+                },
+                icon
+              );
+            })
+          ),
+          React.createElement("div", { style: { color: "#8A6B20", fontSize: 12, fontWeight: 900, lineHeight: "17px", marginBottom: 12, textAlign: "center" } }, opponent === "friend" ? "Tap each treasure once. It will move into the next open box below." : "Tap treasures from the top row, or drag them into the boxes below."),
+          treasureAttemptRows.length > 0 && React.createElement(
+            "div",
+            { style: { display: "grid", gap: 8, marginBottom: 12 } },
+            treasureAttemptRows.map((row, rowIndex) => React.createElement(
+              "div",
+              { key: `treasure-attempt-${rowIndex}` },
+              React.createElement("div", { style: { color: "#706982", fontSize: 11, fontWeight: 900, marginBottom: 5, textTransform: "uppercase" } }, `Try ${rowIndex + 1}`),
+              React.createElement(
+                "div",
+                { style: { display: "flex", gap: 8, justifyContent: "center" } },
+                row.map((icon, index) => React.createElement(
+                  "div",
+                  { key: `treasure-attempt-${rowIndex}-${index}`, style: webPastSlotStyle(icon === treasureSecret[index]) },
+                  icon || "Empty"
+                ))
+              )
+            ))
+          ),
+          React.createElement("div", { style: { color: "#706982", fontSize: 12, fontWeight: 900, marginBottom: 8, textTransform: "uppercase" } }, treasureAttemptRows.length > 0 ? `Current try ${treasureAttemptRows.length + 1}` : opponent === "friend" ? "Step 2: Your five chosen boxes" : "Your order"),
+          React.createElement(
+            "div",
+            { style: { display: "flex", gap: 8, justifyContent: "center", marginBottom: 14 } },
             treasureGuess.map((icon, index) => {
               const active = treasureDropSlot === index;
               return React.createElement(
@@ -2268,47 +2493,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
               );
             })
           ),
-          React.createElement("div", { style: { color: "#8A6B20", fontSize: 12, fontWeight: 900, lineHeight: "17px", marginBottom: 12, textAlign: "center" } }, opponent === "friend" ? "Tap a treasure below and it will fill the next empty box above." : "Tap treasures into the boxes above, or drag them into place."),
-          React.createElement("div", { style: { color: "#706982", fontSize: 12, fontWeight: 900, marginBottom: 8, textTransform: "uppercase" } }, opponent === "friend" ? "Step 2: Tap treasures to fill the boxes" : "Available treasures"),
-          React.createElement(
-            "div",
-            { style: { display: "flex", gap: 8, justifyContent: "center", marginBottom: 14 } },
-            treasureIcons.map((icon) => {
-              const disabled = treasureUsed.includes(icon);
-              const active = treasurePointerDrag?.from === "palette" && treasurePointerDrag.icon === icon;
-              return React.createElement(
-                "div",
-                {
-                  draggable: false,
-                  key: icon,
-                  onClick: () => tapTreasureIcon({ icon, from: "palette" }),
-                  onDragStart: (event: any) => event.preventDefault(),
-                  onPointerDown: (event: any) => !disabled && startTreasurePointerDrag(event, { icon, from: "palette" }),
-                  style: webTokenStyle(disabled, active)
-                },
-                icon
-              );
-            })
-          ),
-          React.createElement("div", { style: { color: "#8A6B20", fontSize: 12, fontWeight: 900, lineHeight: "17px", marginBottom: 12, textAlign: "center" } }, opponent === "friend" ? "Tap five treasures below. Your chosen order appears in the boxes, then the submit button will turn purple." : "Drag treasures into the boxes below, or tap a treasure to place it in the next open box."),
-          treasureAttemptRows.length > 0 && React.createElement(
-            "div",
-            { style: { display: "grid", gap: 8, marginBottom: 12 } },
-            treasureAttemptRows.map((row, rowIndex) => React.createElement(
-              "div",
-              { key: `treasure-attempt-${rowIndex}` },
-              React.createElement("div", { style: { color: "#706982", fontSize: 11, fontWeight: 900, marginBottom: 5, textTransform: "uppercase" } }, `Try ${rowIndex + 1}`),
-              React.createElement(
-                "div",
-                { style: { display: "flex", gap: 8, justifyContent: "center" } },
-                row.map((icon, index) => React.createElement(
-                  "div",
-                  { key: `treasure-attempt-${rowIndex}-${index}`, style: webPastSlotStyle(icon === treasureSecret[index]) },
-                  icon || "Empty"
-                ))
-              )
-            ))
-          ),
+          React.createElement("div", { style: { color: "#8A6B20", fontSize: 12, fontWeight: 900, lineHeight: "17px", marginBottom: 12, textAlign: "center" } }, treasureAttemptRows.length > 0 ? "Use the row below your last try to enter the next order." : "Your chosen order appears here. Tap a filled box to remove that treasure."),
           opponent === "friend" && React.createElement(
             "label",
             { style: { color: "#6544B8", display: "block", fontSize: 13, fontWeight: 900, marginBottom: 7 } },
@@ -2376,47 +2561,26 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
       }
       return (
         <View>
-          <Text style={styles.selectionCount}>{opponent === "friend" ? "Step 1: Your five empty boxes" : "Your order"}</Text>
-          <View style={styles.treasureSlotRow}>
-            {treasureGuess.map((icon, index) => (
-              <Pressable
-                key={`treasure-top-slot-${index}`}
-                onPress={() => icon && tapTreasureIcon({ icon, from: "slot", index })}
-                style={[
-                  styles.treasureSlot,
-                  !icon && styles.treasureSlotEmpty,
-                  treasureLocked[index] && styles.treasureSlotCorrect
-                ]}
-              >
-                <Text style={[styles.treasureTokenText, !icon && styles.treasureEmptySlotText]}>{icon || "Empty"}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={styles.treasurePlacementHint}>
-            {opponent === "friend"
-              ? "Tap a treasure below and it will fill the next empty box above."
-              : "Tap treasures into the boxes above, or drag them into place."}
-          </Text>
-          <Text style={styles.selectionCount}>{opponent === "friend" ? "Step 2: Tap treasures to fill the boxes" : "Available treasures"}</Text>
+          <Text style={styles.selectionCount}>{opponent === "friend" ? "Step 1: Tap treasures from the top row" : "Available treasures"}</Text>
           <View style={styles.treasureTokenGrid}>
             {treasureIcons.map((icon) => {
               const disabled = treasureUsed.includes(icon);
               return (
-                <Pressable
-                  disabled={disabled}
-                  key={icon}
-                  onPress={() => tapTreasureIcon({ icon, from: "palette" })}
-                  style={[styles.treasureToken, disabled && styles.treasureTokenDisabled]}
-                >
-                  <Text style={styles.treasureTokenText}>{icon}</Text>
-                </Pressable>
+              <Pressable
+                disabled={disabled}
+                key={icon}
+                onPress={() => tapTreasureIcon({ icon, from: "palette" })}
+                style={[styles.treasureToken, disabled && styles.treasureTokenDisabled]}
+              >
+                <Text style={styles.treasureTokenText}>{icon}</Text>
+              </Pressable>
               );
             })}
           </View>
           <Text style={styles.treasurePlacementHint}>
             {opponent === "friend"
-              ? "Tap five treasures below. Your chosen order appears in the boxes, then the submit button will turn purple."
-              : "Drag treasures into the boxes below, or tap a treasure to place it in the next open box."}
+              ? "Tap each treasure once. It will move into the next open box below."
+              : "Tap treasures from the top row, or drag them into the boxes below."}
           </Text>
           {treasureAttemptRows.length > 0 && (
             <View style={styles.treasureAttemptList}>
@@ -2443,6 +2607,29 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
               ))}
             </View>
           )}
+          <Text style={styles.selectionCount}>
+            {treasureAttemptRows.length > 0 ? `Current try ${treasureAttemptRows.length + 1}` : opponent === "friend" ? "Step 2: Your five chosen boxes" : "Your order"}
+          </Text>
+          <View style={styles.treasureSlotRow}>
+            {treasureGuess.map((icon, index) => (
+                <Pressable
+                  key={`treasure-top-slot-${index}`}
+                  onPress={() => icon && tapTreasureIcon({ icon, from: "slot", index })}
+                  style={[
+                    styles.treasureSlot,
+                    !icon && styles.treasureSlotEmpty,
+                    treasureLocked[index] && styles.treasureSlotCorrect
+                  ]}
+                >
+                  <Text style={[styles.treasureTokenText, !icon && styles.treasureEmptySlotText]}>{icon || "Empty"}</Text>
+                </Pressable>
+            ))}
+          </View>
+          <Text style={styles.treasurePlacementHint}>
+            {treasureAttemptRows.length > 0
+              ? "Use the row below your last try to enter the next order."
+              : "Your chosen order appears here. Tap a filled box to remove that treasure."}
+          </Text>
           {opponent === "friend" && (
             <View style={styles.treasureMessageCard}>
               <Text style={styles.treasureMessageLabel}>Message to your friend</Text>
@@ -2491,17 +2678,17 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
           <View style={styles.treasureModeGrid}>
             <Pressable
               onPress={() => chooseTreasureMode("friend")}
-              style={styles.treasureModeCard}
+              style={[styles.treasureModeCard, styles.treasureModeFriendCard]}
             >
-              <Ionicons color="#7555C7" name="people-outline" size={28} />
-              <Text style={styles.treasureModeTitle}>Play a friend</Text>
-              <Text style={styles.treasureModeText}>Add their email, arrange your five treasure tiles, then send the challenge.</Text>
+              <Ionicons color="#f3c64d" name="people-outline" size={28} />
+              <Text style={[styles.treasureModeTitle, styles.treasureModeFriendTitle]}>Play a friend</Text>
+              <Text style={[styles.treasureModeText, styles.treasureModeFriendText]}>Add their email, arrange your five treasure tiles, then send the challenge.</Text>
             </Pressable>
             <Pressable
               onPress={() => chooseTreasureMode("computer")}
-              style={styles.treasureModeCard}
+              style={[styles.treasureModeCard, styles.treasureModeComputerCard]}
             >
-              <Ionicons color="#008A94" name="desktop-outline" size={28} />
+              <Ionicons color="#b87908" name="desktop-outline" size={28} />
               <Text style={styles.treasureModeTitle}>Play computer</Text>
               <Text style={styles.treasureModeText}>The computer hides the treasure order and you try to unlock it.</Text>
             </Pressable>
@@ -2511,17 +2698,17 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
           <View style={styles.opponentToggle}>
             <Pressable
               onPress={() => chooseTreasureMode("friend")}
-              style={[styles.opponentOption, opponent === "friend" && styles.opponentOptionSelected]}
+              style={[styles.opponentOption, styles.opponentOptionFriend]}
             >
-              <Ionicons color={opponent === "friend" ? "#FFFFFF" : "#6544B8"} name="people-outline" size={19} />
-              <Text style={[styles.opponentOptionText, opponent === "friend" && styles.opponentOptionTextSelected]}>Play with friend</Text>
+              <Ionicons color="#f3c64d" name="people-outline" size={19} />
+              <Text style={[styles.opponentOptionText, styles.opponentOptionFriendText]}>Play with friend</Text>
             </Pressable>
             <Pressable
               onPress={() => chooseTreasureMode("computer")}
-              style={[styles.opponentOption, opponent === "computer" && styles.opponentOptionSelected]}
+              style={styles.opponentOption}
             >
-              <Ionicons color={opponent === "computer" ? "#FFFFFF" : "#6544B8"} name="desktop-outline" size={19} />
-              <Text style={[styles.opponentOptionText, opponent === "computer" && styles.opponentOptionTextSelected]}>Play computer</Text>
+              <Ionicons color="#b87908" name="desktop-outline" size={19} />
+              <Text style={styles.opponentOptionText}>Play computer</Text>
             </Pressable>
           </View>
         )}
@@ -2688,6 +2875,39 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
                 <Text style={styles.treasureNoteText}>{treasureInspirationMessage}</Text>
               </View>
             )}
+            {invitedTreasureFinished && (
+              <View style={styles.treasureResponseCard}>
+                <View style={styles.treasureFriendMessageHeader}>
+                  <Ionicons color="#008A94" name={treasureResponseSent ? "checkmark-circle-outline" : "mail-outline"} size={22} />
+                  <Text style={styles.treasureSiteInviteTitle}>
+                    {treasureResponseSent ? "Response sent" : `Reply to ${invitedTreasureSender}`}
+                  </Text>
+                </View>
+                <Text style={styles.treasureSiteInviteText}>
+                  Send a short note back so your friend knows you completed their Treasure Chest challenge.
+                </Text>
+                <TextInput
+                  accessibilityLabel="Response to treasure challenge sender"
+                  editable={!treasureResponseSent}
+                  multiline
+                  onChangeText={setTreasureResponseMessage}
+                  placeholder="Write a quick response..."
+                  placeholderTextColor="#9A93AA"
+                  style={styles.treasureMessageInput}
+                  textAlignVertical="top"
+                  value={treasureResponseMessage}
+                />
+                <Pressable
+                  disabled={treasureResponseSent || !invitedTreasureSenderEmail}
+                  onPress={sendTreasureResponse}
+                  style={[styles.primaryButton, (treasureResponseSent || !invitedTreasureSenderEmail) && styles.disabledButton]}
+                >
+                  <Ionicons color="#FFFFFF" name={treasureResponseSent ? "checkmark-circle-outline" : "send-outline"} size={18} />
+                  <Text style={styles.primaryButtonText}>{treasureResponseSent ? "Sent to friend" : "Send my response"}</Text>
+                </Pressable>
+                {treasureResponseStatus ? <Text style={styles.inviteStatus}>{treasureResponseStatus}</Text> : null}
+              </View>
+            )}
             {treasureWon && invitedTreasureSender && (
               <View style={styles.treasureSiteInviteCard}>
                 <View style={styles.treasureFriendMessageHeader}>
@@ -2697,7 +2917,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
                 <Text style={styles.treasureSiteInviteText}>
                   Intuisity is free to play and includes daily intuition training, remote viewing practice, astrology insights, positivity prompts, and progress results to help you build awareness and inner knowing.
                 </Text>
-                <Pressable onPress={onLogout} style={styles.treasureSiteInviteButton}>
+                <Pressable onPress={onCreateAccount} style={styles.treasureSiteInviteButton}>
                   <Ionicons color="#FFFFFF" name="person-add-outline" size={18} />
                   <Text style={styles.primaryButtonText}>Create free account</Text>
                 </Pressable>
@@ -2868,17 +3088,17 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
         <View style={styles.opponentToggle}>
           <Pressable
             onPress={() => setOpponent("friend")}
-            style={[styles.opponentOption, opponent === "friend" && styles.opponentOptionSelected]}
+            style={[styles.opponentOption, styles.opponentOptionFriend]}
           >
-            <Ionicons color={opponent === "friend" ? "#FFFFFF" : "#6544B8"} name="people-outline" size={19} />
-            <Text style={[styles.opponentOptionText, opponent === "friend" && styles.opponentOptionTextSelected]}>Play with friend</Text>
+            <Ionicons color="#f3c64d" name="people-outline" size={19} />
+            <Text style={[styles.opponentOptionText, styles.opponentOptionFriendText]}>Play with friend</Text>
           </Pressable>
           <Pressable
             onPress={() => setOpponent("computer")}
-            style={[styles.opponentOption, opponent === "computer" && styles.opponentOptionSelected]}
+            style={styles.opponentOption}
           >
-            <Ionicons color={opponent === "computer" ? "#FFFFFF" : "#6544B8"} name="desktop-outline" size={19} />
-            <Text style={[styles.opponentOptionText, opponent === "computer" && styles.opponentOptionTextSelected]}>Play with computer</Text>
+            <Ionicons color="#b87908" name="desktop-outline" size={19} />
+            <Text style={styles.opponentOptionText}>Play with computer</Text>
           </Pressable>
         </View>
         {opponent === "friend" && (
@@ -3048,6 +3268,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
     const roundTarget = remoteTargets[remoteRound];
     const choices = roundTarget.choices || [roundTarget.target, roundTarget.decoy];
     const selectedCorrectly = remoteChoice === roundTarget.target.id;
+    const remoteResultReady = remotePhase === "result" && Boolean(remoteChoice);
     return (
       <View>
         <ChallengePageHeader
@@ -3073,7 +3294,9 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
                 Imagine which image is showing on the next page. Draw your ideas before you see the choices. It is great to start with basic shapes, lines, colors, textures, or the first feeling that comes to mind.
               </Text>
             </View>
-            <DrawingPad points={drawingPoints} setPoints={setDrawingPoints} />
+            <View style={styles.remoteDrawingPadWrap}>
+              <DrawingPad points={drawingPoints} setPoints={setDrawingPoints} />
+            </View>
             <View style={styles.drawingActions}>
               <Pressable onPress={() => setDrawingPoints([])} style={[styles.secondaryButton, styles.drawingActionButton]}>
                 <Ionicons color="#FFFFFF" name="trash-outline" size={17} />
@@ -3092,15 +3315,15 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
               pictures={choices}
               selectedId={remoteChoice}
               correctId={roundTarget.target.id}
-              showResult={remotePhase === "result"}
+              showResult={remoteResultReady}
               onSelect={(id) => {
-                if (remotePhase === "result") return;
+                if (remoteResultReady) return;
                 setRemoteChoice(id);
                 if (id === roundTarget.target.id) setRemoteCorrect((current) => current + 1);
                 setRemotePhase("result");
               }}
             />
-            {remotePhase === "result" && (
+            {remoteResultReady && (
               <View style={[styles.message, styles.remoteResultCompact, selectedCorrectly && styles.remoteSuccess]}>
                 <Text style={[styles.messageTitle, styles.remoteResultTitleCompact]}>
                   {selectedCorrectly ? "Great job!" : "Keep following your impressions"}
@@ -3112,7 +3335,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
                 </Text>
               </View>
             )}
-            {remotePhase === "result" && (
+            {remoteResultReady && (
               <Pressable
                 onPress={() => {
                   if (remoteRound === 2) {
@@ -3123,10 +3346,10 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
                     }));
                     setPage("remote-viewing-results");
                   } else {
-                    setRemoteRound((current) => current + 1);
                     setRemoteChoice(null);
                     setDrawingPoints([]);
                     setRemotePhase("sense");
+                    setRemoteRound((current) => current + 1);
                   }
                 }}
                 style={[styles.primaryButton, styles.remoteNextButtonCompact]}
@@ -3272,7 +3495,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
           subtitle="See your personal score and how today's Intuisity community performed."
         />
         <View style={styles.finalScoreHero}>
-          <Ionicons color="#FFFFFF" name="trophy-outline" size={38} />
+          <Ionicons color="#f3c64d" name="trophy-outline" size={32} />
           <Text style={styles.finalScoreLabel}>Overall daily points</Text>
           <Text style={styles.finalScoreNumber}>{totalPoints} of {maximumPoints}</Text>
           <Text style={styles.finalScorePercent}>
@@ -3287,19 +3510,20 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
               ? `Daily practice credit earned · ${completedChallengeCount} of 6 challenges completed`
               : "Complete any one challenge to earn today's practice credit"}
           </Text>
+          <Text style={styles.fullResultsCue}>See full results below</Text>
         </View>
 
         <Text style={styles.resultsSectionTitle}>Your apparent strengths</Text>
         <View style={styles.synopsisCard}>
           <View style={styles.synopsisHeading}>
-            <Ionicons color="#008A94" name="sunny-outline" size={23} />
+            <Ionicons color="#d79b16" name="sunny-outline" size={23} />
             <Text style={styles.synopsisTitle}>Today's synopsis</Text>
           </View>
           <Text style={styles.synopsisText}>{todayStrengths}</Text>
         </View>
         <View style={[styles.synopsisCard, styles.synopsisCardLongTerm]}>
           <View style={styles.synopsisHeading}>
-            <Ionicons color="#7555C7" name="analytics-outline" size={23} />
+            <Ionicons color="#d79b16" name="analytics-outline" size={23} />
             <Text style={styles.synopsisTitle}>Your pattern over time</Text>
           </View>
           <Text style={styles.synopsisText}>{longTermStrengths}</Text>
@@ -3332,7 +3556,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
 
         <Text style={styles.resultsSectionTitle}>Your strengths over time</Text>
         <View style={styles.strengthHero}>
-          <Ionicons color="#FFFFFF" name="sparkles-outline" size={28} />
+          <Ionicons color="#f3c64d" name="sparkles-outline" size={28} />
           <View style={styles.strengthHeroCopy}>
             <Text style={styles.strengthHeroLabel}>Current strongest area</Text>
             <Text style={styles.strengthHeroTitle}>{strongestArea.label}</Text>
@@ -3501,16 +3725,51 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
     <View>
       <ChallengePageHeader
         eyebrow="Today's practice"
+        homeLayout
         title="Choose a challenge"
         subtitle="Explore awareness, synchronicity, inner knowing, astrological insights, remote viewing, and manifestation through daily intuition practice."
       />
       <View style={styles.hero}>
         <Image
           accessibilityLabel="Intuisity banner with a sunlit forest stream"
-          resizeMode="cover"
-          source={require("../../assets/intuisity-front-banner-v5.png")}
+          resizeMode="stretch"
+          source={require("../../assets/intuisity-home-banner-clean.png")}
           style={styles.heroImage}
         />
+        <View style={styles.forestHeroOverlay} />
+        <Image
+          accessibilityLabel="Intuisity gold logo"
+          resizeMode="contain"
+          source={require("../../assets/intuisity-logo-gold-transparent.png")}
+          style={styles.forestHeroLogo}
+        />
+        <Text style={styles.forestHeroTagline}>Train your intuition. Transform your life.</Text>
+        <View style={styles.forestHeroSparkle}>
+          <Ionicons color={intuTheme.goldLight} name="sparkles-outline" size={24} />
+        </View>
+        <View pointerEvents="none" style={styles.bannerIconCover} />
+        <View style={styles.forestFeatureLinks}>
+          {homeChallenges.map((challenge, index) => (
+            <Pressable
+              accessibilityLabel={`Open ${challenge.title} from banner`}
+              key={`feature-${challenge.id}`}
+              onPress={() => {
+                if (challenge.id === "daily-intuition") {
+                  resetKnowing();
+                } else {
+                  navigateToPage(challenge.id);
+                }
+              }}
+              style={({ pressed }) => [
+                styles.forestFeatureLink,
+                pressed && styles.bannerIconLinkPressed
+              ]}
+            >
+              <Ionicons color={intuTheme.gold} name={challengeIcons[challenge.id]} size={24} />
+              <Text style={styles.forestFeatureText}>{challenge.title.replace(/^Challenge \d+: /, "")}</Text>
+            </Pressable>
+          ))}
+        </View>
         <View style={styles.bannerIconLinks}>
           {homeChallenges.map((challenge, index) => (
             <Pressable
@@ -3543,12 +3802,12 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
                   navigateToPage(challenge.id);
                 }
               }}
-              style={[styles.moduleIconButton, styles.moduleIconButtonPurple]}
+              style={styles.moduleIconButton}
             >
               <Ionicons
-                color="#FFFFFF"
+                color="#d79b16"
                 name={challengeIcons[challenge.id]}
-                size={32}
+                size={38}
               />
             </Pressable>
             <View style={styles.moduleGridCopy}>
@@ -3570,7 +3829,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onLog
           <Text style={styles.homeResultsTitle}>View My Results</Text>
           <Text style={styles.homeResultsText}>See today's scores and your ongoing strengths</Text>
         </View>
-        <Ionicons color="#6544B8" name="arrow-forward-circle-outline" size={26} />
+        <Ionicons color="#f3c64d" name="arrow-forward-circle-outline" size={26} />
       </Pressable>
       <Pressable
         accessibilityLabel="Log out"
@@ -4018,6 +4277,52 @@ function shuffle<T>(items: T[]) {
   return shuffled;
 }
 
+const personChoiceAcronymExpansions: Record<string, string> = {
+  AIDS: "public health research",
+  COBOL: "early programming language work",
+  DNA: "genetic structure research",
+  FORTRAN: "early computer programming",
+  GPS: "satellite navigation models",
+  HIV: "virus research",
+  ISS: "International Space Station",
+  LGBTQ: "gender and identity rights",
+  MASP: "modern art museum",
+  MFDP: "civil rights political organizing",
+  NAACP: "civil rights legal work",
+  NASA: "space agency",
+  SNCC: "student civil rights organizing",
+  SOE: "wartime intelligence service",
+  STAR: "trans rights support organization",
+  WWII: "World War II"
+};
+
+function formatPersonAttributeChoice(choice: string) {
+  let formatted = choice
+    .replace(/\bU\.S\./g, "United States")
+    .replace(/\bU\.K\./g, "United Kingdom");
+
+  Object.entries(personChoiceAcronymExpansions).forEach(([acronym, expansion]) => {
+    formatted = formatted.replace(new RegExp(`\\b${acronym}\\b`, "g"), expansion);
+  });
+
+  return formatted
+    .replace(/\b[A-Z]{2,}\b/g, "specialized historical work")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function sanitizePersonAttributeChoices(choices: string[]) {
+  return choices.map(formatPersonAttributeChoice);
+}
+
+function getPersonAttributeChoices(profile: PersonProfile) {
+  return shuffle(sanitizePersonAttributeChoices(profile.attributes));
+}
+
+function getPersonCorrectAttributes(profile: PersonProfile) {
+  return sanitizePersonAttributeChoices(profile.correctAttributes);
+}
+
 function getTodaysLessonChoices() {
   const daysSinceStart = getDaysSinceLearningStart(getDateKey());
   const firstIndex = (daysSinceStart * 2) % dailyIntuitionLessons.length;
@@ -4449,13 +4754,15 @@ function getAppOrigin() {
   return browserWindow?.location?.origin || "https://intuisity.com";
 }
 
-function getTreasureInviteUrl(icons: Array<string | null>, note: string, senderName: string) {
+function getTreasureInviteUrl(icons: Array<string | null>, note: string, senderName: string, senderEmail = "") {
   const params = new URLSearchParams();
   params.set("treasureInvite", "1");
+  params.set("challengeId", makeChallengeId());
   params.set("tiles", icons.filter(Boolean).join("|"));
   if (note.trim()) params.set("note", note.trim());
   if (senderName.trim()) params.set("from", senderName.trim());
-  return `${getAppOrigin()}/?${params.toString()}`;
+  if (senderEmail.trim()) params.set("sender", senderEmail.trim().toLowerCase());
+  return `${getAppOrigin()}/treasure-chest.html?${params.toString()}`;
 }
 
 function loadTreasureInviteFromUrl() {
@@ -4472,10 +4779,29 @@ function loadTreasureInviteFromUrl() {
   if (icons.length !== 5) return null;
 
   return {
+    challengeId: String(params.get("challengeId") || "").trim(),
     icons,
     note: String(params.get("note") || "").trim(),
+    senderEmail: String(params.get("sender") || "").trim().toLowerCase(),
     senderName: String(params.get("from") || "Your friend").trim() || "Your friend"
   };
+}
+
+function makeChallengeId() {
+  const randomValue =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `treasure-${String(randomValue).replace(/[^a-zA-Z0-9-]/g, "").slice(0, 48)}`;
+}
+
+function getIntuisityPageUrl(page: string) {
+  const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+  const pathname = browserWindow?.location?.pathname || "/";
+  const params = new URLSearchParams();
+  if (page !== "hub") params.set("screen", page);
+  const query = params.toString();
+  return `${pathname}${query ? `?${query}` : ""}`;
 }
 
 function getKnowingResultMessage(score: number) {
@@ -4538,11 +4864,34 @@ function getPreviousModulePage(page: string) {
   return previousPages[page];
 }
 
+function loadInitialIntuisityPage() {
+  const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+  const params = new URLSearchParams(browserWindow?.location?.search || "");
+  const screen = params.get("screen") || "";
+  return getKnownIntuisityPages().has(screen) ? screen : "hub";
+}
+
+function getKnownIntuisityPages() {
+  return new Set([
+    "hub",
+    "social-prediction",
+    "knowing",
+    "knowing-results",
+    "remote-viewing-arena",
+    "third-eye-activation",
+    "psychic-potential-score",
+    "remote-viewing-test",
+    "remote-viewing-results",
+    "daily-results"
+  ]);
+}
+
 function PageHeader({
   eyebrow,
   title,
   subtitle,
   compact = false,
+  homeLayout = false,
   onHome,
   onBack,
   onNext
@@ -4551,49 +4900,99 @@ function PageHeader({
   title: string;
   subtitle: string;
   compact?: boolean;
+  homeLayout?: boolean;
   onHome?: () => void;
   onBack?: () => void;
   onNext?: () => void;
 }) {
   const theme = getHeaderTheme(eyebrow, title);
+  const lastHeaderActionRef = useRef(0);
+  const runHeaderAction = (action?: () => void) => {
+    if (!action) return;
+    const now = Date.now();
+    if (now - lastHeaderActionRef.current < 350) return;
+    lastHeaderActionRef.current = now;
+    action();
+  };
   return (
     <View style={[styles.header, compact && styles.headerCompact, { backgroundColor: theme.background, borderColor: theme.border }]}>
-      <View style={[styles.headerShade, compact && styles.headerShadeCompact]}>
-        {(onHome || onBack || onNext) && (
-          <View style={styles.headerNavigation}>
-            {onHome ? (
-              <Pressable accessibilityLabel="Return home" onPress={onHome} style={styles.headerNavButton}>
-                <Ionicons color="#30264C" name="home-outline" size={20} />
-                <Text style={styles.headerHomeText}>Home</Text>
-              </Pressable>
-            ) : (
-              <View />
-            )}
-            <View style={styles.headerDirectionButtons}>
-              {onBack && (
-                <Pressable accessibilityLabel="Go back" onPress={onBack} style={styles.headerDirectionButton}>
-                  <Ionicons color="#30264C" name="arrow-back-outline" size={17} />
-                  <Text style={styles.headerNextText}>Back</Text>
-                </Pressable>
-              )}
-              {onNext && (
-                <Pressable accessibilityLabel="Go to next module" onPress={onNext} style={styles.headerDirectionButton}>
-                  <Text style={styles.headerNextText}>Next</Text>
-                  <Ionicons color="#30264C" name="arrow-forward-outline" size={17} />
-                </Pressable>
-              )}
+      <ImageBackground
+        imageStyle={styles.headerBannerImage}
+        pointerEvents="none"
+        resizeMode="cover"
+        source={purpleGoldHeaderBanner}
+        style={[styles.headerShade, compact && styles.headerShadeCompact, homeLayout && styles.homeHeaderShade]}
+      >
+        <View pointerEvents="none" style={styles.headerContent}>
+          <View style={styles.headerTopRow}>
+            <View style={[styles.headerIcon, { backgroundColor: theme.accent }]}>
+              <Ionicons color="#FFFFFF" name={theme.icon} size={24} />
             </View>
+            <Text style={styles.headerEyebrow}>{eyebrow}</Text>
           </View>
-        )}
-        <View style={styles.headerTopRow}>
-          <View style={[styles.headerIcon, { backgroundColor: theme.accent }]}>
-            <Ionicons color="#FFFFFF" name={theme.icon} size={24} />
-          </View>
-          <Text style={styles.headerEyebrow}>{eyebrow}</Text>
+          <Text style={[styles.headerTitle, compact && styles.headerTitleCompact]}>{title}</Text>
+          <Text style={[styles.headerSubtitle, compact && styles.headerSubtitleCompact]}>{subtitle}</Text>
         </View>
-        <Text style={[styles.headerTitle, compact && styles.headerTitleCompact]}>{title}</Text>
-        <Text style={[styles.headerSubtitle, compact && styles.headerSubtitleCompact]}>{subtitle}</Text>
-      </View>
+      </ImageBackground>
+      {(onHome || onBack || onNext) && (
+        <View style={styles.headerNavigation}>
+          {onHome ? (
+            <Pressable
+              accessibilityLabel="Return home"
+              hitSlop={8}
+              onClick={() => runHeaderAction(onHome)}
+              onMouseDown={() => runHeaderAction(onHome)}
+              onPress={() => runHeaderAction(onHome)}
+              onPressIn={() => runHeaderAction(onHome)}
+              onTouchEnd={() => runHeaderAction(onHome)}
+              style={styles.headerNavButton}
+            >
+              <View pointerEvents="none" style={styles.headerButtonInner}>
+                <Ionicons color="#f3c64d" name="home-outline" size={20} />
+                <Text style={styles.headerHomeText}>Home</Text>
+              </View>
+            </Pressable>
+          ) : (
+            <View />
+          )}
+          <View style={styles.headerDirectionButtons}>
+            {onBack && (
+              <Pressable
+                accessibilityLabel="Go back"
+                hitSlop={8}
+                onClick={() => runHeaderAction(onBack)}
+                onMouseDown={() => runHeaderAction(onBack)}
+                onPress={() => runHeaderAction(onBack)}
+                onPressIn={() => runHeaderAction(onBack)}
+                onTouchEnd={() => runHeaderAction(onBack)}
+                style={styles.headerDirectionButton}
+              >
+                <View pointerEvents="none" style={styles.headerButtonInner}>
+                  <Ionicons color="#f3c64d" name="arrow-back-outline" size={17} />
+                  <Text style={styles.headerNextText}>Back</Text>
+                </View>
+              </Pressable>
+            )}
+            {onNext && (
+              <Pressable
+                accessibilityLabel="Go to next module"
+                hitSlop={8}
+                onClick={() => runHeaderAction(onNext)}
+                onMouseDown={() => runHeaderAction(onNext)}
+                onPress={() => runHeaderAction(onNext)}
+                onPressIn={() => runHeaderAction(onNext)}
+                onTouchEnd={() => runHeaderAction(onNext)}
+                style={styles.headerDirectionButton}
+              >
+                <View pointerEvents="none" style={styles.headerButtonInner}>
+                  <Text style={styles.headerNextText}>Next</Text>
+                  <Ionicons color="#f3c64d" name="arrow-forward-outline" size={17} />
+                </View>
+              </Pressable>
+            )}
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -4601,27 +5000,27 @@ function PageHeader({
 function getHeaderTheme(eyebrow: string, title: string) {
   const value = `${eyebrow} ${title}`.toLowerCase();
   if (value.includes("knowing") || value.includes("five-try") || value.includes("try ")) {
-    return { accent: "#D74988", background: "#6544B8", border: "#63E3E0", icon: "color-palette-outline" as const };
+    return { accent: intuTheme.gold, background: intuTheme.purple700, border: intuTheme.goldLight, icon: "color-palette-outline" as const };
   }
   if (value.includes("learning") || value.includes("intuition")) {
-    return { accent: "#63E3E0", background: "#008A94", border: "#DCCFF5", icon: "bulb-outline" as const };
+    return { accent: intuTheme.gold, background: intuTheme.purple700, border: intuTheme.goldLight, icon: "bulb-outline" as const };
   }
   if (value.includes("person") || value.includes("sense about")) {
-    return { accent: "#2E9B6F", background: "#4F3CA2", border: "#BFE8E8", icon: "eye-outline" as const };
+    return { accent: intuTheme.gold, background: intuTheme.purple800, border: intuTheme.goldLight, icon: "eye-outline" as const };
   }
   if (value.includes("astrology") || value.includes("guidance") || value.includes("invite")) {
-    return { accent: "#63E3E0", background: "#7555C7", border: "#BFE8E8", icon: "moon-outline" as const };
+    return { accent: intuTheme.gold, background: intuTheme.purple700, border: intuTheme.goldLight, icon: "moon-outline" as const };
   }
   if (value.includes("social") || value.includes("friend") || value.includes("computer") || value.includes("power word")) {
-    return { accent: "#E07A36", background: "#008A94", border: "#DCCFF5", icon: "people-outline" as const };
+    return { accent: intuTheme.gold, background: intuTheme.purple700, border: intuTheme.goldLight, icon: "people-outline" as const };
   }
   if (value.includes("remote viewing")) {
-    return { accent: "#287DB8", background: "#4F3CA2", border: "#63E3E0", icon: "radio-outline" as const };
+    return { accent: intuTheme.gold, background: intuTheme.purple800, border: intuTheme.goldLight, icon: "radio-outline" as const };
   }
   if (value.includes("results") || value.includes("complete")) {
-    return { accent: "#63E3E0", background: "#6544B8", border: "#DCCFF5", icon: "trophy-outline" as const };
+    return { accent: intuTheme.gold, background: intuTheme.purple700, border: intuTheme.goldLight, icon: "trophy-outline" as const };
   }
-  return { accent: "#63E3E0", background: "#6544B8", border: "#DCCFF5", icon: "sparkles-outline" as const };
+  return { accent: intuTheme.gold, background: intuTheme.purple700, border: intuTheme.goldLight, icon: "sparkles-outline" as const };
 }
 
 function VirtualRoom({
@@ -4931,29 +5330,41 @@ function drawLine(canvas: any, from: { x: number; y: number }, to: { x: number; 
 }
 
 const styles = StyleSheet.create({
-  header: { borderRadius: 8, borderWidth: 2, marginBottom: 12, minHeight: 150, overflow: "hidden" },
-  headerCompact: { marginBottom: 8, minHeight: 116 },
-  headerShade: { backgroundColor: "rgba(19, 15, 35, 0.08)", flex: 1, justifyContent: "flex-end", minHeight: 150, padding: 14, paddingTop: 58 },
+  header: { borderRadius: 22, borderWidth: 1, elevation: 8, marginBottom: 10, minHeight: 154, overflow: "hidden", shadowColor: "#5126ad", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.22, shadowRadius: 18 },
+  headerCompact: { marginBottom: 10, minHeight: 118 },
+  headerShade: { flex: 1, justifyContent: "flex-end", minHeight: 154, padding: 18, paddingTop: 58, position: "relative" },
   headerShadeCompact: { minHeight: 116, padding: 10, paddingTop: 50 },
-  headerNavigation: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", left: 12, position: "absolute", right: 12, top: 12 },
-  headerNavButton: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.94)", borderRadius: 8, flexDirection: "row", gap: 5, height: 42, justifyContent: "center", minWidth: 82, paddingHorizontal: 10, shadowColor: "#30264C", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.18, shadowRadius: 4 },
-  headerDirectionButtons: { flexDirection: "row", gap: 6 },
-  headerDirectionButton: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.94)", borderRadius: 8, flexDirection: "row", gap: 4, minHeight: 42, paddingHorizontal: 10 },
-  headerHomeText: { color: "#30264C", fontSize: 12, fontWeight: "900" },
-  headerNextText: { color: "#30264C", fontSize: 12, fontWeight: "900" },
+  homeHeaderShade: { justifyContent: "flex-start", minHeight: 138, paddingTop: 18 },
+  headerBannerImage: { opacity: 1 },
+  headerContent: { zIndex: 1 },
+  headerNavigation: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", left: 12, position: "absolute", right: 12, top: 12, zIndex: 50 },
+  headerNavButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, cursor: "pointer" as any, elevation: 18, height: 42, justifyContent: "center", minWidth: 82, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.28, shadowRadius: 9, zIndex: 51 },
+  headerDirectionButtons: { flexDirection: "row", gap: 6, zIndex: 51 },
+  headerDirectionButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, cursor: "pointer" as any, elevation: 18, justifyContent: "center", minHeight: 42, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.28, shadowRadius: 9, zIndex: 52 },
+  headerButtonInner: { alignItems: "center", flexDirection: "row", gap: 4, justifyContent: "center" },
+  headerHomeText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
+  headerNextText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
   headerTopRow: { alignItems: "center", flexDirection: "row", gap: 10 },
-  headerIcon: { alignItems: "center", borderColor: "rgba(255,255,255,0.45)", borderRadius: 8, borderWidth: 1, height: 38, justifyContent: "center", width: 38 },
-  headerEyebrow: { color: "#FFFFFF", flex: 1, fontSize: 11, fontWeight: "900", textShadowColor: "rgba(0,0,0,0.5)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3, textTransform: "uppercase" },
-  headerTitle: { color: "#FFFFFF", fontSize: 22, fontWeight: "900", marginTop: 6, textShadowColor: "rgba(0,0,0,0.55)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+  headerIcon: { alignItems: "center", borderColor: "rgba(255,255,255,0.55)", borderRadius: 14, borderWidth: 1, height: 44, justifyContent: "center", shadowColor: "#f3c64d", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 10, width: 44 },
+  headerEyebrow: { color: "#fff4cf", flex: 1, fontSize: 12, fontWeight: "900", letterSpacing: 0.6, textShadowColor: "rgba(0,0,0,0.35)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3, textTransform: "uppercase" },
+  headerTitle: { color: "#f3c64d", fontFamily: "Georgia", fontSize: 29, fontWeight: "700", marginTop: 8, textShadowColor: "rgba(46,18,111,0.55)", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 },
   headerTitleCompact: { fontSize: 19, marginTop: 3 },
-  headerSubtitle: { color: "#FFFFFF", fontSize: 12, fontWeight: "700", lineHeight: 17, marginTop: 4, maxWidth: 620, textShadowColor: "rgba(0,0,0,0.55)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+  headerSubtitle: { color: "#FFFFFF", fontSize: 13, fontWeight: "700", lineHeight: 20, marginTop: 6, maxWidth: 690, textShadowColor: "rgba(0,0,0,0.35)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
   headerSubtitleCompact: { fontSize: 11, lineHeight: 14, marginTop: 2 },
   eyebrow: { color: "#7555C7", fontSize: 12, fontWeight: "800", textTransform: "uppercase" },
   title: { color: "#201B35", fontSize: 28, fontWeight: "900", marginTop: 6 },
   subtitle: { color: "#706982", fontSize: 15, lineHeight: 22, marginTop: 8 },
-  hero: { aspectRatio: 2.4, backgroundColor: "#F4F0E7", borderRadius: 8, marginBottom: 16, overflow: "hidden", width: "100%" },
+  hero: { aspectRatio: 2.56, backgroundColor: "#F4F0E7", borderRadius: 22, elevation: 8, marginBottom: 18, marginTop: -2, overflow: "hidden", shadowColor: "#211842", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.16, shadowRadius: 18, width: "100%" },
   heroImage: { height: "100%", left: 0, position: "absolute", width: "100%" },
-  bannerIconLinks: { bottom: "2%", flexDirection: "row", height: "27%", left: "1%", position: "absolute", width: "47%" },
+  forestHeroOverlay: { display: "none" },
+  forestHeroLogo: { display: "none" },
+  forestHeroTagline: { display: "none" },
+  forestHeroSparkle: { display: "none" },
+  bannerIconCover: { display: "none" },
+  forestFeatureLinks: { display: "none" },
+  forestFeatureLink: { alignItems: "center", flex: 1, gap: 3, justifyContent: "center", minHeight: 44, paddingHorizontal: 2 },
+  forestFeatureText: { color: "#5b230f", fontSize: 8, fontWeight: "900", lineHeight: 10, textAlign: "center" },
+  bannerIconLinks: { bottom: "2%", flexDirection: "row", height: "22%", left: "3%", position: "absolute", width: "49%", zIndex: 5 },
   bannerIconLink: { borderRadius: 6, flex: 1 },
   bannerIconLinkPurple: {},
   bannerIconLinkTeal: {},
@@ -4969,27 +5380,27 @@ const styles = StyleSheet.create({
   menuTitle: { color: "#211B34", fontSize: 17, fontWeight: "900" },
   menuTagline: { color: "#00AEBB", fontSize: 13, fontWeight: "800", marginTop: 3 },
   moduleGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "space-between" },
-  moduleGridItem: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#CFEFED", borderRadius: 8, borderWidth: 1, minHeight: 164, padding: 14, width: "48%" },
-  moduleIconButton: { alignItems: "center", borderRadius: 8, borderWidth: 1, height: 66, justifyContent: "center", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.28, shadowRadius: 8, width: 66 },
-  moduleIconButtonPurple: { backgroundColor: "#7555C7", borderColor: "#DCCFF5", shadowColor: "#7555C7" },
+  moduleGridItem: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 18, borderWidth: 1, elevation: 3, minHeight: 172, padding: 16, shadowColor: "#b87908", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.1, shadowRadius: 12, width: "48%" },
+  moduleIconButton: { alignItems: "center", backgroundColor: "transparent", borderColor: "transparent", borderRadius: 0, borderWidth: 0, height: 48, justifyContent: "center", marginBottom: 2, width: 58 },
+  moduleIconButtonPurple: { backgroundColor: "#6537c7", borderColor: "#f3c64d", shadowColor: "#6537c7" },
   moduleIconButtonTeal: { backgroundColor: "#008A94", borderColor: "#63E3E0", shadowColor: "#00AEBB" },
   moduleGridCopy: { alignItems: "center", marginTop: 11, width: "100%" },
-  moduleGridTitle: { color: "#30264C", fontSize: 14, fontWeight: "900", lineHeight: 19, textAlign: "center" },
-  moduleGridTagline: { color: "#7555C7", fontSize: 12, fontWeight: "800", lineHeight: 17, marginTop: 4, textAlign: "center" },
-  homeResultsButton: { alignItems: "center", backgroundColor: "#EDFBFB", borderColor: "#00AEBB", borderRadius: 8, borderWidth: 2, flexDirection: "row", gap: 10, marginTop: 16, padding: 13 },
-  homeResultsIcon: { alignItems: "center", backgroundColor: "#7555C7", borderColor: "#63E3E0", borderRadius: 8, borderWidth: 1, height: 42, justifyContent: "center", width: 42 },
+  moduleGridTitle: { color: "#211842", fontSize: 14, fontWeight: "900", lineHeight: 19, textAlign: "center" },
+  moduleGridTagline: { color: "#6537c7", fontSize: 12, fontWeight: "800", lineHeight: 17, marginTop: 4, textAlign: "center" },
+  homeResultsButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 16, borderWidth: 2, elevation: 4, flexDirection: "row", gap: 10, marginTop: 16, padding: 13, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12 },
+  homeResultsIcon: { alignItems: "center", backgroundColor: "#d79b16", borderColor: "#fff4cf", borderRadius: 10, borderWidth: 1, height: 42, justifyContent: "center", width: 42 },
   homeResultsCopy: { flex: 1 },
-  homeResultsTitle: { color: "#30264C", fontSize: 16, fontWeight: "900" },
-  homeResultsText: { color: "#706982", fontSize: 11, lineHeight: 16, marginTop: 2 },
+  homeResultsTitle: { color: "#f3c64d", fontSize: 16, fontWeight: "900" },
+  homeResultsText: { color: "#fff4cf", fontSize: 11, fontWeight: "800", lineHeight: 16, marginTop: 2 },
   homeLogoutButton: { alignItems: "center", alignSelf: "center", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 7, justifyContent: "center", marginTop: 12, minHeight: 44, paddingHorizontal: 18, paddingVertical: 10 },
   homeLogoutText: { color: "#008A94", fontSize: 14, fontWeight: "900" },
-  progressTrack: { backgroundColor: "#EAE6F4", borderRadius: 8, height: 8, marginBottom: 16, overflow: "hidden" },
-  progressFill: { backgroundColor: "#00AEBB", borderRadius: 8, height: "100%" },
-  progressLabel: { color: "#008A94", fontSize: 13, fontWeight: "900", marginBottom: 7 },
-  knowingGuidance: { alignItems: "flex-start", backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 10, marginBottom: 12, padding: 12 },
-  knowingGuidanceText: { color: "#4C4260", flex: 1, fontSize: 13, lineHeight: 19 },
+  progressTrack: { backgroundColor: "#f6ecd0", borderRadius: 8, height: 8, marginBottom: 16, overflow: "hidden" },
+  progressFill: { backgroundColor: "#d79b16", borderRadius: 8, height: "100%" },
+  progressLabel: { color: "#b87908", fontSize: 13, fontWeight: "900", marginBottom: 7 },
+  knowingGuidance: { alignItems: "flex-start", backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 10, borderWidth: 1, flexDirection: "row", gap: 10, marginBottom: 10, padding: 10 },
+  knowingGuidanceText: { color: "#4C4260", flex: 1, fontSize: 12, lineHeight: 17 },
   colorGrid: { alignSelf: "center", flexDirection: "row", gap: 7, justifyContent: "center", maxWidth: 390, width: "100%" },
-  colorBox: { alignItems: "center", aspectRatio: 0.92, borderColor: "#FFFFFF", borderRadius: 8, borderWidth: 3, justifyContent: "flex-end", overflow: "hidden", position: "relative", width: "31%" },
+  colorBox: { alignItems: "center", aspectRatio: 1.04, borderColor: "#FFFFFF", borderRadius: 8, borderWidth: 3, justifyContent: "flex-end", overflow: "hidden", position: "relative", width: "30%" },
   selectedColorBox: { borderColor: "#30264C", shadowColor: "#30264C", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8 },
   correctColorBox: { borderColor: "#43C987", borderWidth: 5, shadowColor: "#43C987", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.75, shadowRadius: 14 },
   revealImage: { height: "100%", left: 0, position: "absolute", top: 0, width: "100%" },
@@ -5007,16 +5418,16 @@ const styles = StyleSheet.create({
   remoteNextButtonCompact: { marginBottom: 0, minHeight: 36, padding: 7 },
   choiceGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 16 },
   choice: { backgroundColor: "#F8F7FC", borderColor: "#E4DFF0", borderRadius: 8, borderWidth: 1, minWidth: "47%", padding: 14 },
-  selectedChoice: { backgroundColor: "#008A94", borderColor: "#00AEBB" },
+  selectedChoice: { backgroundColor: "#6537c7", borderColor: "#f3c64d" },
   choiceText: { color: "#393149", fontSize: 15, fontWeight: "800", textAlign: "center" },
-  selectedChoiceText: { color: "#FFFFFF" },
-  primaryButton: { alignItems: "center", backgroundColor: "#7555C7", borderColor: "#63E3E0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, justifyContent: "center", marginBottom: 10, minHeight: 48, padding: 12 },
-  secondaryButton: { alignItems: "center", backgroundColor: "#008A94", borderRadius: 8, justifyContent: "center", marginBottom: 14, minHeight: 48, padding: 12 },
-  primaryButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "900" },
-  secondaryButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "900" },
+  selectedChoiceText: { color: "#fff4cf" },
+  primaryButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 16, borderWidth: 1, elevation: 3, flexDirection: "row", gap: 8, justifyContent: "center", marginBottom: 10, minHeight: 50, padding: 12, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.22, shadowRadius: 10 },
+  secondaryButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 16, borderWidth: 1, elevation: 3, justifyContent: "center", marginBottom: 14, minHeight: 50, padding: 12, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.18, shadowRadius: 10 },
+  primaryButtonText: { color: "#fff4cf", fontSize: 15, fontWeight: "900" },
+  secondaryButtonText: { color: "#fff4cf", fontSize: 15, fontWeight: "900" },
   disabledButton: { opacity: 0.4 },
-  resultsPanel: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, marginBottom: 16, padding: 34 },
-  resultsNumber: { color: "#30264C", fontSize: 52, fontWeight: "900", marginTop: 10 },
+  resultsPanel: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 22, borderWidth: 2, elevation: 5, marginBottom: 14, padding: 26, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 16 },
+  resultsNumber: { color: "#f3c64d", fontFamily: "Georgia", fontSize: 56, fontWeight: "700", marginTop: 10 },
   resultsLabel: { color: "#706982", fontSize: 16, fontWeight: "700" },
   resultsPoints: { color: "#00AEBB", fontSize: 16, fontWeight: "900", marginTop: 14 },
   abilityMessage: { backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, marginTop: 18, padding: 14, width: "100%" },
@@ -5024,46 +5435,46 @@ const styles = StyleSheet.create({
   abilityMessageTitle: { color: "#008A94", fontSize: 18, fontWeight: "900", textAlign: "center" },
   abilityMessageTitleStrong: { color: "#7555C7", fontSize: 21 },
   abilityMessageText: { color: "#706982", fontSize: 13, lineHeight: 19, marginTop: 6, textAlign: "center" },
-  lessonCard: { backgroundColor: "#F8F7FC", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, marginBottom: 8, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 4 },
-  lessonIcon: { alignItems: "center", backgroundColor: "#EDFBFB", borderRadius: 8, height: 48, justifyContent: "center", marginBottom: 14, width: 48 },
+  lessonCard: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 12, borderWidth: 1, marginBottom: 8, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 4 },
+  lessonIcon: { alignItems: "center", backgroundColor: "#fff4cf", borderRadius: 8, height: 48, justifyContent: "center", marginBottom: 14, width: 48 },
   lessonPoint: { alignItems: "flex-start", flexDirection: "row", gap: 7, marginBottom: 6 },
   lessonPointText: { color: "#393149", flex: 1, fontSize: 13, lineHeight: 18 },
-  practiceCard: { backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, marginBottom: 8, padding: 12 },
+  practiceCard: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, marginBottom: 8, padding: 12 },
   reflectionCard: { backgroundColor: "#FFF9E8", borderColor: "#F1DFA6", borderRadius: 8, borderWidth: 1, marginBottom: 8, padding: 12 },
-  learningReminder: { backgroundColor: "#FFF9E8", borderColor: "#E9D17E", borderRadius: 8, borderWidth: 2, marginBottom: 14, padding: 16 },
+  learningReminder: { backgroundColor: "#fff4cf", borderColor: "#d79b16", borderRadius: 12, borderWidth: 2, marginBottom: 14, padding: 16 },
   learningReminderCompact: { marginBottom: 8, padding: 12 },
   reminderHeading: { alignItems: "center", flexDirection: "row", gap: 8, marginBottom: 10 },
-  reminderTitle: { color: "#6544B8", flex: 1, fontSize: 17, fontWeight: "900" },
+  reminderTitle: { color: "#6537c7", flex: 1, fontSize: 17, fontWeight: "900" },
   learningChoiceGrid: { gap: 10, marginBottom: 10 },
-  learningIdeaChoice: { backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 2, padding: 12 },
-  learningIdeaChoiceSelected: { backgroundColor: "#EDFBFB", borderColor: "#00AEBB" },
+  learningIdeaChoice: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 12, borderWidth: 2, padding: 12 },
+  learningIdeaChoiceSelected: { backgroundColor: "#fff4cf", borderColor: "#f3c64d" },
   learningIdeaChoiceLocked: { opacity: 0.78 },
   learningIdeaHeader: { alignItems: "center", flexDirection: "row", gap: 8, marginBottom: 8 },
-  learningIdeaNumber: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#DCCFF5", borderRadius: 999, borderWidth: 1, height: 28, justifyContent: "center", width: 28 },
-  learningIdeaNumberSelected: { backgroundColor: "#008A94", borderColor: "#008A94" },
-  learningIdeaNumberText: { color: "#6544B8", fontSize: 13, fontWeight: "900" },
-  learningIdeaNumberTextSelected: { color: "#FFFFFF" },
-  learningIdeaTitle: { color: "#6544B8", flex: 1, fontSize: 15, fontWeight: "900" },
-  learningIdeaTitleSelected: { color: "#008A94" },
+  learningIdeaNumber: { alignItems: "center", backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 999, borderWidth: 1, height: 28, justifyContent: "center", width: 28 },
+  learningIdeaNumberSelected: { backgroundColor: "#6537c7", borderColor: "#f3c64d" },
+  learningIdeaNumberText: { color: "#b87908", fontSize: 13, fontWeight: "900" },
+  learningIdeaNumberTextSelected: { color: "#fff4cf" },
+  learningIdeaTitle: { color: "#6537c7", flex: 1, fontSize: 15, fontWeight: "900" },
+  learningIdeaTitleSelected: { color: "#b87908" },
   learningIdeaText: { color: "#30264C", fontSize: 14, fontWeight: "800", lineHeight: 20 },
   learningIdeaReflection: { color: "#706982", fontSize: 12, fontWeight: "700", lineHeight: 17, marginTop: 7 },
-  learningChallengeCard: { backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, marginBottom: 16, padding: 16 },
+  learningChallengeCard: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 12, borderWidth: 1, marginBottom: 16, padding: 16 },
   learningChallengeCardCompact: { marginBottom: 8, padding: 12 },
   learningJournalInputCompact: { marginBottom: 7, marginTop: 7, minHeight: 62, padding: 10 },
   learningSubmitButton: { marginBottom: 4, minHeight: 44, padding: 10 },
-  journalHint: { color: "#008A94", fontSize: 12, fontWeight: "800", lineHeight: 18 },
-  savedTaskBanner: { alignItems: "center", backgroundColor: "#EAF8EF", borderColor: "#BDE8CA", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, marginBottom: 10, padding: 10 },
-  savedTaskText: { color: "#239963", flex: 1, fontSize: 13, fontWeight: "900" },
+  journalHint: { color: "#b87908", fontSize: 12, fontWeight: "800", lineHeight: 18 },
+  savedTaskBanner: { alignItems: "center", backgroundColor: "#fff4cf", borderColor: "#d79b16", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, marginBottom: 10, padding: 10 },
+  savedTaskText: { color: "#6537c7", flex: 1, fontSize: 13, fontWeight: "900" },
   taskActionRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
-  taskEditButton: { backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderWidth: 1, flex: 1, marginBottom: 0 },
-  taskEditButtonText: { color: "#6544B8", fontSize: 15, fontWeight: "900" },
+  taskEditButton: { backgroundColor: "#FFFFFF", borderColor: "#d79b16", borderWidth: 1, flex: 1, marginBottom: 0 },
+  taskEditButtonText: { color: "#b87908", fontSize: 15, fontWeight: "900" },
   taskContinueButton: { flex: 1, marginBottom: 0 },
-  pointsEarnedText: { color: "#239963", fontSize: 12, fontWeight: "900", marginTop: 2, textAlign: "center" },
+  pointsEarnedText: { color: "#b87908", fontSize: 12, fontWeight: "900", marginTop: 2, textAlign: "center" },
   historyHeading: { marginBottom: 10 },
-  premiumPill: { alignItems: "center", alignSelf: "flex-start", backgroundColor: "#EDFBFB", borderRadius: 8, flexDirection: "row", gap: 5, paddingHorizontal: 9, paddingVertical: 6 },
-  premiumPillText: { color: "#008A94", fontSize: 11, fontWeight: "900" },
-  historyEntry: { backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, marginBottom: 10, padding: 14 },
-  historyDate: { color: "#7555C7", fontSize: 12, fontWeight: "900", marginBottom: 6, textTransform: "uppercase" },
+  premiumPill: { alignItems: "center", alignSelf: "flex-start", backgroundColor: "#fff4cf", borderRadius: 8, flexDirection: "row", gap: 5, paddingHorizontal: 9, paddingVertical: 6 },
+  premiumPillText: { color: "#b87908", fontSize: 11, fontWeight: "900" },
+  historyEntry: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, marginBottom: 10, padding: 14 },
+  historyDate: { color: "#b87908", fontSize: 12, fontWeight: "900", marginBottom: 6, textTransform: "uppercase" },
   historyChallenge: { color: "#30264C", fontSize: 15, fontWeight: "900", lineHeight: 21 },
   historyResponse: { color: "#706982", fontSize: 14, lineHeight: 20, marginTop: 7 },
   practiceLabel: { color: "#6544B8", fontSize: 12, fontWeight: "900", marginBottom: 4, textTransform: "uppercase" },
@@ -5086,66 +5497,71 @@ const styles = StyleSheet.create({
   scoreAddedText: { color: "#008A94", flex: 1, fontSize: 15, fontWeight: "900" },
   selectionPrompt: { alignItems: "center", backgroundColor: "#EDFBFB", borderRadius: 8, flexDirection: "row", gap: 10, marginBottom: 14, padding: 14 },
   selectionPromptText: { color: "#008A94", flex: 1, fontSize: 14, fontWeight: "800", lineHeight: 20 },
-  birthdateCard: { backgroundColor: "#F8F7FC", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, padding: 18 },
+  birthdateCard: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 12, borderWidth: 1, padding: 18 },
   birthDetailsHeader: { alignItems: "center", flexDirection: "row", gap: 10, marginBottom: 12 },
   birthDetailsDropdown: { alignItems: "center", flexDirection: "row", gap: 10 },
   birthDetailsSummary: { color: "#706982", fontSize: 13, fontWeight: "700", lineHeight: 18, marginTop: 3 },
-  astrologyIcon: { alignItems: "center", backgroundColor: "#F1EDFF", borderRadius: 8, height: 54, justifyContent: "center", marginBottom: 18, width: 54 },
+  astrologyIcon: { alignItems: "center", backgroundColor: "#fff4cf", borderRadius: 8, height: 54, justifyContent: "center", marginBottom: 18, width: 54 },
   inputLabel: { color: "#30264C", fontSize: 14, fontWeight: "900", marginBottom: 7 },
   optionalLabel: { color: "#8A8299", fontSize: 12, fontWeight: "700" },
-  birthdateInput: { backgroundColor: "#FFFFFF", borderColor: "#DAD3E8", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 17, marginBottom: 7, paddingHorizontal: 14, paddingVertical: 12 },
-  birthTimePicker: { alignSelf: "center", backgroundColor: "#FFFFFF", borderColor: "#DAD3E8", borderRadius: 28, borderWidth: 1, marginBottom: 10, maxWidth: 306, padding: 10, width: "100%" },
+  birthdateInput: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 17, marginBottom: 7, paddingHorizontal: 14, paddingVertical: 12 },
+  birthLocationSuggestions: { backgroundColor: "#FFFBF0", borderColor: "#F3C64D", borderRadius: 14, borderWidth: 1, marginBottom: 10, marginTop: 1, padding: 10 },
+  birthLocationSuggestionLabel: { color: "#6F4A08", fontSize: 12, fontWeight: "900", lineHeight: 17, marginBottom: 8 },
+  birthLocationSuggestionList: { gap: 7 },
+  birthLocationSuggestionChip: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#F3C64D", borderRadius: 999, borderWidth: 1, flexDirection: "row", gap: 6, paddingHorizontal: 10, paddingVertical: 8 },
+  birthLocationSuggestionText: { color: "#3F1B91", flex: 1, fontSize: 13, fontWeight: "800", lineHeight: 17 },
+  birthTimePicker: { alignSelf: "flex-start", backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 28, borderWidth: 1, marginBottom: 10, maxWidth: 306, padding: 10, width: "100%" },
   birthTimeHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 6, paddingHorizontal: 4 },
-  birthTimeSelected: { color: "#008A94", fontSize: 12, fontWeight: "900", marginTop: -2, textAlign: "center" },
-  birthTimeClearButton: { backgroundColor: "#F8F7FC", borderColor: "#DCCFF5", borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6 },
-  birthTimeClearText: { color: "#6544B8", fontSize: 12, fontWeight: "900" },
+  birthTimeSelected: { color: "#b87908", fontSize: 12, fontWeight: "900", marginTop: -2, textAlign: "center" },
+  birthTimeClearButton: { backgroundColor: "#FFFFFF", borderColor: "#d79b16", borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6 },
+  birthTimeClearText: { color: "#b87908", fontSize: 12, fontWeight: "900" },
   birthTimeLabelRow: { flexDirection: "row", gap: 6, marginBottom: 5 },
   birthTimePickerLabel: { color: "#706982", flex: 1, fontSize: 10, fontWeight: "900", textAlign: "center", textTransform: "uppercase" },
   birthTimeScroller: { marginBottom: 7 },
-  birthTimeOption: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, justifyContent: "center", marginRight: 6, minHeight: 38, minWidth: 44, paddingHorizontal: 10 },
+  birthTimeOption: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, justifyContent: "center", marginRight: 6, minHeight: 38, minWidth: 44, paddingHorizontal: 10 },
   birthTimeOptionSelected: { backgroundColor: "#6544B8", borderColor: "#6544B8" },
   birthTimeOptionText: { color: "#30264C", fontSize: 14, fontWeight: "900" },
   birthTimeOptionTextSelected: { color: "#FFFFFF" },
   birthTimePeriodRow: { flexDirection: "row", gap: 8, marginTop: 4 },
-  birthTimePeriodButton: { alignItems: "center", backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, flex: 1, justifyContent: "center", minHeight: 42 },
+  birthTimePeriodButton: { alignItems: "center", backgroundColor: "#fff4cf", borderColor: "#d79b16", borderRadius: 8, borderWidth: 1, flex: 1, justifyContent: "center", minHeight: 42 },
   birthTimeWheelRow: { flexDirection: "row", gap: 6 },
   birthTimeWheelColumn: { flex: 1 },
-  birthTimeWheelScroller: { backgroundColor: "#F8F7FC", borderColor: "#CFC6E1", borderRadius: 18, borderWidth: 1, maxHeight: 126, minHeight: 126, paddingVertical: 4 },
+  birthTimeWheelScroller: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 18, borderWidth: 1, maxHeight: 126, minHeight: 126, paddingVertical: 4 },
   birthTimeWheelOption: { alignItems: "center", borderRadius: 999, justifyContent: "center", marginHorizontal: 4, marginVertical: 3, minHeight: 32 },
   birthTimeScrollHint: { color: "#706982", fontSize: 11, fontWeight: "800", lineHeight: 15, marginTop: 7, textAlign: "center" },
   inputError: { color: "#B15A60", fontSize: 13, fontWeight: "700", marginBottom: 8 },
   inviteStatus: { color: "#008A94", fontSize: 12, fontWeight: "800", lineHeight: 17, marginBottom: 10, marginTop: -4 },
   birthChartNote: { color: "#706982", fontSize: 13, lineHeight: 19, marginBottom: 16 },
   birthChartTitle: { color: "#30264C", fontSize: 16, fontWeight: "900" },
-  signBanner: { alignItems: "center", backgroundColor: "#6544B8", borderRadius: 8, flexDirection: "row", gap: 12, marginBottom: 14, padding: 16 },
-  signSymbol: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 8, height: 46, justifyContent: "center", width: 46 },
-  signTitle: { color: "#FFFFFF", fontSize: 20, fontWeight: "900" },
-  signSubtitle: { color: "#E7DFFF", fontSize: 13, fontWeight: "700", marginTop: 3 },
-  signDetail: { color: "#C9F5F1", fontSize: 11, fontWeight: "800", marginTop: 4, textTransform: "uppercase" },
-  fullChartCard: { backgroundColor: "#F8F5FF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, marginBottom: 14, padding: 14 },
+  signBanner: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 2, flexDirection: "row", gap: 12, marginBottom: 14, padding: 16 },
+  signSymbol: { alignItems: "center", backgroundColor: "rgba(255, 244, 207, 0.16)", borderColor: "#f3c64d", borderRadius: 10, borderWidth: 1, height: 46, justifyContent: "center", width: 46 },
+  signTitle: { color: "#fff4cf", fontSize: 20, fontWeight: "900" },
+  signSubtitle: { color: "#fffaf0", fontSize: 13, fontWeight: "700", marginTop: 3 },
+  signDetail: { color: "#f3c64d", fontSize: 11, fontWeight: "800", marginTop: 4, textTransform: "uppercase" },
+  fullChartCard: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 12, borderWidth: 1, marginBottom: 14, padding: 14 },
   fullChartTitle: { color: "#30264C", fontSize: 16, fontWeight: "900", marginBottom: 10 },
   fullChartGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },
-  fullChartItem: { backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, minWidth: "47%", padding: 10 },
-  fullChartLabel: { color: "#7555C7", fontSize: 11, fontWeight: "900", marginBottom: 3, textTransform: "uppercase" },
+  fullChartItem: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, minWidth: "47%", padding: 10 },
+  fullChartLabel: { color: "#b87908", fontSize: 11, fontWeight: "900", marginBottom: 3, textTransform: "uppercase" },
   fullChartValue: { color: "#30264C", fontSize: 15, fontWeight: "900" },
-  fullChartAspect: { color: "#008A94", fontSize: 13, fontWeight: "900", lineHeight: 18, marginBottom: 7 },
+  fullChartAspect: { color: "#b87908", fontSize: 13, fontWeight: "900", lineHeight: 18, marginBottom: 7 },
   fullChartSource: { color: "#706982", fontSize: 12, fontWeight: "700", lineHeight: 18 },
-  astrologyTip: { alignItems: "flex-start", backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 12, marginBottom: 10, padding: 14 },
-  astrologyChoicesHeading: { alignItems: "center", backgroundColor: "#F8F5FF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 10, marginBottom: 10, padding: 12 },
+  astrologyTip: { alignItems: "flex-start", backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 12, marginBottom: 10, padding: 14 },
+  astrologyChoicesHeading: { alignItems: "center", backgroundColor: "#fff4cf", borderColor: "#d79b16", borderRadius: 12, borderWidth: 1, flexDirection: "row", gap: 10, marginBottom: 10, padding: 12 },
   astrologyChoicesTitle: { color: "#30264C", fontSize: 16, fontWeight: "900" },
   astrologyChoicesSubtitle: { color: "#706982", fontSize: 11, lineHeight: 16, marginTop: 2 },
-  tipNumber: { alignItems: "center", backgroundColor: "#EDFBFB", borderRadius: 8, height: 34, justifyContent: "center", width: 34 },
-  tipNumberText: { color: "#008A94", fontSize: 15, fontWeight: "900" },
+  tipNumber: { alignItems: "center", backgroundColor: "#fff4cf", borderRadius: 8, height: 34, justifyContent: "center", width: 34 },
+  tipNumberText: { color: "#b87908", fontSize: 15, fontWeight: "900" },
   tipText: { color: "#393149", flex: 1, fontSize: 15, lineHeight: 22 },
-  dailyActionCard: { backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, marginBottom: 14, padding: 16 },
-  chartSynopsisCard: { backgroundColor: "#F8F5FF", borderColor: "#CDBDEA", borderRadius: 8, borderWidth: 2, marginBottom: 14, padding: 16 },
+  dailyActionCard: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 12, borderWidth: 1, marginBottom: 14, padding: 16 },
+  chartSynopsisCard: { backgroundColor: "#fffaf0", borderColor: "#d79b16", borderRadius: 12, borderWidth: 2, marginBottom: 14, padding: 16 },
   chartSynopsisHeading: { alignItems: "center", flexDirection: "row", gap: 9, marginBottom: 8 },
   chartSynopsisTitle: { color: "#30264C", fontSize: 17, fontWeight: "900" },
   chartSynopsisText: { color: "#5D536A", fontSize: 14, lineHeight: 22 },
-  followUpCard: { backgroundColor: "#FFF9E8", borderColor: "#F1DFA6", borderRadius: 8, borderWidth: 1, marginBottom: 14, padding: 16 },
+  followUpCard: { backgroundColor: "#fff4cf", borderColor: "#d79b16", borderRadius: 12, borderWidth: 1, marginBottom: 14, padding: 16 },
   followUpPlan: { color: "#30264C", fontSize: 16, fontWeight: "800", lineHeight: 23, marginBottom: 14 },
-  journalInput: { backgroundColor: "#FFFFFF", borderColor: "#DAD3E8", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 15, lineHeight: 21, marginBottom: 10, marginTop: 10, minHeight: 96, padding: 12 },
-  journalInputLocked: { backgroundColor: "#F8F7FC", borderColor: "#BDE8CA" },
+  journalInput: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 15, lineHeight: 21, marginBottom: 10, marginTop: 10, minHeight: 96, padding: 12 },
+  journalInputLocked: { backgroundColor: "#fffaf0", borderColor: "#d79b16" },
   virtualRoom: { alignSelf: "center", aspectRatio: 1.22, backgroundColor: "#F8FCFC", borderColor: "#00AEBB", borderRadius: 8, borderWidth: 2, marginBottom: 12, maxWidth: 620, overflow: "hidden", position: "relative", width: "100%" },
   virtualRoomCompact: { maxWidth: 560 },
   virtualKitchenWall: { backgroundColor: "#F4FAFA", borderBottomColor: "#9FD9D9", borderBottomWidth: 2, height: "62%", left: 0, position: "absolute", right: 0, top: 0 },
@@ -5215,15 +5631,17 @@ const styles = StyleSheet.create({
   sealedObjectText: { color: "#30264C", fontSize: 11, fontWeight: "900", marginTop: 6, textAlign: "center" },
   hiddenChoice: { alignItems: "center", aspectRatio: 1, backgroundColor: "#6544B8", borderRadius: 8, justifyContent: "center", width: "100%" },
   answerNavigation: { flexDirection: "row", gap: 8, marginBottom: 14 },
-  answerNavButton: { alignItems: "center", backgroundColor: "#F1EDFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, flex: 1, gap: 3, justifyContent: "center", minHeight: 58, padding: 7 },
+  answerNavButton: { alignItems: "center", backgroundColor: "#fff4cf", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 1, flex: 1, gap: 3, justifyContent: "center", minHeight: 58, padding: 7 },
   answerNavForward: { backgroundColor: "#7555C7", borderColor: "#7555C7" },
   answerNavText: { color: "#6544B8", fontSize: 11, fontWeight: "900" },
   answerNavForwardText: { color: "#FFFFFF", fontSize: 11, fontWeight: "900" },
-  opponentToggle: { backgroundColor: "#EDFBFB", borderRadius: 8, flexDirection: "row", gap: 6, marginBottom: 16, padding: 5 },
-  opponentOption: { alignItems: "center", borderRadius: 8, flex: 1, flexDirection: "row", gap: 6, justifyContent: "center", minHeight: 44, padding: 8 },
-  opponentOptionSelected: { backgroundColor: "#008A94" },
-  opponentOptionText: { color: "#008A94", flexShrink: 1, fontSize: 13, fontWeight: "900", textAlign: "center" },
-  opponentOptionTextSelected: { color: "#FFFFFF" },
+  opponentToggle: { backgroundColor: "#FFFFFF", borderColor: "transparent", borderRadius: 8, borderWidth: 0, flexDirection: "row", gap: 6, marginBottom: 16, padding: 5 },
+  opponentOption: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 1, flex: 1, flexDirection: "row", gap: 6, justifyContent: "center", minHeight: 44, padding: 8 },
+  opponentOptionFriend: { backgroundColor: "#6537c7", borderColor: "#f3c64d", borderWidth: 1 },
+  opponentOptionSelected: { backgroundColor: "#6537c7", borderColor: "#f3c64d", borderWidth: 1 },
+  opponentOptionText: { color: "#b87908", flexShrink: 1, fontSize: 13, fontWeight: "900", textAlign: "center" },
+  opponentOptionFriendText: { color: "#fff4cf" },
+  opponentOptionTextSelected: { color: "#fff4cf" },
   friendPhoneRow: { alignItems: "stretch", flexDirection: "row", gap: 7 },
   friendPhoneInput: { flex: 1 },
   addFriendButton: { alignItems: "center", backgroundColor: "#008A94", borderRadius: 8, height: 48, justifyContent: "center", width: 48 },
@@ -5243,9 +5661,13 @@ const styles = StyleSheet.create({
   treasureControlPanel: { flex: 1.02, minWidth: 300 },
   treasurePreviewPanel: { alignSelf: "flex-start", backgroundColor: "#FFF9E8", borderColor: "#F2D88F", borderRadius: 8, borderWidth: 1, flex: 0.82, justifyContent: "flex-start", minWidth: 300, padding: 10 },
   treasureModeGrid: { gap: 12, marginBottom: 14 },
-  treasureModeCard: { alignItems: "flex-start", backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, gap: 8, minHeight: 132, padding: 16 },
+  treasureModeCard: { alignItems: "flex-start", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 2, gap: 8, minHeight: 132, padding: 16, shadowColor: "#b87908", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 10 },
+  treasureModeFriendCard: { backgroundColor: "#6537c7" },
+  treasureModeComputerCard: { backgroundColor: "#FFFFFF" },
   treasureModeTitle: { color: "#30264C", fontSize: 20, fontWeight: "900" },
   treasureModeText: { color: "#706982", fontSize: 14, fontWeight: "700", lineHeight: 20 },
+  treasureModeFriendTitle: { color: "#fff4cf" },
+  treasureModeFriendText: { color: "#fff4cf" },
   treasureScene: { aspectRatio: 1.28, borderColor: "rgba(255,255,255,0.86)", borderRadius: 8, borderWidth: 1, minHeight: 250, maxHeight: 310, overflow: "hidden", position: "relative", width: "100%" },
   treasureSceneFriend: { borderColor: "#DCCFF5" },
   treasureSceneComputer: { borderColor: "#BFE8E8" },
@@ -5284,9 +5706,10 @@ const styles = StyleSheet.create({
   treasureSiteInviteCard: { backgroundColor: "#F8F5FF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 2, marginTop: 10, padding: 14 },
   treasureSiteInviteTitle: { color: "#30264C", fontSize: 16, fontWeight: "900", textAlign: "center" },
   treasureSiteInviteText: { color: "#5D536A", fontSize: 14, fontWeight: "800", lineHeight: 21, marginBottom: 12, textAlign: "center" },
-  treasureSiteInviteButton: { alignItems: "center", backgroundColor: "#7555C7", borderRadius: 8, flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 48, paddingHorizontal: 14, paddingVertical: 12 },
+  treasureSiteInviteButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 48, paddingHorizontal: 14, paddingVertical: 12 },
+  treasureResponseCard: { backgroundColor: "#F2FAFA", borderColor: "#63E3E0", borderRadius: 8, borderWidth: 2, marginTop: 10, padding: 14 },
   treasureTokenGrid: { flexDirection: "row", gap: 8, justifyContent: "center", marginBottom: 14 },
-  treasureToken: { alignItems: "center", backgroundColor: "#EDFBFB", borderColor: "#00AEBB", borderRadius: 8, borderWidth: 2, cursor: "grab" as any, flex: 1, minHeight: 66, justifyContent: "center" },
+  treasureToken: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 2, cursor: "grab" as any, flex: 1, minHeight: 66, justifyContent: "center" },
   treasureTokenSelected: { backgroundColor: "#FFF9E8", borderColor: "#F4B740", borderWidth: 3, shadowColor: "#F4B740", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 10 },
   treasureTokenDisabled: { opacity: 0.16 },
   treasureTokenText: { color: "#30264C", fontSize: 28, fontWeight: "900" },
@@ -5307,9 +5730,9 @@ const styles = StyleSheet.create({
   treasurePastSlotText: { color: "#8A8299", fontSize: 24, fontWeight: "900" },
   powerWordGrid: { gap: 9, marginBottom: 16 },
   powerWordChoice: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 10, minHeight: 52, padding: 13 },
-  powerWordChoiceSelected: { backgroundColor: "#008A94", borderColor: "#00AEBB" },
+  powerWordChoiceSelected: { backgroundColor: "#6537c7", borderColor: "#f3c64d" },
   powerWordText: { color: "#393149", fontSize: 16, fontWeight: "900" },
-  powerWordTextSelected: { color: "#FFFFFF" },
+  powerWordTextSelected: { color: "#fff4cf" },
   powerResultRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
   powerResult: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, flex: 1, minHeight: 120, justifyContent: "center", padding: 12 },
   powerResultMatch: { backgroundColor: "#EDFFF6", borderColor: "#43C987" },
@@ -5318,68 +5741,70 @@ const styles = StyleSheet.create({
   powerWordMeaningLabel: { color: "#8A6B20", fontSize: 12, fontWeight: "900", marginTop: 7, textTransform: "uppercase" },
   powerWordMeaningTitle: { color: "#30264C", fontSize: 24, fontWeight: "900", marginTop: 4, textAlign: "center" },
   powerWordMeaningText: { color: "#5D536A", fontSize: 14, lineHeight: 22, marginTop: 8, textAlign: "center" },
-  finalScoreHero: { alignItems: "center", backgroundColor: "#6544B8", borderColor: "#63E3E0", borderRadius: 8, borderWidth: 2, marginBottom: 18, padding: 26 },
-  finalScoreNumber: { color: "#FFFFFF", fontSize: 48, fontWeight: "900", marginTop: 8 },
-  finalScoreLabel: { color: "#E7DFFF", fontSize: 16, fontWeight: "800" },
-  finalScorePercent: { color: "#63E3E0", fontSize: 15, fontWeight: "900", marginTop: 8 },
-  finalScorePoints: { color: "#FFFFFF", fontSize: 14, fontWeight: "900", marginTop: 5 },
-  finalRawScoreCard: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.14)", borderColor: "rgba(255,255,255,0.28)", borderRadius: 8, borderWidth: 1, marginTop: 12, paddingHorizontal: 18, paddingVertical: 10 },
-  finalRawScoreLabel: { color: "#E7DFFF", fontSize: 12, fontWeight: "900", textTransform: "uppercase" },
-  finalRawScoreValue: { color: "#FFFFFF", fontSize: 20, fontWeight: "900", marginTop: 3 },
-  finalCreditText: { color: "#E7DFFF", fontSize: 12, fontWeight: "800", lineHeight: 17, marginTop: 7, textAlign: "center" },
+  finalScoreHero: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 18, borderWidth: 2, elevation: 6, marginBottom: 16, padding: 20, shadowColor: "#b87908", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.22, shadowRadius: 18 },
+  finalScoreNumber: { color: "#fff4cf", fontFamily: "Georgia", fontSize: 40, fontWeight: "700", marginTop: 5 },
+  finalScoreLabel: { color: "#fff4cf", fontSize: 14, fontWeight: "900" },
+  finalScorePercent: { color: "#f3c64d", fontSize: 14, fontWeight: "900", marginTop: 5 },
+  finalScorePoints: { color: "#fffaf0", fontSize: 14, fontWeight: "900", marginTop: 5 },
+  finalRawScoreCard: { alignItems: "center", backgroundColor: "rgba(255, 244, 207, 0.16)", borderColor: "rgba(243, 198, 77, 0.62)", borderRadius: 12, borderWidth: 1, marginTop: 8, paddingHorizontal: 16, paddingVertical: 7 },
+  finalRawScoreLabel: { color: "#fff4cf", fontSize: 11, fontWeight: "900", textTransform: "uppercase" },
+  finalRawScoreValue: { color: "#f3c64d", fontSize: 18, fontWeight: "900", marginTop: 2 },
+  finalCreditText: { color: "#fffaf0", fontSize: 11, fontWeight: "800", lineHeight: 15, marginTop: 6, textAlign: "center" },
+  fullResultsCue: { color: "#f3c64d", fontSize: 14, fontWeight: "900", marginTop: 9, textAlign: "center", textTransform: "uppercase" },
   resultsSectionTitle: { color: "#30264C", fontSize: 19, fontWeight: "900", marginBottom: 10, marginTop: 4 },
-  synopsisCard: { backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, marginBottom: 10, padding: 14 },
-  synopsisCardLongTerm: { backgroundColor: "#F8F5FF", borderColor: "#DCCFF5" },
+  synopsisCard: { backgroundColor: "#fffaf0", borderColor: "#f3c64d", borderRadius: 12, borderWidth: 1, marginBottom: 10, padding: 14 },
+  synopsisCardLongTerm: { backgroundColor: "#faf8ff", borderColor: "#d79b16" },
   synopsisHeading: { alignItems: "center", flexDirection: "row", gap: 8, marginBottom: 7 },
   synopsisTitle: { color: "#30264C", fontSize: 15, fontWeight: "900" },
   synopsisText: { color: "#5D536A", fontSize: 13, lineHeight: 20 },
-  scoreBreakdownRow: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", marginBottom: 8, padding: 13 },
+  scoreBreakdownRow: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 12, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", marginBottom: 8, padding: 13 },
   breakdownHeaderRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6, paddingHorizontal: 4 },
-  breakdownHeaderText: { color: "#7555C7", fontSize: 12, fontWeight: "900", textTransform: "uppercase" },
+  breakdownHeaderText: { color: "#b87908", fontSize: 12, fontWeight: "900", textTransform: "uppercase" },
   scoreBreakdownCopy: { flex: 1, paddingRight: 10 },
   scoreBreakdownLabel: { color: "#393149", fontSize: 14, fontWeight: "800" },
   scoreBreakdownSubLabel: { color: "#706982", fontSize: 12, fontWeight: "700", marginTop: 3 },
-  scoreBreakdownPointsBox: { alignItems: "center", backgroundColor: "#F1FFFE", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, minWidth: 74, paddingHorizontal: 8, paddingVertical: 6 },
-  scoreBreakdownValueClear: { color: "#008A94", fontSize: 15, fontWeight: "900" },
+  scoreBreakdownPointsBox: { alignItems: "center", backgroundColor: "#fff4cf", borderColor: "#d79b16", borderRadius: 10, borderWidth: 1, minWidth: 74, paddingHorizontal: 8, paddingVertical: 6 },
+  scoreBreakdownValueClear: { color: "#6537c7", fontSize: 15, fontWeight: "900" },
   scoreBreakdownPointLabel: { color: "#706982", fontSize: 10, fontWeight: "800", marginTop: 1, textTransform: "uppercase" },
   scoreBreakdownValue: { display: "none" },
-  strengthHero: { alignItems: "center", backgroundColor: "#008A94", borderRadius: 8, flexDirection: "row", gap: 13, marginBottom: 12, padding: 16 },
+  strengthHero: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 2, flexDirection: "row", gap: 13, marginBottom: 12, padding: 16 },
   strengthHeroCopy: { flex: 1 },
-  strengthHeroLabel: { color: "#C9F5F1", fontSize: 11, fontWeight: "900", textTransform: "uppercase" },
-  strengthHeroTitle: { color: "#FFFFFF", fontSize: 19, fontWeight: "900", marginTop: 3 },
-  strengthHeroText: { color: "#E6FFFD", fontSize: 12, marginTop: 4 },
+  strengthHeroLabel: { color: "#fff4cf", fontSize: 11, fontWeight: "900", textTransform: "uppercase" },
+  strengthHeroTitle: { color: "#f3c64d", fontSize: 19, fontWeight: "900", marginTop: 3 },
+  strengthHeroText: { color: "#fffaf0", fontSize: 12, marginTop: 4 },
   cumulativeGrid: { flexDirection: "row", gap: 7, marginBottom: 12 },
-  cumulativeMetric: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, flex: 1, padding: 10 },
-  cumulativeValue: { color: "#008A94", fontSize: 20, fontWeight: "900" },
+  cumulativeMetric: { alignItems: "center", backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 10, borderWidth: 1, flex: 1, padding: 10 },
+  cumulativeValue: { color: "#b87908", fontSize: 20, fontWeight: "900" },
   cumulativeLabel: { color: "#706982", fontSize: 10, fontWeight: "700", marginTop: 3, textAlign: "center" },
-  strengthRow: { backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, marginBottom: 8, padding: 11 },
+  strengthRow: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 10, borderWidth: 1, marginBottom: 8, padding: 11 },
   strengthRowTop: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   strengthRowLabel: { color: "#393149", flex: 1, fontSize: 13, fontWeight: "800" },
-  strengthRowValue: { color: "#008A94", fontSize: 14, fontWeight: "900" },
-  strengthTrack: { backgroundColor: "#EAE6F4", borderRadius: 8, height: 7, marginTop: 7, overflow: "hidden" },
-  strengthFill: { backgroundColor: "#00AEBB", borderRadius: 8, height: "100%" },
+  strengthRowValue: { color: "#b87908", fontSize: 14, fontWeight: "900" },
+  strengthTrack: { backgroundColor: "#f6ecd0", borderRadius: 8, height: 7, marginTop: 7, overflow: "hidden" },
+  strengthFill: { backgroundColor: "#d79b16", borderRadius: 8, height: "100%" },
   strengthDetail: { color: "#81798F", fontSize: 10, marginTop: 5 },
   feedbackIntro: { color: "#706982", fontSize: 13, lineHeight: 19, marginBottom: 10 },
-  feedbackCard: { backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, marginBottom: 10, padding: 12 },
+  feedbackCard: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 10, borderWidth: 1, marginBottom: 10, padding: 12 },
   feedbackModuleTitle: { color: "#30264C", fontSize: 15, fontWeight: "900" },
   feedbackPrompt: { color: "#706982", fontSize: 11, fontWeight: "700", marginTop: 5 },
   starRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginVertical: 8 },
   starButton: { alignItems: "center", height: 27, justifyContent: "center", width: 27 },
-  feedbackInput: { backgroundColor: "#F8F7FC", borderColor: "#DAD3E8", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 13, lineHeight: 18, minHeight: 62, padding: 9 },
+  feedbackInput: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 13, lineHeight: 18, minHeight: 62, padding: 9 },
   communityGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 14 },
-  communityMetric: { backgroundColor: "#F8F7FC", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, minWidth: "47%", padding: 14 },
-  communityValue: { color: "#30264C", fontSize: 22, fontWeight: "900" },
+  communityMetric: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 10, borderWidth: 1, minWidth: "47%", padding: 14 },
+  communityValue: { color: "#6537c7", fontSize: 22, fontWeight: "900" },
   communityLabel: { color: "#706982", fontSize: 12, fontWeight: "700", marginTop: 4 },
-  communityComparison: { backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, marginBottom: 14, padding: 16 },
-  communityComparisonTitle: { color: "#008A94", fontSize: 16, fontWeight: "900", marginBottom: 7 },
+  communityComparison: { backgroundColor: "#fff4cf", borderColor: "#d79b16", borderRadius: 10, borderWidth: 1, marginBottom: 14, padding: 16 },
+  communityComparisonTitle: { color: "#6537c7", fontSize: 16, fontWeight: "900", marginBottom: 7 },
   remoteInstructionCard: { alignItems: "flex-start", backgroundColor: "#F8F5FF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, marginBottom: 8, padding: 9 },
   remoteInstructionText: { color: "#5D536A", flex: 1, fontSize: 12, fontWeight: "800", lineHeight: 17 },
-  drawingPad: { backgroundColor: "#FFFFFF", borderColor: "#C5E1F3", borderRadius: 8, borderWidth: 2, height: 245, marginBottom: 8, overflow: "hidden", position: "relative" },
+  remoteDrawingPadWrap: { marginBottom: 8 },
+  drawingPad: { backgroundColor: "#FFFFFF", borderColor: "#C5E1F3", borderRadius: 8, borderWidth: 2, height: 190, marginBottom: 0, overflow: "hidden", position: "relative" },
   drawingPrompt: { alignItems: "center", bottom: 0, justifyContent: "center", left: 0, opacity: 0.6, position: "absolute", right: 0, top: 0 },
   drawingPromptText: { color: "#8A8299", fontSize: 13, fontWeight: "700", marginTop: 7 },
   drawingPoint: { backgroundColor: "#30264C", borderRadius: 3, height: 6, position: "absolute", width: 6 },
   drawingSegment: { backgroundColor: "#30264C", borderRadius: 3, height: 6, position: "absolute" },
-  drawingActions: { flexDirection: "row", gap: 8, marginBottom: 4 },
-  drawingActionButton: { flex: 1, marginBottom: 0, minHeight: 42, padding: 9 },
+  drawingActions: { flexDirection: "row", gap: 8, marginBottom: 26 },
+  drawingActionButton: { flex: 1, marginBottom: 0, minHeight: 40, padding: 8 },
   remoteSuccess: { backgroundColor: "#D9FFEA", borderColor: "#18B86A", borderWidth: 3, shadowColor: "#18B86A", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 12 }
 });

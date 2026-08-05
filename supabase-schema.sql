@@ -70,6 +70,7 @@ create table if not exists module_feedback (
 create table if not exists friends (
   email text primary key,
   friends jsonb default '[]'::jsonb,
+  treasure_challenges jsonb default '[]'::jsonb,
   updated_at timestamptz default now()
 );
 
@@ -90,3 +91,4 @@ alter table profiles add column if not exists rising_sign text;
 alter table profiles add column if not exists midheaven_sign text;
 alter table profiles add column if not exists strongest_aspect text;
 alter table analytics_events add column if not exists active_duration_ms integer default 0;
+alter table friends add column if not exists treasure_challenges jsonb default '[]'::jsonb;

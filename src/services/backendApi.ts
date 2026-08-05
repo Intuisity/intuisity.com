@@ -255,6 +255,7 @@ export async function sendFriendInviteEmail(invite: {
   friendEmail: string;
   friendName: string;
   senderName: string;
+  senderEmail?: string;
   note?: string;
   challengeUrl?: string;
 }) {
@@ -274,6 +275,33 @@ export async function sendFriendInviteEmail(invite: {
       error?.error ||
       "Invite email could not be sent.";
     throw new Error(detailMessage);
+  }
+
+  return response.json();
+}
+
+export async function sendTreasureCompletionResponse(responseDetails: {
+  challengeId: string;
+  friendName: string;
+  responseMessage: string;
+  score: number;
+  senderEmail: string;
+  senderName: string;
+  success: boolean;
+  triesUsed: number;
+}) {
+  const response = await fetch("/api/send-friend-invite", {
+    body: JSON.stringify({
+      ...responseDetails,
+      action: "treasure-completion"
+    }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST"
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.message || error?.error || "Response could not be sent yet.");
   }
 
   return response.json();

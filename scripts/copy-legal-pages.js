@@ -4,6 +4,11 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const dist = path.join(root, "dist");
 const legal = path.join(root, "legal");
+const publicDir = path.join(root, "public");
+const brandingDir = path.join(publicDir, "branding");
+const previewImageSource = path.join(brandingDir, "intuisity-frontpage-forest.jpg");
+const previewImageFile = "intuisity-preview.png";
+const previewImageUrl = `https://www.intuisity.com/${previewImageFile}`;
 
 const pages = [
   { from: path.join(legal, "privacy.html"), to: path.join(dist, "privacy.html") },
@@ -90,6 +95,30 @@ for (const page of pages) {
   fs.copyFileSync(page.from, page.to);
 }
 
+function copyDirectory(from, to) {
+  if (!fs.existsSync(from)) return;
+  fs.mkdirSync(to, { recursive: true });
+  for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
+    const source = path.join(from, entry.name);
+    const target = path.join(to, entry.name);
+    if (entry.isDirectory()) {
+      copyDirectory(source, target);
+    } else {
+      fs.copyFileSync(source, target);
+    }
+  }
+}
+
+copyDirectory(brandingDir, path.join(dist, "branding"));
+for (const favicon of ["favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "apple-touch-icon.png"]) {
+  const source = path.join(publicDir, favicon);
+  if (fs.existsSync(source)) fs.copyFileSync(source, path.join(dist, favicon));
+}
+
+if (fs.existsSync(previewImageSource)) {
+  fs.copyFileSync(previewImageSource, path.join(dist, previewImageFile));
+}
+
 const indexPath = path.join(dist, "index.html");
 let indexHtml = fs.readFileSync(indexPath, "utf8");
 
@@ -99,11 +128,21 @@ const seoHead = [
   `<meta name="keywords" content="${seoKeywords}" />`,
   `<meta name="robots" content="index, follow" />`,
   `<link rel="canonical" href="https://www.intuisity.com/" />`,
+  `<link rel="icon" href="/favicon.ico" sizes="any" />`,
+  `<link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32" />`,
+  `<link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16" />`,
+  `<link rel="apple-touch-icon" href="/apple-touch-icon.png" />`,
   `<meta property="og:title" content="Intuisity | Awaken Your Intuition. Expand Your Awareness." />`,
   `<meta property="og:description" content="${seoDescription}" />`,
   `<meta property="og:type" content="website" />`,
   `<meta property="og:url" content="https://www.intuisity.com/" />`,
+  `<meta property="og:image" content="${previewImageUrl}" />`,
+  `<meta property="og:image:alt" content="Intuisity intuition training preview with a luminous eye and sunlit nature scene" />`,
   `<meta name="twitter:card" content="summary_large_image" />`,
+  `<meta name="twitter:title" content="Intuisity | Awaken Your Intuition" />`,
+  `<meta name="twitter:description" content="${seoDescription}" />`,
+  `<meta name="twitter:image" content="${previewImageUrl}" />`,
+  `<style>:root{--intu-purple-950:#2e126f;--intu-purple-900:#3f1b91;--intu-purple-800:#5126ad;--intu-purple-700:#6537c7;--intu-purple-600:#7548d6;--intu-purple-500:#8659e5;--intu-gold-dark:#b87908;--intu-gold:#d79b16;--intu-gold-light:#f3c64d;--intu-gold-pale:#fff4cf;--intu-teal:#19aeb4;--intu-teal-light:#dff8f8;--intu-ink:#211842;--intu-muted:#6f6881;--intu-border:#e2dff0;--intu-surface:#ffffff;--intu-surface-soft:#faf8ff;}</style>`,
   `<script type="application/ld+json">${JSON.stringify(structuredData)}</script>`
 ].join("\n    ");
 
@@ -115,3 +154,50 @@ indexHtml = indexHtml.replace(
 );
 
 fs.writeFileSync(indexPath, indexHtml);
+
+const treasurePreviewTitle = "You Have an Intuisity Treasure Chest Challenge";
+const treasurePreviewDescription =
+  "A friend invited you to play a free Intuisity intuition challenge. Open the Treasure Chest, trust your first impression, and send a note back.";
+const treasurePreviewHtml = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${treasurePreviewTitle}</title>
+    <meta name="description" content="${treasurePreviewDescription}" />
+    <meta name="robots" content="noindex, follow" />
+    <meta property="og:title" content="${treasurePreviewTitle}" />
+    <meta property="og:description" content="${treasurePreviewDescription}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.intuisity.com/treasure-chest.html" />
+    <meta property="og:image" content="${previewImageUrl}" />
+    <meta property="og:image:alt" content="Intuisity Treasure Chest friend challenge preview" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${treasurePreviewTitle}" />
+    <meta name="twitter:description" content="${treasurePreviewDescription}" />
+    <meta name="twitter:image" content="${previewImageUrl}" />
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #f7f5ff; color: #30264c; }
+      main { max-width: 760px; margin: 0 auto; padding: 32px 20px; text-align: center; }
+      img { border-radius: 10px; max-width: 100%; }
+      a { background: #6544b8; border-radius: 8px; color: #fff; display: inline-block; font-weight: 700; margin-top: 18px; padding: 12px 18px; text-decoration: none; }
+    </style>
+    <script>
+      (function () {
+        var query = window.location.search || "";
+        window.location.replace("/" + query);
+      }());
+    </script>
+  </head>
+  <body>
+    <main>
+      <img src="/${previewImageFile}" alt="Intuisity intuition training preview" />
+      <h1>${treasurePreviewTitle}</h1>
+      <p>${treasurePreviewDescription}</p>
+      <a href="/">Open Intuisity</a>
+    </main>
+  </body>
+</html>
+`;
+
+fs.writeFileSync(path.join(dist, "treasure-chest.html"), treasurePreviewHtml);
