@@ -31,6 +31,7 @@
       "**/*"
     ],
     "ios": {
+      "buildNumber": "21",
       "bundleIdentifier": "com.intuisity.app",
       "supportsTablet": true,
       "deploymentTarget": "14.4",
