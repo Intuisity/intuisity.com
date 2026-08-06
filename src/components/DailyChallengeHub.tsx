@@ -4916,8 +4916,8 @@ function PageHeader({
         </View>
       </ImageBackground>
       {(onBack || onNext) && (
-        <View pointerEvents="box-none" style={styles.headerNavigation}>
-          <View pointerEvents="box-none" style={styles.headerDirectionButtons}>
+        <View style={styles.headerNavigation}>
+          <View style={styles.headerDirectionButtons}>
             {onBack && (
               <Pressable
                 accessibilityLabel="Go back"
