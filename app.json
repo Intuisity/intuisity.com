@@ -33,6 +33,7 @@
     "ios": {
       "buildNumber": "21",
       "bundleIdentifier": "com.intuisity.app",
+      "jsEngine": "jsc",
       "supportsTablet": true,
       "deploymentTarget": "14.4",
       "infoPlist": {
