@@ -367,7 +367,7 @@ export default function App() {
         </View>
       )}
 
-      <ScrollView ref={mainScrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={mainScrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="always">
         {activeTab === "today" && (
           <DailyChallengeHub
             answers={answers}
@@ -419,9 +419,10 @@ export default function App() {
 
 function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserProfile) => void }) {
   const savedProfiles = loadProfiles();
+  const detectedLocation = detectCurrentLocation();
   const emptyProfile: UserProfile = {
     language: "en", email: "", phone: "", name: "", reminderTime: "9:00 AM", timeZone: detectTimeZone(), birthdate: "", birthTime: "", birthCity: "", birthState: "",
-    birthCountry: "", currentCity: "", currentState: "", currentCountry: detectLocaleCountry()
+    birthCountry: "", currentCity: detectedLocation.currentCity, currentState: detectedLocation.currentState, currentCountry: detectedLocation.currentCountry
   };
   const [mode, setMode] = useState<"welcome" | "login" | "create" | "reset">("welcome");
   const [profile, setProfile] = useState(emptyProfile);
@@ -468,7 +469,9 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
         email: normalizedEmail,
         name: savedProfile?.name || googleProfile.name || normalizedEmail,
         timeZone: savedProfile?.timeZone || detectTimeZone(),
-        currentCountry: savedProfile?.currentCountry || detectLocaleCountry(),
+        currentCity: savedProfile?.currentCity || detectedLocation.currentCity,
+        currentState: savedProfile?.currentState || detectedLocation.currentState,
+        currentCountry: savedProfile?.currentCountry || detectedLocation.currentCountry,
         reminderTime: savedProfile?.reminderTime || "9:00 AM"
       };
       authenticate(nextProfile);
@@ -738,7 +741,9 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
               authProvider: "password",
               reminderTime: "9:00 AM",
               timeZone: detectedTimeZone,
-              currentCountry: profile.currentCountry || detectLocaleCountry()
+              currentCity: profile.currentCity || detectedLocation.currentCity,
+              currentState: profile.currentState || detectedLocation.currentState,
+              currentCountry: profile.currentCountry || detectedLocation.currentCountry
             });
           }}
           style={[styles.primaryButton, !requiredComplete && styles.disabledButton]}
@@ -1039,11 +1044,12 @@ function saveActiveTab(tab: TabKey) {
 }
 
 function normalizeLoadedProfile(profile: UserProfile): UserProfile {
+  const detectedLocation = detectCurrentLocation(profile.timeZone);
   return {
     ...profile,
-    currentCity: profile.currentCity || "",
-    currentCountry: profile.currentCountry || detectLocaleCountry(),
-    currentState: profile.currentState || "",
+    currentCity: profile.currentCity || detectedLocation.currentCity,
+    currentCountry: profile.currentCountry || detectedLocation.currentCountry,
+    currentState: profile.currentState || detectedLocation.currentState,
     language: profile.language || "en",
     reminderTime: profile.reminderTime || "9:00 AM",
     timeZone: profile.timeZone || detectTimeZone()
@@ -1134,6 +1140,31 @@ function detectLocaleCountry() {
   } catch {
     return "";
   }
+}
+
+function detectCurrentLocation(timeZone = detectTimeZone()) {
+  const timeZoneMap: Record<string, { currentCity: string; currentState: string; currentCountry: string }> = {
+    "America/Los_Angeles": { currentCity: "Los Angeles", currentState: "California", currentCountry: "United States" },
+    "America/Denver": { currentCity: "Denver", currentState: "Colorado", currentCountry: "United States" },
+    "America/Chicago": { currentCity: "Chicago", currentState: "Illinois", currentCountry: "United States" },
+    "America/New_York": { currentCity: "New York", currentState: "New York", currentCountry: "United States" },
+    "America/Phoenix": { currentCity: "Phoenix", currentState: "Arizona", currentCountry: "United States" },
+    "America/Anchorage": { currentCity: "Anchorage", currentState: "Alaska", currentCountry: "United States" },
+    "Pacific/Honolulu": { currentCity: "Honolulu", currentState: "Hawaii", currentCountry: "United States" },
+    "Europe/London": { currentCity: "London", currentState: "", currentCountry: "United Kingdom" },
+    "Europe/Paris": { currentCity: "Paris", currentState: "", currentCountry: "France" },
+    "Asia/Tokyo": { currentCity: "Tokyo", currentState: "", currentCountry: "Japan" },
+    "Australia/Sydney": { currentCity: "Sydney", currentState: "New South Wales", currentCountry: "Australia" }
+  };
+  if (timeZoneMap[timeZone]) return timeZoneMap[timeZone];
+
+  const parts = timeZone.split("/");
+  const currentCity = (parts[parts.length - 1] || "").replace(/_/g, " ");
+  return {
+    currentCity,
+    currentState: "",
+    currentCountry: detectLocaleCountry()
+  };
 }
 
 function getDailyAnswersKey(email: string) {
@@ -1621,6 +1652,56 @@ function AdminDashboard() {
   const openReportDetail = (detailKey: string) => {
     setSelectedReportDetail((current) => current === detailKey ? null : detailKey);
   };
+  const renderVisitorDetailRows = () => {
+    const visitors = report.visitorDetails || [];
+    if (!visitors.length) {
+      return (
+        <View style={styles.adminEmptyCard}>
+          <Ionicons color="#B87908" name="person-circle-outline" size={24} />
+          <Text style={styles.adminEmptyTitle}>No visitor rows yet</Text>
+          <Text style={styles.bodyText}>As signed-in and anonymous visitors open pages or modules, the most recent visitor rows will appear here.</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.adminVisitorList}>
+        <View style={styles.adminModuleTopline}>
+          <Text style={styles.adminStartTitle}>Recent visitor rows</Text>
+          <Text style={styles.adminFeedbackMeta}>{visitors.length} shown</Text>
+        </View>
+        {visitors.map((visitor) => (
+          <View key={visitor.id} style={styles.adminUserCard}>
+            <View style={styles.adminModuleTopline}>
+              <View style={styles.adminUserIdentity}>
+                <Text style={styles.adminModuleLabel}>{visitor.displayName || visitor.email || "Anonymous visitor"}</Text>
+                <Text style={styles.adminFeedbackMeta}>
+                  {visitor.email || "No email saved"} · {visitor.type} · {visitor.platform}
+                </Text>
+              </View>
+              <View style={styles.adminUserPill}>
+                <Text style={styles.adminUserPillText}>{visitor.visits} visits</Text>
+              </View>
+            </View>
+            <View style={styles.adminUserStatsGrid}>
+              <View style={styles.adminUserStat}>
+                <Text style={styles.adminUserStatLabel}>Most used area</Text>
+                <Text style={styles.adminUserStatValue}>{visitor.favoriteModule}</Text>
+              </View>
+              <View style={styles.adminUserStat}>
+                <Text style={styles.adminUserStatLabel}>Active time</Text>
+                <Text style={styles.adminUserStatValue}>{formatDuration(visitor.activeMs || visitor.totalMs || 0)}</Text>
+              </View>
+            </View>
+            <Text style={styles.adminFeedbackMeta}>
+              Last active: {visitor.lastSeenAt ? formatReportDate(visitor.lastSeenAt) : "Unknown"}
+              {visitor.firstSeenAt ? ` · First seen: ${formatReportDate(visitor.firstSeenAt)}` : ""}
+            </Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
   const renderReportDetailCard = () => {
     if (!selectedReportDetail) return null;
 
@@ -1700,6 +1781,13 @@ function AdminDashboard() {
             <Text style={styles.adminValue}>{row.value}</Text>
           </View>
         ))}
+        {(selectedReportDetail === "unique-visitors" || selectedReportDetail === "tracked-visits") && renderVisitorDetailRows()}
+        {selectedReportDetail === "saved-users" && (
+          <Pressable onPress={() => setAdminReportPage("user-insights")} style={styles.adminLightButton}>
+            <Ionicons color="#7555C7" name="open-outline" size={17} />
+            <Text style={styles.adminLightButtonText}>Open full user list</Text>
+          </Pressable>
+        )}
       </View>
     );
   };
@@ -2955,6 +3043,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 14,
     padding: 14
+  },
+  adminVisitorList: {
+    gap: 10,
+    marginTop: 12
   },
   adminDetailRow: {
     alignItems: "center",

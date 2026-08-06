@@ -32,6 +32,7 @@ export type AdminAnalyticsReport = {
     profileSignups: number;
     totalUnique: number;
   };
+  visitorDetails?: VisitorDetailReport[];
   visitorVolume: {
     today: number;
     week: number;
@@ -104,10 +105,24 @@ export type UserInsightReport = {
   lastActiveAt?: string;
 };
 
+export type VisitorDetailReport = {
+  id: string;
+  displayName: string;
+  email?: string;
+  type: string;
+  platform: string;
+  visits: number;
+  totalMs: number;
+  activeMs: number;
+  firstSeenAt?: string;
+  lastSeenAt?: string;
+  favoriteModule: string;
+};
+
 const analyticsKey = "intuisity-admin-analytics-events";
 const profilesKey = "intuisity-user-profiles";
 const maxStoredEvents = 1200;
-const activeGraceMs = 60000;
+const idleStopMs = 180000;
 const excludedReportEmails = new Set(["admin@intuisity.com", "kathy@intuisity.com"]);
 let lastInteractionAt = Date.now();
 let activityTrackingStarted = false;
@@ -219,6 +234,7 @@ export function loadAdminAnalyticsReport(startDate = "", endDate = ""): AdminAna
     totalVisits: events.length,
     uniqueVisitors: countUniqueVisitors(rangedVisitorEvents),
     visitorBreakdown: buildVisitorBreakdown(rangedVisitorEvents),
+    visitorDetails: buildVisitorDetails(rangedVisitorEvents),
     visitorVolume: buildVisitorVolume(visitorEvents, dateRange),
     visitorTrend: buildVisitorTrend(rangedVisitorEvents),
     platformBreakdown: buildPlatformBreakdown(rangedVisitorEvents),
@@ -348,9 +364,7 @@ function buildLocalUserInsights(events: AnalyticsEvent[]): UserInsightReport[] {
       email,
       phone: profile.phone || "",
       language: profile.language || "",
-      currentCity: profile.currentCity || "",
-      currentState: profile.currentState || "",
-      currentCountry: profile.currentCountry || "",
+      ...withProfileLocationFallback(profile),
       birthChartType: profile.birthChart?.calculationType || "",
       sunSign: profile.birthChart?.sunSign || "",
       moonSign: profile.birthChart?.moonSign || "",
@@ -468,6 +482,68 @@ function buildVisitorBreakdown(events: AnalyticsEvent[]) {
   };
 }
 
+function buildVisitorDetails(events: AnalyticsEvent[]): VisitorDetailReport[] {
+  const visitorMap = new Map<string, {
+    id: string;
+    displayName: string;
+    email: string;
+    type: string;
+    platform: string;
+    visits: number;
+    totalMs: number;
+    activeMs: number;
+    firstSeenAt: string;
+    lastSeenAt: string;
+    moduleCounts: Map<string, number>;
+  }>();
+
+  events.forEach((event) => {
+    const email = event.email.trim().toLowerCase();
+    if (!email) return;
+    const signedIn = !isAnonymousVisitorEmail(email);
+    const channel = normalizePlatformChannel(event.clientChannel || event.deviceCategory || "");
+    const startedAt = event.startedAt || new Date().toISOString();
+    const current = visitorMap.get(email) || {
+      id: email,
+      displayName: signedIn ? email : "Anonymous visitor",
+      email: signedIn ? email : "",
+      type: signedIn ? "Signed in" : "Anonymous",
+      platform: getPlatformLabel(channel),
+      visits: 0,
+      totalMs: 0,
+      activeMs: 0,
+      firstSeenAt: startedAt,
+      lastSeenAt: startedAt,
+      moduleCounts: new Map<string, number>()
+    };
+
+    current.visits += 1;
+    current.totalMs += event.durationMs || 0;
+    current.activeMs += getEventActiveMs(event);
+    if (startedAt < current.firstSeenAt) current.firstSeenAt = startedAt;
+    if (startedAt > current.lastSeenAt) current.lastSeenAt = startedAt;
+    current.moduleCounts.set(event.moduleLabel, (current.moduleCounts.get(event.moduleLabel) || 0) + 1);
+    visitorMap.set(email, current);
+  });
+
+  return [...visitorMap.values()]
+    .sort((a, b) => new Date(b.lastSeenAt || 0).getTime() - new Date(a.lastSeenAt || 0).getTime())
+    .slice(0, 100)
+    .map((visitor) => ({
+      id: visitor.id,
+      displayName: visitor.displayName,
+      email: visitor.email,
+      type: visitor.type,
+      platform: visitor.platform,
+      visits: visitor.visits,
+      totalMs: visitor.totalMs,
+      activeMs: visitor.activeMs,
+      firstSeenAt: visitor.firstSeenAt,
+      lastSeenAt: visitor.lastSeenAt,
+      favoriteModule: [...visitor.moduleCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "Website visit"
+    }));
+}
+
 function countUniqueVisitors(events: AnalyticsEvent[]) {
   return new Set(events.map((event) => event.email.trim().toLowerCase()).filter(Boolean)).size;
 }
@@ -500,11 +576,11 @@ function calculateActiveDuration(startedAt: number, endedAt: number) {
   if (browserDocument.hidden) {
     return Math.max(1000, Math.min(durationMs, lastInteractionAt - startedAt));
   }
-  return Math.max(1000, Math.min(durationMs, lastInteractionAt - startedAt + activeGraceMs));
+  return Math.max(1000, Math.min(durationMs, lastInteractionAt - startedAt + idleStopMs));
 }
 
 function getEventActiveMs(event: AnalyticsEvent) {
-  return Math.min(event.durationMs, event.activeDurationMs ?? event.durationMs);
+  return Math.min(event.durationMs, event.activeDurationMs ?? idleStopMs);
 }
 
 function getClientPlatformDetails() {
@@ -536,6 +612,39 @@ function getPlatformLabel(channel: string) {
   if (channel === "app") return "App";
   if (channel === "mobile-web") return "Mobile Web";
   return "Desktop Web";
+}
+
+function withProfileLocationFallback(profile: Record<string, any>) {
+  const fallback = getLocationFromTimeZone(profile.timeZone || "");
+  return {
+    currentCity: profile.currentCity || fallback.currentCity,
+    currentState: profile.currentState || fallback.currentState,
+    currentCountry: profile.currentCountry || fallback.currentCountry
+  };
+}
+
+function getLocationFromTimeZone(timeZone: string) {
+  const timeZoneMap: Record<string, { currentCity: string; currentState: string; currentCountry: string }> = {
+    "America/Los_Angeles": { currentCity: "Los Angeles", currentState: "California", currentCountry: "United States" },
+    "America/Denver": { currentCity: "Denver", currentState: "Colorado", currentCountry: "United States" },
+    "America/Chicago": { currentCity: "Chicago", currentState: "Illinois", currentCountry: "United States" },
+    "America/New_York": { currentCity: "New York", currentState: "New York", currentCountry: "United States" },
+    "America/Phoenix": { currentCity: "Phoenix", currentState: "Arizona", currentCountry: "United States" },
+    "America/Anchorage": { currentCity: "Anchorage", currentState: "Alaska", currentCountry: "United States" },
+    "Pacific/Honolulu": { currentCity: "Honolulu", currentState: "Hawaii", currentCountry: "United States" },
+    "Europe/London": { currentCity: "London", currentState: "", currentCountry: "United Kingdom" },
+    "Europe/Paris": { currentCity: "Paris", currentState: "", currentCountry: "France" },
+    "Asia/Tokyo": { currentCity: "Tokyo", currentState: "", currentCountry: "Japan" },
+    "Australia/Sydney": { currentCity: "Sydney", currentState: "New South Wales", currentCountry: "Australia" }
+  };
+  if (timeZoneMap[timeZone]) return timeZoneMap[timeZone];
+
+  const parts = String(timeZone || "").split("/");
+  return {
+    currentCity: (parts[parts.length - 1] || "").replace(/_/g, " "),
+    currentState: "",
+    currentCountry: ""
+  };
 }
 
 function loadFeedbackReport() {

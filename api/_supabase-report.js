@@ -1,6 +1,7 @@
 const { supabaseRequest } = require("./_supabase");
 
 const excludedReportEmails = new Set(["admin@intuisity.com", "kathy@intuisity.com"]);
+const idleStopMs = 180000;
 const moduleOrder = [
   "Challenge 1: Treasure Chest",
   "Challenge 2: Train Your Knowing",
@@ -33,6 +34,7 @@ async function buildAdminReport(options = {}) {
   const visitorTrend = buildVisitorTrend(rangedVisitorEvents);
   const platformBreakdown = buildPlatformBreakdown(rangedVisitorEvents);
   const visitorBreakdown = buildVisitorBreakdown(rangedVisitorEvents);
+  const visitorDetails = buildVisitorDetails(rangedVisitorEvents);
   const rangedModuleEvents = rangedAnalyticsEvents.filter((event) => !isSiteVisitEvent(event));
   const moduleDailyTrend = buildModuleDailyTrend(rangedModuleEvents);
 
@@ -69,6 +71,7 @@ async function buildAdminReport(options = {}) {
     totalVisits: rangedAnalyticsEvents.length,
     uniqueVisitors: countUniqueVisitors(rangedVisitorEvents),
     visitorBreakdown,
+    visitorDetails,
     visitorVolume: volume,
     visitorTrend,
     platformBreakdown,
@@ -235,13 +238,11 @@ function buildUserInsights({ analyticsEvents, dailyResults, friends, moduleFeedb
     const totalPossible = results.reduce((sum, entry) => sum + Number(entry.maximum || 0), 0);
 
     return {
+      ...withProfileLocationFallback(profile),
       name: profile.name || "",
       email,
       phone: profile.phone || "",
       language: profile.language || "",
-      currentCity: profile.current_city || "",
-      currentState: profile.current_state || "",
-      currentCountry: profile.current_country || "",
       birthChartType: profile.birth_chart_type || profile.birth_chart_json?.calculationType || "",
       sunSign: profile.sun_sign || profile.birth_chart_json?.sunSign || "",
       moonSign: profile.moon_sign || profile.birth_chart_json?.moonSign || "",
@@ -276,6 +277,39 @@ function selectAll(table) {
 
 function countKnownUsers(sources) {
   return collectKnownEmails(sources).length;
+}
+
+function withProfileLocationFallback(profile) {
+  const fallback = getLocationFromTimeZone(profile.time_zone || profile.profile_json?.timeZone || "");
+  return {
+    currentCity: profile.current_city || profile.profile_json?.currentCity || fallback.currentCity,
+    currentState: profile.current_state || profile.profile_json?.currentState || fallback.currentState,
+    currentCountry: profile.current_country || profile.profile_json?.currentCountry || fallback.currentCountry
+  };
+}
+
+function getLocationFromTimeZone(timeZone) {
+  const timeZoneMap = {
+    "America/Los_Angeles": { currentCity: "Los Angeles", currentState: "California", currentCountry: "United States" },
+    "America/Denver": { currentCity: "Denver", currentState: "Colorado", currentCountry: "United States" },
+    "America/Chicago": { currentCity: "Chicago", currentState: "Illinois", currentCountry: "United States" },
+    "America/New_York": { currentCity: "New York", currentState: "New York", currentCountry: "United States" },
+    "America/Phoenix": { currentCity: "Phoenix", currentState: "Arizona", currentCountry: "United States" },
+    "America/Anchorage": { currentCity: "Anchorage", currentState: "Alaska", currentCountry: "United States" },
+    "Pacific/Honolulu": { currentCity: "Honolulu", currentState: "Hawaii", currentCountry: "United States" },
+    "Europe/London": { currentCity: "London", currentState: "", currentCountry: "United Kingdom" },
+    "Europe/Paris": { currentCity: "Paris", currentState: "", currentCountry: "France" },
+    "Asia/Tokyo": { currentCity: "Tokyo", currentState: "", currentCountry: "Japan" },
+    "Australia/Sydney": { currentCity: "Sydney", currentState: "New South Wales", currentCountry: "Australia" }
+  };
+  if (timeZoneMap[timeZone]) return timeZoneMap[timeZone];
+
+  const parts = String(timeZone || "").split("/");
+  return {
+    currentCity: (parts[parts.length - 1] || "").replace(/_/g, " "),
+    currentState: "",
+    currentCountry: ""
+  };
 }
 
 function collectKnownEmails({ analyticsEvents = [], dailyResults = [], friends = [], moduleFeedback = [], profiles = [] }) {
@@ -382,6 +416,61 @@ function buildVisitorBreakdown(events) {
   };
 }
 
+function buildVisitorDetails(events) {
+  const visitorMap = new Map();
+
+  events.forEach((event) => {
+    const visitorKey = getVisitorKey(event);
+    if (!visitorKey) return;
+
+    const email = normalizeEmail(event.email);
+    const signedIn = Boolean(email && !isAnonymousVisitorEmail(email));
+    const channel = normalizePlatformChannel(event.event_json?.clientChannel || event.event_json?.deviceCategory || event.module_id);
+    const moduleLabel = event.module_label || getPlatformLabel(channel);
+    const current = visitorMap.get(visitorKey) || {
+      id: visitorKey,
+      displayName: signedIn ? email : "Anonymous visitor",
+      email: signedIn ? email : "",
+      type: signedIn ? "Signed in" : "Anonymous",
+      platform: getPlatformLabel(channel),
+      visits: 0,
+      totalMs: 0,
+      activeMs: 0,
+      firstSeenAt: event.recorded_at || event.started_at || "",
+      lastSeenAt: event.recorded_at || event.started_at || "",
+      moduleCounts: new Map()
+    };
+
+    current.visits += 1;
+    current.totalMs += Number(event.duration_ms || 0);
+    current.activeMs += getActiveDuration(event);
+    if ((event.recorded_at || event.started_at || "") < current.firstSeenAt) current.firstSeenAt = event.recorded_at || event.started_at || "";
+    if ((event.recorded_at || event.started_at || "") > current.lastSeenAt) current.lastSeenAt = event.recorded_at || event.started_at || "";
+    current.moduleCounts.set(moduleLabel, (current.moduleCounts.get(moduleLabel) || 0) + 1);
+    visitorMap.set(visitorKey, current);
+  });
+
+  return [...visitorMap.values()]
+    .sort((a, b) => new Date(b.lastSeenAt || 0).getTime() - new Date(a.lastSeenAt || 0).getTime())
+    .slice(0, 100)
+    .map((visitor) => {
+      const favoriteModule = [...visitor.moduleCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "Website visit";
+      return {
+        id: visitor.id,
+        displayName: visitor.displayName,
+        email: visitor.email,
+        type: visitor.type,
+        platform: visitor.platform,
+        visits: visitor.visits,
+        totalMs: visitor.totalMs,
+        activeMs: visitor.activeMs,
+        firstSeenAt: visitor.firstSeenAt,
+        lastSeenAt: visitor.lastSeenAt,
+        favoriteModule
+      };
+    });
+}
+
 function countUniqueVisitors(events) {
   return new Set(events.map(getVisitorKey).filter(Boolean)).size;
 }
@@ -430,7 +519,11 @@ function getLocalDateKey(date) {
 }
 
 function getActiveDuration(event) {
-  return Number(event.active_duration_ms || event.duration_ms || 0);
+  const durationMs = Number(event.duration_ms || 0);
+  if (event.active_duration_ms === undefined || event.active_duration_ms === null) {
+    return Math.min(durationMs, idleStopMs);
+  }
+  return Math.min(durationMs, Number(event.active_duration_ms || 0));
 }
 
 function isExcludedReportEmail(email) {

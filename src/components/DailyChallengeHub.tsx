@@ -3763,9 +3763,12 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         <View style={styles.forestFeatureLinks}>
           {homeChallenges.map((challenge, index) => (
             <Pressable
+              accessibilityRole="button"
               accessibilityLabel={`Open ${challenge.title} from banner`}
+              hitSlop={8}
               key={`feature-${challenge.id}`}
               onPress={() => openHomeChallenge(challenge.id)}
+              pressRetentionOffset={12}
               style={({ pressed }) => [
                 styles.forestFeatureLink,
                 pressed && styles.bannerIconLinkPressed
@@ -3780,9 +3783,12 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
       <View style={styles.moduleGrid}>
         {homeChallenges.map((challenge) => (
           <Pressable
+            accessibilityRole="button"
             accessibilityLabel={`Open ${challenge.title}`}
+            hitSlop={8}
             key={challenge.id}
             onPress={() => openHomeChallenge(challenge.id)}
+            pressRetentionOffset={12}
             style={({ pressed }) => [
               styles.moduleGridItem,
               pressed && styles.moduleGridItemPressed
@@ -3803,8 +3809,11 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         ))}
       </View>
       <Pressable
+        accessibilityRole="button"
         accessibilityLabel="View my ongoing results"
+        hitSlop={8}
         onPress={() => setPage("daily-results")}
+        pressRetentionOffset={12}
         style={styles.homeResultsButton}
       >
         <View style={styles.homeResultsIcon}>

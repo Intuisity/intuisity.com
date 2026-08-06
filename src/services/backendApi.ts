@@ -21,6 +21,19 @@ type BackendAdminReport = {
     profileSignups: number;
     totalUnique: number;
   };
+  visitorDetails?: Array<{
+    id: string;
+    displayName: string;
+    email?: string;
+    type: string;
+    platform: string;
+    visits: number;
+    totalMs: number;
+    activeMs: number;
+    firstSeenAt?: string;
+    lastSeenAt?: string;
+    favoriteModule: string;
+  }>;
   visitorVolume: {
     today: number;
     week: number;
