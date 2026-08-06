@@ -3771,6 +3771,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               pressRetentionOffset={12}
               style={({ pressed }) => [
                 styles.forestFeatureLink,
+                styles.webTapTarget,
                 pressed && styles.bannerIconLinkPressed
               ]}
             >
@@ -3791,6 +3792,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             pressRetentionOffset={12}
             style={({ pressed }) => [
               styles.moduleGridItem,
+              styles.webTapTarget,
               pressed && styles.moduleGridItemPressed
             ]}
           >
@@ -3814,7 +3816,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         hitSlop={8}
         onPress={() => setPage("daily-results")}
         pressRetentionOffset={12}
-        style={styles.homeResultsButton}
+        style={[styles.homeResultsButton, styles.webTapTarget]}
       >
         <View style={styles.homeResultsIcon}>
           <Ionicons color="#FFFFFF" name="stats-chart-outline" size={23} />
@@ -3828,7 +3830,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
       <Pressable
         accessibilityLabel="Log out"
         onPress={onLogout}
-        style={styles.homeLogoutButton}
+        style={[styles.homeLogoutButton, styles.webTapTarget]}
       >
         <Ionicons color="#008A94" name="log-out-outline" size={19} />
         <Text style={styles.homeLogoutText}>Log out</Text>
@@ -4936,7 +4938,7 @@ function PageHeader({
                 accessibilityLabel="Go back"
                 hitSlop={8}
                 onPress={() => runHeaderAction(onBack)}
-                style={styles.headerDirectionButton}
+                style={[styles.headerDirectionButton, styles.webTapTarget]}
               >
                 <View pointerEvents="none" style={styles.headerButtonInner}>
                   <Ionicons color="#f3c64d" name="arrow-back-outline" size={17} />
@@ -4949,7 +4951,7 @@ function PageHeader({
                 accessibilityLabel="Go to next module"
                 hitSlop={8}
                 onPress={() => runHeaderAction(onNext)}
-                style={styles.headerDirectionButton}
+                style={[styles.headerDirectionButton, styles.webTapTarget]}
               >
                 <View pointerEvents="none" style={styles.headerButtonInner}>
                   <Text style={styles.headerNextText}>Next</Text>
@@ -5297,6 +5299,11 @@ function drawLine(canvas: any, from: { x: number; y: number }, to: { x: number; 
 }
 
 const styles = StyleSheet.create({
+  webTapTarget: {
+    touchAction: "manipulation" as any,
+    userSelect: "none" as any,
+    WebkitTapHighlightColor: "rgba(243, 198, 77, 0.24)" as any
+  },
   header: { borderRadius: 22, borderWidth: 1, elevation: 8, marginBottom: 10, minHeight: 154, overflow: "hidden", shadowColor: "#5126ad", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.22, shadowRadius: 18 },
   headerCompact: { marginBottom: 10, minHeight: 118 },
   headerShade: { flex: 1, justifyContent: "flex-end", minHeight: 154, padding: 18, paddingTop: 58, position: "relative" },

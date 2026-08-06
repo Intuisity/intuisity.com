@@ -316,8 +316,10 @@ export default function App() {
       <View style={styles.floatingScore}>
         <Pressable
           accessibilityLabel="Go to home page"
+          hitSlop={8}
           onPress={returnHome}
-          style={styles.profileBadge}
+          pressRetentionOffset={12}
+          style={[styles.profileBadge, styles.webTapTarget]}
         >
           <Ionicons color="#f3c64d" name="home-outline" size={22} />
           <Text style={styles.profileBadgeText}>Home</Text>
@@ -331,16 +333,20 @@ export default function App() {
         <View style={styles.topRightActions}>
           <Pressable
             accessibilityLabel="Change language"
+            hitSlop={8}
             onPress={() => setShowLanguageMenu((current) => !current)}
-            style={styles.languageButton}
+            pressRetentionOffset={12}
+            style={[styles.languageButton, styles.webTapTarget]}
           >
             <Ionicons color="#f3c64d" name="language-outline" size={21} />
             <Text style={styles.languageButtonText}>{userProfile.language.toUpperCase()}</Text>
           </Pressable>
           <Pressable
             accessibilityLabel="Log out"
+            hitSlop={8}
             onPress={confirmLogout}
-            style={styles.logoutIconButton}
+            pressRetentionOffset={12}
+            style={[styles.logoutIconButton, styles.webTapTarget]}
           >
             <Ionicons color="#f3c64d" name="log-out-outline" size={22} />
             <Text style={styles.logoutIconText}>Logout</Text>
@@ -367,7 +373,7 @@ export default function App() {
         </View>
       )}
 
-      <ScrollView ref={mainScrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="always">
+      <ScrollView ref={mainScrollRef} style={styles.mainScrollArea} contentContainerStyle={styles.content} keyboardShouldPersistTaps="always">
         {activeTab === "today" && (
           <DailyChallengeHub
             answers={answers}
@@ -397,9 +403,11 @@ export default function App() {
           return (
             <Pressable
               accessibilityRole="button"
+              hitSlop={8}
               key={tab.key}
               onPress={() => setActiveTab(tab.key)}
-              style={[styles.tabButton, selected && styles.tabButtonSelected]}
+              pressRetentionOffset={12}
+              style={[styles.tabButton, styles.webTapTarget, selected && styles.tabButtonSelected]}
             >
               <Ionicons
                 color={selected ? "#f3c64d" : "#b87908"}
@@ -2489,13 +2497,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     flex: 1
   },
+  webTapTarget: {
+    touchAction: "manipulation" as any,
+    userSelect: "none" as any,
+    WebkitTapHighlightColor: "rgba(243, 198, 77, 0.24)" as any
+  },
+  mainScrollArea: {
+    flex: 1,
+    zIndex: 1
+  },
   floatingScore: {
     alignItems: "center",
     flexDirection: "row",
     gap: 8,
     justifyContent: "space-between",
     paddingHorizontal: 18,
-    paddingTop: 8
+    paddingTop: 8,
+    zIndex: 30
   },
   topBrandLogo: { flex: 1, height: 55, marginHorizontal: 8, maxWidth: 312 },
   profileBadge: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 16, borderWidth: 1, flexDirection: "row", gap: 6, minHeight: 42, paddingHorizontal: 12, paddingVertical: 8, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 7 },
@@ -2505,7 +2523,7 @@ const styles = StyleSheet.create({
   languageButtonText: { color: "#fff4cf", fontSize: 10, fontWeight: "900" },
   logoutIconButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 16, borderWidth: 1, flexDirection: "row", gap: 6, height: 42, justifyContent: "center", paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.16, shadowRadius: 6 },
   logoutIconText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
-  languageMenu: { backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, elevation: 12, left: 18, padding: 6, position: "absolute", right: 18, shadowColor: "#30264C", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, top: 58, zIndex: 20 },
+  languageMenu: { backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, elevation: 12, left: 18, padding: 6, position: "absolute", right: 18, shadowColor: "#30264C", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, top: 58, zIndex: 60 },
   languageMenuOption: { alignItems: "center", borderRadius: 7, flexDirection: "row", justifyContent: "space-between", minHeight: 38, paddingHorizontal: 10, paddingVertical: 6 },
   languageMenuOptionSelected: { backgroundColor: "#008A94" },
   languageMenuNative: { color: "#30264C", fontSize: 13, fontWeight: "900" },
@@ -3471,7 +3489,8 @@ const styles = StyleSheet.create({
     shadowColor: "#b87908",
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.12,
-    shadowRadius: 16
+    shadowRadius: 16,
+    zIndex: 40
   },
   tabButton: {
     alignItems: "center",
