@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Image, ImageBackground, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { getAstrologyReading, getBirthLocationSuggestions, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
 import { dailyIntuitionLessons } from "../data/dailyLessons";
@@ -30,15 +30,6 @@ const intuTheme = {
 };
 
 const purpleGoldHeaderBanner = require("../../assets/intuisity-purple-gold-banner.png");
-
-const webTapTargetStyle =
-  Platform.OS === "web"
-    ? {
-        touchAction: "manipulation" as any,
-        userSelect: "none" as any,
-        WebkitTapHighlightColor: "rgba(243, 198, 77, 0.24)" as any
-      }
-    : null;
 
 type Answers = Record<string, string>;
 
@@ -3778,7 +3769,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               key={`feature-${challenge.id}`}
               onPress={() => openHomeChallenge(challenge.id)}
               pressRetentionOffset={12}
-              style={[styles.forestFeatureLink, webTapTargetStyle]}
+              style={styles.forestFeatureLink}
             />
           ))}
         </View>
@@ -3794,7 +3785,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             pressRetentionOffset={12}
             style={({ pressed }) => [
               styles.moduleGridItem,
-              webTapTargetStyle,
               pressed && styles.moduleGridItemPressed
             ]}
           >
@@ -3818,7 +3808,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         hitSlop={8}
         onPress={() => setPage("daily-results")}
         pressRetentionOffset={12}
-        style={[styles.homeResultsButton, webTapTargetStyle]}
+        style={styles.homeResultsButton}
       >
         <View style={styles.homeResultsIcon}>
           <Ionicons color="#FFFFFF" name="stats-chart-outline" size={23} />
@@ -3832,7 +3822,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
       <Pressable
         accessibilityLabel="Log out"
         onPress={onLogout}
-        style={[styles.homeLogoutButton, webTapTargetStyle]}
+        style={styles.homeLogoutButton}
       >
         <Ionicons color="#008A94" name="log-out-outline" size={19} />
         <Text style={styles.homeLogoutText}>Log out</Text>
@@ -4940,7 +4930,7 @@ function PageHeader({
                 accessibilityLabel="Go back"
                 hitSlop={8}
                 onPress={() => runHeaderAction(onBack)}
-                style={[styles.headerDirectionButton, webTapTargetStyle]}
+                style={styles.headerDirectionButton}
               >
                 <View pointerEvents="none" style={styles.headerButtonInner}>
                   <Ionicons color="#f3c64d" name="arrow-back-outline" size={17} />
@@ -4953,7 +4943,7 @@ function PageHeader({
                 accessibilityLabel="Go to next module"
                 hitSlop={8}
                 onPress={() => runHeaderAction(onNext)}
-                style={[styles.headerDirectionButton, webTapTargetStyle]}
+                style={styles.headerDirectionButton}
               >
                 <View pointerEvents="none" style={styles.headerButtonInner}>
                   <Text style={styles.headerNextText}>Next</Text>
