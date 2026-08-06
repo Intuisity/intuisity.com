@@ -1855,9 +1855,16 @@ function AdminDashboard() {
     return (
       <View>
         <View style={styles.adminSubpageHeader}>
-          <Pressable onPress={() => setAdminReportPage("overview")} style={styles.adminBackButton}>
-            <Ionicons color="#7555C7" name="arrow-back-outline" size={18} />
-            <Text style={styles.adminLightButtonText}>Back to reports</Text>
+          <Pressable
+            accessibilityLabel="Back to report overview"
+            accessibilityRole="button"
+            hitSlop={10}
+            onPress={() => setAdminReportPage("overview")}
+            pressRetentionOffset={14}
+            style={styles.adminBackButton}
+          >
+            <Ionicons color="#B87908" name="arrow-back-outline" size={19} />
+            <Text style={styles.adminBackButtonText}>Back to reports</Text>
           </Pressable>
           <View style={styles.adminHeroIcon}>
             <Ionicons color="#FFFFFF" name="people-outline" size={30} />
@@ -1927,6 +1934,17 @@ function AdminDashboard() {
 
         <Text style={styles.adminSectionTitle}>Users</Text>
         {renderUserInsightsList()}
+        <Pressable
+          accessibilityLabel="Back to report overview"
+          accessibilityRole="button"
+          hitSlop={10}
+          onPress={() => setAdminReportPage("overview")}
+          pressRetentionOffset={14}
+          style={styles.adminReturnButton}
+        >
+          <Ionicons color="#F3C64D" name="arrow-back-outline" size={19} />
+          <Text style={styles.adminReturnButtonText}>Back to report overview</Text>
+        </Pressable>
       </View>
     );
   }
@@ -2582,15 +2600,40 @@ const styles = StyleSheet.create({
   adminBackButton: {
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: "#FFFFFF",
-    borderColor: "#DCCFF5",
-    borderRadius: 8,
-    borderWidth: 1,
+    backgroundColor: "#FFF9E8",
+    borderColor: "#F3C64D",
+    borderRadius: 14,
+    borderWidth: 2,
     flexDirection: "row",
-    gap: 6,
+    gap: 8,
     marginBottom: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 8
+    minHeight: 46,
+    paddingHorizontal: 14,
+    paddingVertical: 10
+  },
+  adminBackButtonText: {
+    color: "#B87908",
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  adminReturnButton: {
+    alignItems: "center",
+    backgroundColor: "#6537C7",
+    borderColor: "#F3C64D",
+    borderRadius: 16,
+    borderWidth: 2,
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+    marginBottom: 24,
+    marginTop: 16,
+    minHeight: 52,
+    padding: 12
+  },
+  adminReturnButtonText: {
+    color: "#FFF4CF",
+    fontSize: 14,
+    fontWeight: "900"
   },
   adminMetricGrid: {
     flexDirection: "row",
