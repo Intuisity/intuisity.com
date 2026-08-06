@@ -4,6 +4,7 @@ import {
   Alert,
   Image,
   Linking,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -89,6 +90,15 @@ const intuTheme = {
   surface: "#ffffff",
   surfaceSoft: "#faf8ff"
 };
+
+const webTapTargetStyle =
+  Platform.OS === "web"
+    ? {
+        touchAction: "manipulation" as any,
+        userSelect: "none" as any,
+        WebkitTapHighlightColor: "rgba(243, 198, 77, 0.24)" as any
+      }
+    : null;
 
 const tabs: Array<{ key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
   { key: "today", label: "Today", icon: "sparkles-outline" },
@@ -319,7 +329,7 @@ export default function App() {
           hitSlop={8}
           onPress={returnHome}
           pressRetentionOffset={12}
-          style={[styles.profileBadge, styles.webTapTarget]}
+          style={[styles.profileBadge, webTapTargetStyle]}
         >
           <Ionicons color="#f3c64d" name="home-outline" size={22} />
           <Text style={styles.profileBadgeText}>Home</Text>
@@ -336,7 +346,7 @@ export default function App() {
             hitSlop={8}
             onPress={() => setShowLanguageMenu((current) => !current)}
             pressRetentionOffset={12}
-            style={[styles.languageButton, styles.webTapTarget]}
+            style={[styles.languageButton, webTapTargetStyle]}
           >
             <Ionicons color="#f3c64d" name="language-outline" size={21} />
             <Text style={styles.languageButtonText}>{userProfile.language.toUpperCase()}</Text>
@@ -346,7 +356,7 @@ export default function App() {
             hitSlop={8}
             onPress={confirmLogout}
             pressRetentionOffset={12}
-            style={[styles.logoutIconButton, styles.webTapTarget]}
+            style={[styles.logoutIconButton, webTapTargetStyle]}
           >
             <Ionicons color="#f3c64d" name="log-out-outline" size={22} />
             <Text style={styles.logoutIconText}>Logout</Text>
@@ -407,7 +417,7 @@ export default function App() {
               key={tab.key}
               onPress={() => setActiveTab(tab.key)}
               pressRetentionOffset={12}
-              style={[styles.tabButton, styles.webTapTarget, selected && styles.tabButtonSelected]}
+              style={[styles.tabButton, webTapTargetStyle, selected && styles.tabButtonSelected]}
             >
               <Ionicons
                 color={selected ? "#f3c64d" : "#b87908"}
@@ -2496,11 +2506,6 @@ const styles = StyleSheet.create({
   app: {
     backgroundColor: "#FFFFFF",
     flex: 1
-  },
-  webTapTarget: {
-    touchAction: "manipulation" as any,
-    userSelect: "none" as any,
-    WebkitTapHighlightColor: "rgba(243, 198, 77, 0.24)" as any
   },
   mainScrollArea: {
     flex: 1,

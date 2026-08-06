@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, ImageBackground, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { getAstrologyReading, getBirthLocationSuggestions, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
 import { dailyIntuitionLessons } from "../data/dailyLessons";
@@ -30,6 +30,15 @@ const intuTheme = {
 };
 
 const purpleGoldHeaderBanner = require("../../assets/intuisity-purple-gold-banner.png");
+
+const webTapTargetStyle =
+  Platform.OS === "web"
+    ? {
+        touchAction: "manipulation" as any,
+        userSelect: "none" as any,
+        WebkitTapHighlightColor: "rgba(243, 198, 77, 0.24)" as any
+      }
+    : null;
 
 type Answers = Record<string, string>;
 
@@ -3769,7 +3778,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               key={`feature-${challenge.id}`}
               onPress={() => openHomeChallenge(challenge.id)}
               pressRetentionOffset={12}
-              style={[styles.forestFeatureLink, styles.webTapTarget]}
+              style={[styles.forestFeatureLink, webTapTargetStyle]}
             />
           ))}
         </View>
@@ -3785,7 +3794,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             pressRetentionOffset={12}
             style={({ pressed }) => [
               styles.moduleGridItem,
-              styles.webTapTarget,
+              webTapTargetStyle,
               pressed && styles.moduleGridItemPressed
             ]}
           >
@@ -3809,7 +3818,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         hitSlop={8}
         onPress={() => setPage("daily-results")}
         pressRetentionOffset={12}
-        style={[styles.homeResultsButton, styles.webTapTarget]}
+        style={[styles.homeResultsButton, webTapTargetStyle]}
       >
         <View style={styles.homeResultsIcon}>
           <Ionicons color="#FFFFFF" name="stats-chart-outline" size={23} />
@@ -3823,7 +3832,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
       <Pressable
         accessibilityLabel="Log out"
         onPress={onLogout}
-        style={[styles.homeLogoutButton, styles.webTapTarget]}
+        style={[styles.homeLogoutButton, webTapTargetStyle]}
       >
         <Ionicons color="#008A94" name="log-out-outline" size={19} />
         <Text style={styles.homeLogoutText}>Log out</Text>
@@ -4931,7 +4940,7 @@ function PageHeader({
                 accessibilityLabel="Go back"
                 hitSlop={8}
                 onPress={() => runHeaderAction(onBack)}
-                style={[styles.headerDirectionButton, styles.webTapTarget]}
+                style={[styles.headerDirectionButton, webTapTargetStyle]}
               >
                 <View pointerEvents="none" style={styles.headerButtonInner}>
                   <Ionicons color="#f3c64d" name="arrow-back-outline" size={17} />
@@ -4944,7 +4953,7 @@ function PageHeader({
                 accessibilityLabel="Go to next module"
                 hitSlop={8}
                 onPress={() => runHeaderAction(onNext)}
-                style={[styles.headerDirectionButton, styles.webTapTarget]}
+                style={[styles.headerDirectionButton, webTapTargetStyle]}
               >
                 <View pointerEvents="none" style={styles.headerButtonInner}>
                   <Text style={styles.headerNextText}>Next</Text>
@@ -5292,11 +5301,6 @@ function drawLine(canvas: any, from: { x: number; y: number }, to: { x: number; 
 }
 
 const styles = StyleSheet.create({
-  webTapTarget: {
-    touchAction: "manipulation" as any,
-    userSelect: "none" as any,
-    WebkitTapHighlightColor: "rgba(243, 198, 77, 0.24)" as any
-  },
   header: { borderRadius: 22, borderWidth: 1, elevation: 8, marginBottom: 10, minHeight: 154, overflow: "hidden", shadowColor: "#5126ad", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.22, shadowRadius: 18 },
   headerCompact: { marginBottom: 10, minHeight: 118 },
   headerShade: { flex: 1, justifyContent: "flex-end", minHeight: 154, padding: 18, paddingTop: 58, position: "relative" },
