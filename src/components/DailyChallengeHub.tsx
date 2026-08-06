@@ -730,6 +730,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
 
   const historyReadyRef = useRef(false);
   const handlingBrowserBackRef = useRef(false);
+  const lastHomeChallengeOpenRef = useRef(0);
 
   useEffect(() => {
     const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
@@ -923,6 +924,9 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
   const nextPage = getNextModulePage(page);
   const homeChallenges = getDailyChallenges();
   const openHomeChallenge = (challengeId: string) => {
+    const now = Date.now();
+    if (now - lastHomeChallengeOpenRef.current < 400) return;
+    lastHomeChallengeOpenRef.current = now;
     if (challengeId === "daily-intuition") {
       resetKnowing();
       return;
@@ -3765,7 +3769,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               key={`feature-${challenge.id}`}
               onPress={() => openHomeChallenge(challenge.id)}
               pressRetentionOffset={12}
-              style={styles.forestFeatureLink}
+              style={[styles.forestFeatureLink, styles.webTapTarget]}
             />
           ))}
         </View>
@@ -3781,6 +3785,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             pressRetentionOffset={12}
             style={({ pressed }) => [
               styles.moduleGridItem,
+              styles.webTapTarget,
               pressed && styles.moduleGridItemPressed
             ]}
           >
@@ -3804,7 +3809,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         hitSlop={8}
         onPress={() => setPage("daily-results")}
         pressRetentionOffset={12}
-        style={styles.homeResultsButton}
+        style={[styles.homeResultsButton, styles.webTapTarget]}
       >
         <View style={styles.homeResultsIcon}>
           <Ionicons color="#FFFFFF" name="stats-chart-outline" size={23} />
@@ -3818,7 +3823,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
       <Pressable
         accessibilityLabel="Log out"
         onPress={onLogout}
-        style={styles.homeLogoutButton}
+        style={[styles.homeLogoutButton, styles.webTapTarget]}
       >
         <Ionicons color="#008A94" name="log-out-outline" size={19} />
         <Text style={styles.homeLogoutText}>Log out</Text>
@@ -4819,44 +4824,46 @@ function getKnowingResultMessage(score: number) {
 }
 
 function getNextModulePage(page: string) {
-  const modulePageOrder = [
-    "social-prediction",
-    "daily-intuition",
-    "remote-viewing-arena",
-    "third-eye-activation",
-    "psychic-potential-score",
-    "remote-viewing-test",
-    "daily-results"
-  ];
-  if (page === "knowing" || page === "knowing-results") return "remote-viewing-arena";
-  if (page === "remote-viewing-results") return "daily-results";
-  const currentIndex = modulePageOrder.indexOf(page);
-  if (currentIndex < 0) return undefined;
-  return modulePageOrder[currentIndex + 1];
+  const nextPages: Record<string, string> = {
+    "social-prediction": "knowing",
+    knowing: "remote-viewing-arena",
+    "knowing-results": "remote-viewing-arena",
+    "remote-viewing-arena": "third-eye-activation",
+    "third-eye-activation": "psychic-potential-score",
+    "psychic-potential-score": "remote-viewing-test",
+    "remote-viewing-test": "daily-results",
+    "remote-viewing-results": "daily-results",
+    "daily-results": "hub"
+  };
+  return nextPages[page];
 }
 
 function getPreviousModulePage(page: string) {
-  const modulePageOrder = [
-    "social-prediction",
-    "daily-intuition",
-    "remote-viewing-arena",
-    "third-eye-activation",
-    "psychic-potential-score",
-    "remote-viewing-test",
-    "daily-results"
-  ];
-  if (page === "knowing" || page === "knowing-results") return "daily-intuition";
-  if (page === "remote-viewing-results") return "remote-viewing-test";
-  const currentIndex = modulePageOrder.indexOf(page);
-  if (currentIndex <= 0) return "hub";
-  return modulePageOrder[currentIndex - 1];
+  const previousPages: Record<string, string> = {
+    "social-prediction": "hub",
+    knowing: "social-prediction",
+    "knowing-results": "knowing",
+    "remote-viewing-arena": "knowing",
+    "third-eye-activation": "remote-viewing-arena",
+    "psychic-potential-score": "third-eye-activation",
+    "remote-viewing-test": "psychic-potential-score",
+    "remote-viewing-results": "remote-viewing-test",
+    "daily-results": "remote-viewing-results"
+  };
+  return previousPages[page];
+}
+
+function loadInitialIntuisityPage() {
+  const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+  const params = new URLSearchParams(browserWindow?.location?.search || "");
+  const screen = params.get("screen") || "";
+  return getKnownIntuisityPages().has(screen) ? screen : "hub";
 }
 
 function getKnownIntuisityPages() {
   return new Set([
     "hub",
     "social-prediction",
-    "daily-intuition",
     "knowing",
     "knowing-results",
     "remote-viewing-arena",
@@ -4866,13 +4873,6 @@ function getKnownIntuisityPages() {
     "remote-viewing-results",
     "daily-results"
   ]);
-}
-
-function loadInitialIntuisityPage() {
-  const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
-  const params = new URLSearchParams(browserWindow?.location?.search || "");
-  const screen = params.get("screen") || "";
-  return getKnownIntuisityPages().has(screen) ? screen : "hub";
 }
 
 function PageHeader({
@@ -4895,6 +4895,14 @@ function PageHeader({
   onNext?: () => void;
 }) {
   const theme = getHeaderTheme(eyebrow, title);
+  const lastHeaderActionRef = useRef(0);
+  const runHeaderAction = (action?: () => void) => {
+    if (!action) return;
+    const now = Date.now();
+    if (now - lastHeaderActionRef.current < 350) return;
+    lastHeaderActionRef.current = now;
+    action();
+  };
   return (
     <View style={[styles.header, compact && styles.headerCompact, { backgroundColor: theme.background, borderColor: theme.border }]}>
       <ImageBackground
@@ -4921,11 +4929,9 @@ function PageHeader({
             {onBack && (
               <Pressable
                 accessibilityLabel="Go back"
-                accessibilityRole="button"
                 hitSlop={8}
-                onPress={onBack}
-                pressRetentionOffset={12}
-                style={styles.headerDirectionButton}
+                onPress={() => runHeaderAction(onBack)}
+                style={[styles.headerDirectionButton, styles.webTapTarget]}
               >
                 <View pointerEvents="none" style={styles.headerButtonInner}>
                   <Ionicons color="#f3c64d" name="arrow-back-outline" size={17} />
@@ -4936,11 +4942,9 @@ function PageHeader({
             {onNext && (
               <Pressable
                 accessibilityLabel="Go to next module"
-                accessibilityRole="button"
                 hitSlop={8}
-                onPress={onNext}
-                pressRetentionOffset={12}
-                style={styles.headerDirectionButton}
+                onPress={() => runHeaderAction(onNext)}
+                style={[styles.headerDirectionButton, styles.webTapTarget]}
               >
                 <View pointerEvents="none" style={styles.headerButtonInner}>
                   <Text style={styles.headerNextText}>Next</Text>
@@ -5288,6 +5292,11 @@ function drawLine(canvas: any, from: { x: number; y: number }, to: { x: number; 
 }
 
 const styles = StyleSheet.create({
+  webTapTarget: {
+    touchAction: "manipulation" as any,
+    userSelect: "none" as any,
+    WebkitTapHighlightColor: "rgba(243, 198, 77, 0.24)" as any
+  },
   header: { borderRadius: 22, borderWidth: 1, elevation: 8, marginBottom: 10, minHeight: 154, overflow: "hidden", shadowColor: "#5126ad", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.22, shadowRadius: 18 },
   headerCompact: { marginBottom: 10, minHeight: 118 },
   headerShade: { flex: 1, justifyContent: "flex-end", minHeight: 154, padding: 18, paddingTop: 58, position: "relative" },
@@ -5298,7 +5307,7 @@ const styles = StyleSheet.create({
   headerNavigation: { alignItems: "center", flexDirection: "row", justifyContent: "flex-end", left: 12, position: "absolute", right: 12, top: 12, zIndex: 50 },
   headerNavButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, cursor: "pointer" as any, elevation: 18, height: 42, justifyContent: "center", minWidth: 82, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.28, shadowRadius: 9, zIndex: 51 },
   headerDirectionButtons: { flexDirection: "row", gap: 6, zIndex: 51 },
-  headerDirectionButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, cursor: "pointer" as any, elevation: 18, justifyContent: "center", minHeight: 42, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.28, shadowRadius: 9, touchAction: "manipulation" as any, zIndex: 52 },
+  headerDirectionButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, cursor: "pointer" as any, elevation: 18, justifyContent: "center", minHeight: 42, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.28, shadowRadius: 9, zIndex: 52 },
   headerButtonInner: { alignItems: "center", flexDirection: "row", gap: 4, justifyContent: "center" },
   headerHomeText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
   headerNextText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
@@ -5338,7 +5347,7 @@ const styles = StyleSheet.create({
   menuTitle: { color: "#211B34", fontSize: 17, fontWeight: "900" },
   menuTagline: { color: "#00AEBB", fontSize: 13, fontWeight: "800", marginTop: 3 },
   moduleGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "space-between" },
-  moduleGridItem: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 18, borderWidth: 1, cursor: "pointer" as any, elevation: 3, minHeight: 172, padding: 16, shadowColor: "#b87908", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.1, shadowRadius: 12, touchAction: "manipulation" as any, width: "48%" },
+  moduleGridItem: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 18, borderWidth: 1, cursor: "pointer" as any, elevation: 3, minHeight: 172, padding: 16, shadowColor: "#b87908", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.1, shadowRadius: 12, width: "48%" },
   moduleGridItemPressed: { backgroundColor: "#fff4cf", borderColor: "#d79b16", transform: [{ scale: 0.99 }] },
   moduleIconButton: { alignItems: "center", backgroundColor: "transparent", borderColor: "transparent", borderRadius: 0, borderWidth: 0, height: 48, justifyContent: "center", marginBottom: 2, width: 58 },
   moduleIconButtonPurple: { backgroundColor: "#6537c7", borderColor: "#f3c64d", shadowColor: "#6537c7" },
@@ -5380,8 +5389,8 @@ const styles = StyleSheet.create({
   selectedChoice: { backgroundColor: "#6537c7", borderColor: "#f3c64d" },
   choiceText: { color: "#393149", fontSize: 15, fontWeight: "800", textAlign: "center" },
   selectedChoiceText: { color: "#fff4cf" },
-  primaryButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 16, borderWidth: 1, elevation: 3, flexDirection: "row", gap: 8, justifyContent: "center", marginBottom: 10, minHeight: 50, padding: 12, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.22, shadowRadius: 10, touchAction: "manipulation" as any },
-  secondaryButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 16, borderWidth: 1, elevation: 3, justifyContent: "center", marginBottom: 14, minHeight: 50, padding: 12, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.18, shadowRadius: 10, touchAction: "manipulation" as any },
+  primaryButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 16, borderWidth: 1, elevation: 3, flexDirection: "row", gap: 8, justifyContent: "center", marginBottom: 10, minHeight: 50, padding: 12, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.22, shadowRadius: 10 },
+  secondaryButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 16, borderWidth: 1, elevation: 3, justifyContent: "center", marginBottom: 14, minHeight: 50, padding: 12, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.18, shadowRadius: 10 },
   primaryButtonText: { color: "#fff4cf", fontSize: 15, fontWeight: "900" },
   secondaryButtonText: { color: "#fff4cf", fontSize: 15, fontWeight: "900" },
   disabledButton: { opacity: 0.4 },

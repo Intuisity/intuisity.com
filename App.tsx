@@ -319,7 +319,7 @@ export default function App() {
           hitSlop={8}
           onPress={returnHome}
           pressRetentionOffset={12}
-          style={styles.profileBadge}
+          style={[styles.profileBadge, styles.webTapTarget]}
         >
           <Ionicons color="#f3c64d" name="home-outline" size={22} />
           <Text style={styles.profileBadgeText}>Home</Text>
@@ -336,7 +336,7 @@ export default function App() {
             hitSlop={8}
             onPress={() => setShowLanguageMenu((current) => !current)}
             pressRetentionOffset={12}
-            style={styles.languageButton}
+            style={[styles.languageButton, styles.webTapTarget]}
           >
             <Ionicons color="#f3c64d" name="language-outline" size={21} />
             <Text style={styles.languageButtonText}>{userProfile.language.toUpperCase()}</Text>
@@ -346,7 +346,7 @@ export default function App() {
             hitSlop={8}
             onPress={confirmLogout}
             pressRetentionOffset={12}
-            style={styles.logoutIconButton}
+            style={[styles.logoutIconButton, styles.webTapTarget]}
           >
             <Ionicons color="#f3c64d" name="log-out-outline" size={22} />
             <Text style={styles.logoutIconText}>Logout</Text>
@@ -407,7 +407,7 @@ export default function App() {
               key={tab.key}
               onPress={() => setActiveTab(tab.key)}
               pressRetentionOffset={12}
-              style={[styles.tabButton, selected && styles.tabButtonSelected]}
+              style={[styles.tabButton, styles.webTapTarget, selected && styles.tabButtonSelected]}
             >
               <Ionicons
                 color={selected ? "#f3c64d" : "#b87908"}
@@ -2496,6 +2496,11 @@ const styles = StyleSheet.create({
   app: {
     backgroundColor: "#FFFFFF",
     flex: 1
+  },
+  webTapTarget: {
+    touchAction: "manipulation" as any,
+    userSelect: "none" as any,
+    WebkitTapHighlightColor: "rgba(243, 198, 77, 0.24)" as any
   },
   mainScrollArea: {
     flex: 1,
