@@ -3765,8 +3765,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             <Pressable
               accessibilityLabel={`Open ${challenge.title} from banner`}
               key={`feature-${challenge.id}`}
-              onClick={() => openHomeChallenge(challenge.id)}
-              onMouseDown={() => openHomeChallenge(challenge.id)}
               onPress={() => openHomeChallenge(challenge.id)}
               style={({ pressed }) => [
                 styles.forestFeatureLink,
@@ -3778,29 +3776,12 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             </Pressable>
           ))}
         </View>
-        <View style={styles.bannerIconLinks}>
-          {homeChallenges.map((challenge, index) => (
-            <Pressable
-              accessibilityLabel={`Open ${challenge.title} from banner`}
-              key={`banner-${challenge.id}`}
-              onClick={() => openHomeChallenge(challenge.id)}
-              onMouseDown={() => openHomeChallenge(challenge.id)}
-              onPress={() => openHomeChallenge(challenge.id)}
-              style={({ pressed }) => [
-                styles.bannerIconLink,
-                pressed && styles.bannerIconLinkPressed
-              ]}
-            />
-          ))}
-        </View>
       </View>
       <View style={styles.moduleGrid}>
         {homeChallenges.map((challenge) => (
           <Pressable
             accessibilityLabel={`Open ${challenge.title}`}
             key={challenge.id}
-            onClick={() => openHomeChallenge(challenge.id)}
-            onMouseDown={() => openHomeChallenge(challenge.id)}
             onPress={() => openHomeChallenge(challenge.id)}
             style={({ pressed }) => [
               styles.moduleGridItem,
@@ -4938,37 +4919,14 @@ function PageHeader({
           <Text style={[styles.headerSubtitle, compact && styles.headerSubtitleCompact]}>{subtitle}</Text>
         </View>
       </ImageBackground>
-      {(onHome || onBack || onNext) && (
+      {(onBack || onNext) && (
         <View style={styles.headerNavigation}>
-          {onHome ? (
-            <Pressable
-              accessibilityLabel="Return home"
-              hitSlop={8}
-              onClick={() => runHeaderAction(onHome)}
-              onMouseDown={() => runHeaderAction(onHome)}
-              onPress={() => runHeaderAction(onHome)}
-              onPressIn={() => runHeaderAction(onHome)}
-              onTouchEnd={() => runHeaderAction(onHome)}
-              style={styles.headerNavButton}
-            >
-              <View pointerEvents="none" style={styles.headerButtonInner}>
-                <Ionicons color="#f3c64d" name="home-outline" size={20} />
-                <Text style={styles.headerHomeText}>Home</Text>
-              </View>
-            </Pressable>
-          ) : (
-            <View />
-          )}
           <View style={styles.headerDirectionButtons}>
             {onBack && (
               <Pressable
                 accessibilityLabel="Go back"
                 hitSlop={8}
-                onClick={() => runHeaderAction(onBack)}
-                onMouseDown={() => runHeaderAction(onBack)}
                 onPress={() => runHeaderAction(onBack)}
-                onPressIn={() => runHeaderAction(onBack)}
-                onTouchEnd={() => runHeaderAction(onBack)}
                 style={styles.headerDirectionButton}
               >
                 <View pointerEvents="none" style={styles.headerButtonInner}>
@@ -4981,11 +4939,7 @@ function PageHeader({
               <Pressable
                 accessibilityLabel="Go to next module"
                 hitSlop={8}
-                onClick={() => runHeaderAction(onNext)}
-                onMouseDown={() => runHeaderAction(onNext)}
                 onPress={() => runHeaderAction(onNext)}
-                onPressIn={() => runHeaderAction(onNext)}
-                onTouchEnd={() => runHeaderAction(onNext)}
                 style={styles.headerDirectionButton}
               >
                 <View pointerEvents="none" style={styles.headerButtonInner}>
@@ -5341,7 +5295,7 @@ const styles = StyleSheet.create({
   homeHeaderShade: { justifyContent: "flex-start", minHeight: 138, paddingTop: 18 },
   headerBannerImage: { opacity: 1 },
   headerContent: { zIndex: 1 },
-  headerNavigation: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", left: 12, position: "absolute", right: 12, top: 12, zIndex: 50 },
+  headerNavigation: { alignItems: "center", flexDirection: "row", justifyContent: "flex-end", left: 12, position: "absolute", right: 12, top: 12, zIndex: 50 },
   headerNavButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, cursor: "pointer" as any, elevation: 18, height: 42, justifyContent: "center", minWidth: 82, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.28, shadowRadius: 9, zIndex: 51 },
   headerDirectionButtons: { flexDirection: "row", gap: 6, zIndex: 51 },
   headerDirectionButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, cursor: "pointer" as any, elevation: 18, justifyContent: "center", minHeight: 42, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.28, shadowRadius: 9, zIndex: 52 },
@@ -5365,10 +5319,10 @@ const styles = StyleSheet.create({
   forestHeroTagline: { display: "none" },
   forestHeroSparkle: { display: "none" },
   bannerIconCover: { display: "none" },
-  forestFeatureLinks: { display: "none" },
-  forestFeatureLink: { alignItems: "center", flex: 1, gap: 3, justifyContent: "center", minHeight: 44, paddingHorizontal: 2 },
+  forestFeatureLinks: { bottom: "8%", flexDirection: "row", left: "2.5%", position: "absolute", width: "52%", zIndex: 5 },
+  forestFeatureLink: { alignItems: "center", borderRadius: 8, cursor: "pointer" as any, flex: 1, gap: 3, justifyContent: "center", minHeight: 44, paddingHorizontal: 2 },
   forestFeatureText: { color: "#5b230f", fontSize: 8, fontWeight: "900", lineHeight: 10, textAlign: "center" },
-  bannerIconLinks: { bottom: "5%", flexDirection: "row", height: "25%", left: "2.5%", position: "absolute", width: "52%", zIndex: 5 },
+  bannerIconLinks: { display: "none" },
   bannerIconLink: { borderRadius: 8, cursor: "pointer" as any, flex: 1, minHeight: 34 },
   bannerIconLinkPurple: {},
   bannerIconLinkTeal: {},
