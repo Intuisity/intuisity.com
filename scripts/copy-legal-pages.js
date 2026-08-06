@@ -4,6 +4,7 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const dist = path.join(root, "dist");
 const legal = path.join(root, "legal");
+const articles = path.join(root, "articles");
 const publicDir = path.join(root, "public");
 const brandingDir = path.join(publicDir, "branding");
 const previewImageSource = path.join(brandingDir, "intuisity-frontpage-forest.jpg");
@@ -110,6 +111,7 @@ function copyDirectory(from, to) {
 }
 
 copyDirectory(brandingDir, path.join(dist, "branding"));
+copyDirectory(articles, path.join(dist, "articles"));
 for (const favicon of ["favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "apple-touch-icon.png"]) {
   const source = path.join(publicDir, favicon);
   if (fs.existsSync(source)) fs.copyFileSync(source, path.join(dist, favicon));
