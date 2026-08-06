@@ -14,6 +14,7 @@ module.exports = async function handler(request, response) {
     const activeDurationMs = body.activeDurationMs === undefined || body.activeDurationMs === null
       ? Math.min(durationMs, idleStopMs)
       : Math.min(durationMs, Number(body.activeDurationMs || 0));
+    const requestLocation = getRequestLocation(request);
 
     const payload = {
       email,
@@ -23,7 +24,12 @@ module.exports = async function handler(request, response) {
       duration_ms: durationMs,
       active_duration_ms: activeDurationMs,
       date: body.date || new Date().toISOString().slice(0, 10),
-      event_json: body || {},
+      event_json: {
+        ...(body || {}),
+        currentCity: body.currentCity || requestLocation.currentCity || "",
+        currentState: body.currentState || requestLocation.currentState || "",
+        currentCountry: body.currentCountry || requestLocation.currentCountry || ""
+      },
       recorded_at: new Date().toISOString()
     };
 
@@ -56,3 +62,39 @@ module.exports = async function handler(request, response) {
     sendJson(response, 500, { error: "Analytics sync failed", message: error.message });
   }
 };
+
+function getRequestLocation(request) {
+  const headers = request.headers || {};
+  const city = decodeHeaderValue(headers["x-vercel-ip-city"] || headers["x-intuisity-city"]);
+  const state = decodeHeaderValue(headers["x-vercel-ip-country-region"] || headers["x-vercel-ip-region"] || headers["x-intuisity-region"]);
+  const country = normalizeCountry(headers["x-vercel-ip-country"] || headers["x-intuisity-country"]);
+
+  return {
+    currentCity: city,
+    currentState: state,
+    currentCountry: country
+  };
+}
+
+function decodeHeaderValue(value) {
+  const text = Array.isArray(value) ? value[0] : value;
+  if (!text) return "";
+  try {
+    return decodeURIComponent(String(text).replace(/\+/g, " ")).trim();
+  } catch {
+    return String(text).trim();
+  }
+}
+
+function normalizeCountry(value) {
+  const country = decodeHeaderValue(value).toUpperCase();
+  const countryMap = {
+    AU: "Australia",
+    CA: "Canada",
+    GB: "United Kingdom",
+    IN: "India",
+    MX: "Mexico",
+    US: "United States"
+  };
+  return countryMap[country] || country;
+}

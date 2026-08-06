@@ -27,6 +27,9 @@ type BackendAdminReport = {
     email?: string;
     type: string;
     platform: string;
+    currentCity?: string;
+    currentState?: string;
+    currentCountry?: string;
     visits: number;
     totalMs: number;
     activeMs: number;

@@ -10,6 +10,7 @@ module.exports = async function handler(request, response) {
     const profile = body.profile || body || {};
     const email = normalizeEmail(profile.email);
     if (!email) return sendJson(response, 400, { error: "Profile email is required" });
+    const requestLocation = getRequestLocation(request);
 
     const payload = {
       email,
@@ -33,10 +34,15 @@ module.exports = async function handler(request, response) {
       rising_sign: profile.birthChart?.risingSign || "",
       midheaven_sign: profile.birthChart?.midheavenSign || "",
       strongest_aspect: profile.birthChart?.strongestAspect || "",
-      current_city: profile.currentCity || "",
-      current_state: profile.currentState || "",
-      current_country: profile.currentCountry || "",
-      profile_json: profile,
+      current_city: profile.currentCity || requestLocation.currentCity || "",
+      current_state: profile.currentState || requestLocation.currentState || "",
+      current_country: profile.currentCountry || requestLocation.currentCountry || "",
+      profile_json: {
+        ...profile,
+        currentCity: profile.currentCity || requestLocation.currentCity || "",
+        currentState: profile.currentState || requestLocation.currentState || "",
+        currentCountry: profile.currentCountry || requestLocation.currentCountry || ""
+      },
       updated_at: new Date().toISOString()
     };
 
@@ -83,6 +89,42 @@ async function getProfile(request, response) {
   } catch (error) {
     sendJson(response, 500, { error: "Profile lookup failed", message: error.message });
   }
+}
+
+function getRequestLocation(request) {
+  const headers = request.headers || {};
+  const city = decodeHeaderValue(headers["x-vercel-ip-city"] || headers["x-intuisity-city"]);
+  const state = decodeHeaderValue(headers["x-vercel-ip-country-region"] || headers["x-vercel-ip-region"] || headers["x-intuisity-region"]);
+  const country = normalizeCountry(headers["x-vercel-ip-country"] || headers["x-intuisity-country"]);
+
+  return {
+    currentCity: city,
+    currentState: state,
+    currentCountry: country
+  };
+}
+
+function decodeHeaderValue(value) {
+  const text = Array.isArray(value) ? value[0] : value;
+  if (!text) return "";
+  try {
+    return decodeURIComponent(String(text).replace(/\+/g, " ")).trim();
+  } catch {
+    return String(text).trim();
+  }
+}
+
+function normalizeCountry(value) {
+  const country = decodeHeaderValue(value).toUpperCase();
+  const countryMap = {
+    AU: "Australia",
+    CA: "Canada",
+    GB: "United Kingdom",
+    IN: "India",
+    MX: "Mexico",
+    US: "United States"
+  };
+  return countryMap[country] || country;
 }
 
 function upsertProfile(payload) {

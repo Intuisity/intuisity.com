@@ -216,6 +216,7 @@ function buildUserInsights({ analyticsEvents, dailyResults, friends, moduleFeedb
   return emails.map((email) => {
     const profile = profileByEmail.get(email) || { email };
     const events = analyticsEvents.filter((event) => normalizeEmail(event.email) === email);
+    const latestEventLocation = getLatestEventLocation(events);
     const results = dailyResults.filter((entry) => normalizeEmail(entry.email) === email);
     const feedback = moduleFeedback.filter((entry) => normalizeEmail(entry.email) === email);
     const savedFriends = friends.find((entry) => normalizeEmail(entry.email) === email);
@@ -238,7 +239,7 @@ function buildUserInsights({ analyticsEvents, dailyResults, friends, moduleFeedb
     const totalPossible = results.reduce((sum, entry) => sum + Number(entry.maximum || 0), 0);
 
     return {
-      ...withProfileLocationFallback(profile),
+      ...withProfileLocationFallback({ ...profile, latestEventLocation }),
       name: profile.name || "",
       email,
       phone: profile.phone || "",
@@ -282,9 +283,24 @@ function countKnownUsers(sources) {
 function withProfileLocationFallback(profile) {
   const fallback = getLocationFromTimeZone(profile.time_zone || profile.profile_json?.timeZone || "");
   return {
-    currentCity: profile.current_city || profile.profile_json?.currentCity || fallback.currentCity,
-    currentState: profile.current_state || profile.profile_json?.currentState || fallback.currentState,
-    currentCountry: profile.current_country || profile.profile_json?.currentCountry || fallback.currentCountry
+    currentCity: profile.current_city || profile.profile_json?.currentCity || profile.latestEventLocation?.currentCity || fallback.currentCity,
+    currentState: profile.current_state || profile.profile_json?.currentState || profile.latestEventLocation?.currentState || fallback.currentState,
+    currentCountry: profile.current_country || profile.profile_json?.currentCountry || profile.latestEventLocation?.currentCountry || fallback.currentCountry
+  };
+}
+
+function getLatestEventLocation(events) {
+  return [...events]
+    .sort((a, b) => new Date(b.recorded_at || b.started_at || 0).getTime() - new Date(a.recorded_at || a.started_at || 0).getTime())
+    .map(getEventLocation)
+    .find((location) => location.currentCity || location.currentState || location.currentCountry) || {};
+}
+
+function getEventLocation(event) {
+  return {
+    currentCity: event.event_json?.currentCity || event.event_json?.city || "",
+    currentState: event.event_json?.currentState || event.event_json?.region || event.event_json?.state || "",
+    currentCountry: event.event_json?.currentCountry || event.event_json?.country || ""
   };
 }
 
@@ -433,6 +449,9 @@ function buildVisitorDetails(events) {
       email: signedIn ? email : "",
       type: signedIn ? "Signed in" : "Anonymous",
       platform: getPlatformLabel(channel),
+      currentCity: "",
+      currentState: "",
+      currentCountry: "",
       visits: 0,
       totalMs: 0,
       activeMs: 0,
@@ -444,6 +463,10 @@ function buildVisitorDetails(events) {
     current.visits += 1;
     current.totalMs += Number(event.duration_ms || 0);
     current.activeMs += getActiveDuration(event);
+    const eventLocation = getEventLocation(event);
+    current.currentCity = current.currentCity || eventLocation.currentCity;
+    current.currentState = current.currentState || eventLocation.currentState;
+    current.currentCountry = current.currentCountry || eventLocation.currentCountry;
     if ((event.recorded_at || event.started_at || "") < current.firstSeenAt) current.firstSeenAt = event.recorded_at || event.started_at || "";
     if ((event.recorded_at || event.started_at || "") > current.lastSeenAt) current.lastSeenAt = event.recorded_at || event.started_at || "";
     current.moduleCounts.set(moduleLabel, (current.moduleCounts.get(moduleLabel) || 0) + 1);
@@ -461,6 +484,9 @@ function buildVisitorDetails(events) {
         email: visitor.email,
         type: visitor.type,
         platform: visitor.platform,
+        currentCity: visitor.currentCity,
+        currentState: visitor.currentState,
+        currentCountry: visitor.currentCountry,
         visits: visitor.visits,
         totalMs: visitor.totalMs,
         activeMs: visitor.activeMs,
