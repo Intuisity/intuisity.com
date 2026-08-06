@@ -360,6 +360,7 @@ export default function App() {
         <View style={styles.languageMenu}>
           {supportedLanguages.map((language) => (
             <Pressable
+              accessibilityRole="button"
               key={language.code}
               onPress={() => {
                 const updatedProfile = { ...userProfile, language: language.code };
@@ -504,12 +505,14 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
               <Text style={styles.freePlayBadgeText}>Free to play daily challenges</Text>
             </View>
           </View>
-          <Pressable onPress={() => setMode("create")} style={styles.primaryButton}>
+          <Pressable
+              accessibilityRole="button" onPress={() => setMode("create")} style={styles.primaryButton}>
             <Ionicons color="#FFFFFF" name="person-add-outline" size={18} />
             <Text style={styles.primaryButtonText}>Create my account</Text>
           </Pressable>
           <GoogleSignInButton onPress={handleGoogleSignIn} />
           <Pressable
+              accessibilityRole="button"
             onPress={() => {
               if (savedProfiles.length > 0) {
                 setProfile({ ...emptyProfile, email: savedProfiles[0].email });
@@ -546,6 +549,7 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
           <ProfileInput autoComplete="email" label="Email address" textContentType="emailAddress" value={profile.email} onChangeText={(email) => setProfile({ ...profile, email })} />
           <ProfileInput autoComplete="current-password" label="Password" secure textContentType="password" value={password} onChangeText={setPassword} />
           <Pressable
+              accessibilityRole="button"
             onPress={() => {
               setPassword("");
               setConfirmPassword("");
@@ -562,6 +566,7 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
               <Text style={styles.savedAccountLabel}>Saved accounts</Text>
               {savedProfiles.map((savedProfile) => (
                 <Pressable
+              accessibilityRole="button"
                   accessibilityLabel={`Use saved account ${savedProfile.email}`}
                   key={savedProfile.email}
                   onPress={() => {
@@ -603,6 +608,7 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
           {loginNotice ? <Text style={styles.accountHint}>{loginNotice}</Text> : null}
           {error ? <Text style={styles.accountError}>{error}</Text> : null}
           <Pressable
+              accessibilityRole="button"
             onPress={async () => {
               setLoginNotice("");
               setError("");
@@ -629,7 +635,8 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
           >
             <Text style={styles.primaryButtonText}>Log in</Text>
           </Pressable>
-          <Pressable onPress={() => setMode("welcome")} style={styles.accountSecondaryButton}>
+          <Pressable
+              accessibilityRole="button" onPress={() => setMode("welcome")} style={styles.accountSecondaryButton}>
             <Text style={styles.accountSecondaryText}>Back</Text>
           </Pressable>
           <LegalLinks />
@@ -655,6 +662,7 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
           {confirmPassword.length > 0 && password !== confirmPassword ? <Text style={styles.accountError}>Passwords do not match yet.</Text> : null}
           {error ? <Text style={styles.accountError}>{error}</Text> : null}
           <Pressable
+              accessibilityRole="button"
             disabled={!resetReady}
             onPress={async () => {
               const saved = await findSavedProfile(profile.email);
@@ -681,6 +689,7 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
             <Text style={styles.primaryButtonText}>Reset password and log in</Text>
           </Pressable>
           <Pressable
+              accessibilityRole="button"
             onPress={() => {
               setPassword("");
               setConfirmPassword("");
@@ -736,6 +745,7 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
         </View>
         {error ? <Text style={styles.accountError}>{error}</Text> : null}
         <Pressable
+              accessibilityRole="button"
           disabled={!requiredComplete}
           onPress={() => {
             const normalizedEmail = profile.email.trim().toLowerCase();
@@ -761,7 +771,8 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
         >
           <Text style={styles.primaryButtonText}>Save profile and begin</Text>
         </Pressable>
-        <Pressable onPress={() => setMode("welcome")} style={styles.accountSecondaryButton}>
+        <Pressable
+              accessibilityRole="button" onPress={() => setMode("welcome")} style={styles.accountSecondaryButton}>
           <Text style={styles.accountSecondaryText}>Back</Text>
         </Pressable>
         <LegalLinks />
@@ -773,11 +784,13 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
 function LegalLinks() {
   return (
     <View style={styles.legalLinks}>
-      <Pressable onPress={() => openLegalPage("privacy.html")} style={styles.legalLinkButton}>
+      <Pressable
+              accessibilityRole="button" onPress={() => openLegalPage("privacy.html")} style={styles.legalLinkButton}>
         <Text style={styles.legalLinkText}>Privacy Policy</Text>
       </Pressable>
       <Text style={styles.legalLinkDivider}>|</Text>
-      <Pressable onPress={() => openLegalPage("terms.html")} style={styles.legalLinkButton}>
+      <Pressable
+              accessibilityRole="button" onPress={() => openLegalPage("terms.html")} style={styles.legalLinkButton}>
         <Text style={styles.legalLinkText}>Terms of Service</Text>
       </Pressable>
     </View>
@@ -800,6 +813,7 @@ function LanguageSelector({ selected, onSelect }: { selected: string; onSelect: 
           <Text style={styles.languageSetupDefault}>English is selected unless you change it.</Text>
         </View>
         <Pressable
+              accessibilityRole="button"
           accessibilityLabel="Change language"
           onPress={() => setShowOptions((current) => !current)}
           style={styles.languageButton}
@@ -812,6 +826,7 @@ function LanguageSelector({ selected, onSelect }: { selected: string; onSelect: 
         <View style={styles.signupLanguageMenu}>
         {supportedLanguages.map((language) => (
           <Pressable
+              accessibilityRole="button"
             accessibilityLabel={`Choose ${language.name}`}
             key={language.code}
             onPress={() => {
@@ -846,6 +861,7 @@ function ProfileInput({ autoComplete, label, value, onChangeText, placeholder = 
         <TextInput accessibilityLabel={label} autoCapitalize={label.includes("Email") || secure ? "none" : "words"} autoComplete={autoComplete} keyboardType={label.includes("Email") ? "email-address" : label.includes("Phone") ? "phone-pad" : label === "Birthdate" ? "number-pad" : "default"} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor="#9A93AA" secureTextEntry={secure && !passwordVisible} style={[styles.accountInput, secure && styles.accountPasswordInput]} textContentType={textContentType} value={value} />
         {secure ? (
           <Pressable
+              accessibilityRole="button"
             accessibilityLabel={passwordVisible ? `Hide ${label}` : `Show ${label}`}
             onPress={() => setPasswordVisible((current) => !current)}
             style={styles.passwordVisibilityButton}
@@ -858,6 +874,7 @@ function ProfileInput({ autoComplete, label, value, onChangeText, placeholder = 
         <View style={styles.stateSuggestions}>
           {matchingSuggestions.map((suggestion) => (
             <Pressable
+              accessibilityRole="button"
               accessibilityLabel={`Choose ${suggestion}`}
               key={suggestion}
               onPress={() => onChangeText(suggestion)}
@@ -875,7 +892,8 @@ function ProfileInput({ autoComplete, label, value, onChangeText, placeholder = 
 
 function GoogleSignInButton({ onPress }: { onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={styles.googleButton}>
+    <Pressable
+              accessibilityRole="button" onPress={onPress} style={styles.googleButton}>
       <View style={styles.googleIconCircle}>
         <Text style={styles.googleIconText}>G</Text>
       </View>
@@ -1352,7 +1370,8 @@ function DailyChallenge({
             </View>
           );
         })}
-        <Pressable onPress={() => setShowResults(false)} style={styles.primaryButton}>
+        <Pressable
+              accessibilityRole="button" onPress={() => setShowResults(false)} style={styles.primaryButton}>
           <Ionicons color="#FFFFFF" name="arrow-back-outline" size={18} />
           <Text style={styles.primaryButtonText}>Review challenges</Text>
         </Pressable>
@@ -1410,6 +1429,7 @@ function DailyChallenge({
               const isColorChoice = challenge.id === "daily-intuition";
               return (
                 <Pressable
+              accessibilityRole="button"
                   key={choice}
                   accessibilityLabel={`${choice} choice`}
                   onPress={() => {
@@ -1460,6 +1480,7 @@ function DailyChallenge({
         </View>
       ))}
       <Pressable
+              accessibilityRole="button"
         disabled={answeredCount !== dailyChallenges.length}
         onPress={() => setShowResults(true)}
         style={[
@@ -1502,6 +1523,7 @@ function RemoteViewing({
         const selected = remotePick?.imageId === option.imageId;
         return (
           <Pressable
+              accessibilityRole="button"
             key={option.imageId}
             onPress={() => {
               setRemotePick({ ...option, confidence: 4 });
@@ -1515,6 +1537,7 @@ function RemoteViewing({
         );
       })}
       <Pressable
+              accessibilityRole="button"
         disabled={!remotePick}
         onPress={() => setRemoteRevealed(true)}
         style={[styles.primaryButton, !remotePick && styles.disabledButton]}
@@ -1545,6 +1568,7 @@ function FriendChallenges() {
         subtitle="Invite friends into short prediction games and compare scores."
       />
       <Pressable
+              accessibilityRole="button"
         onPress={() => Alert.alert("Invite created", "Friend challenge invitation is ready to send.")}
         style={styles.primaryButton}
       >
@@ -1598,7 +1622,8 @@ function Premium({ status, startCheckout }: { status: string; startCheckout: () 
           </View>
         ))}
       </View>
-      <Pressable onPress={startCheckout} style={styles.primaryButton}>
+      <Pressable
+              accessibilityRole="button" onPress={startCheckout} style={styles.primaryButton}>
         <Ionicons color="#FFFFFF" name="notifications-outline" size={18} />
         <Text style={styles.primaryButtonText}>Let me know when Premium is available</Text>
       </Pressable>
@@ -1705,6 +1730,9 @@ function AdminDashboard() {
               </View>
             </View>
             <Text style={styles.adminFeedbackMeta}>
+              Location: {[visitor.currentCity, visitor.currentState, visitor.currentCountry].filter(Boolean).join(", ") || "No location captured yet"}
+            </Text>
+            <Text style={styles.adminFeedbackMeta}>
               Last active: {visitor.lastSeenAt ? formatReportDate(visitor.lastSeenAt) : "Unknown"}
               {visitor.firstSeenAt ? ` · First seen: ${formatReportDate(visitor.firstSeenAt)}` : ""}
             </Text>
@@ -1781,7 +1809,8 @@ function AdminDashboard() {
       <View style={styles.adminDetailCard}>
         <View style={styles.adminModuleTopline}>
           <Text style={styles.adminStartTitle}>{detail.title}</Text>
-          <Pressable onPress={() => setSelectedReportDetail(null)} style={styles.adminMiniCloseButton}>
+          <Pressable
+              accessibilityRole="button" onPress={() => setSelectedReportDetail(null)} style={styles.adminMiniCloseButton}>
             <Ionicons color="#7555C7" name="close-outline" size={18} />
           </Pressable>
         </View>
@@ -1794,7 +1823,8 @@ function AdminDashboard() {
         ))}
         {(selectedReportDetail === "unique-visitors" || selectedReportDetail === "tracked-visits") && renderVisitorDetailRows()}
         {selectedReportDetail === "saved-users" && (
-          <Pressable onPress={() => setAdminReportPage("user-insights")} style={styles.adminLightButton}>
+          <Pressable
+              accessibilityRole="button" onPress={() => setAdminReportPage("user-insights")} style={styles.adminLightButton}>
             <Ionicons color="#7555C7" name="open-outline" size={17} />
             <Text style={styles.adminLightButtonText}>Open full user list</Text>
           </Pressable>
@@ -1894,7 +1924,8 @@ function AdminDashboard() {
           <Metric icon="flash-outline" label="Active time" value={formatDuration(report.totalActiveTimeMs || report.totalTimeMs)} />
         </View>
         <View style={styles.adminRefreshRow}>
-          <Pressable onPress={refreshReports} style={styles.adminLightButton}>
+          <Pressable
+              accessibilityRole="button" onPress={refreshReports} style={styles.adminLightButton}>
             <Ionicons color="#7555C7" name="refresh-outline" size={17} />
             <Text style={styles.adminLightButtonText}>Refresh reports</Text>
           </Pressable>
@@ -1907,6 +1938,7 @@ function AdminDashboard() {
           <View style={styles.adminModuleTopline}>
             <Text style={styles.adminStartTitle}>User insight date range</Text>
             <Pressable
+              accessibilityRole="button"
               onPress={() => {
                 setReportStartDate("");
                 setReportEndDate("");
@@ -1938,7 +1970,8 @@ function AdminDashboard() {
           <Text style={styles.adminFeedbackMeta}>This date range also controls the CSV export.</Text>
         </View>
 
-        <Pressable onPress={downloadUserInsights} style={styles.adminDownloadButton}>
+        <Pressable
+              accessibilityRole="button" onPress={downloadUserInsights} style={styles.adminDownloadButton}>
           <Ionicons color="#FFFFFF" name="download-outline" size={18} />
           <Text style={styles.primaryButtonText}>Download user insights CSV</Text>
         </Pressable>
@@ -1987,7 +2020,8 @@ function AdminDashboard() {
       </View>
 
       <View style={styles.adminRefreshRow}>
-        <Pressable onPress={refreshReports} style={styles.adminLightButton}>
+        <Pressable
+              accessibilityRole="button" onPress={refreshReports} style={styles.adminLightButton}>
           <Ionicons color="#7555C7" name="refresh-outline" size={17} />
           <Text style={styles.adminLightButtonText}>Refresh reports</Text>
         </Pressable>
@@ -2019,11 +2053,13 @@ function AdminDashboard() {
           value={adminSecret}
         />
         <View style={styles.adminSecretActions}>
-          <Pressable onPress={() => setShowAdminSecret((current) => !current)} style={styles.adminLightButton}>
+          <Pressable
+              accessibilityRole="button" onPress={() => setShowAdminSecret((current) => !current)} style={styles.adminLightButton}>
             <Ionicons color="#7555C7" name={showAdminSecret ? "eye-off-outline" : "eye-outline"} size={17} />
             <Text style={styles.adminLightButtonText}>{showAdminSecret ? "Hide" : "Show"}</Text>
           </Pressable>
-          <Pressable onPress={saveAdminPasswordForDevice} style={styles.adminLightButton}>
+          <Pressable
+              accessibilityRole="button" onPress={saveAdminPasswordForDevice} style={styles.adminLightButton}>
             <Ionicons color="#008A94" name="save-outline" size={17} />
             <Text style={styles.adminLightButtonText}>Save on this device</Text>
           </Pressable>
@@ -2048,7 +2084,8 @@ function AdminDashboard() {
       )}
 
       <View style={styles.adminCollapseCard}>
-        <Pressable onPress={() => setShowBackendDetails((current) => !current)} style={styles.adminCollapseHeader}>
+        <Pressable
+              accessibilityRole="button" onPress={() => setShowBackendDetails((current) => !current)} style={styles.adminCollapseHeader}>
           <View style={styles.adminCollapseIcon}>
             <Ionicons color="#7555C7" name="server-outline" size={20} />
           </View>
@@ -2068,6 +2105,7 @@ function AdminDashboard() {
         </View>
         {recentBackendSaves.length > 0 && (
           <Pressable
+              accessibilityRole="button"
             onPress={() => {
               clearBackendSyncLog();
               setBackendLogRefresh((current) => current + 1);
@@ -2141,6 +2179,7 @@ function AdminDashboard() {
         <View style={styles.adminModuleTopline}>
           <Text style={styles.adminStartTitle}>Date range</Text>
           <Pressable
+              accessibilityRole="button"
             onPress={() => {
               setReportStartDate("");
               setReportEndDate("");
@@ -2219,7 +2258,8 @@ function AdminDashboard() {
             See the full user list, date range controls, and CSV export on a separate report page.
           </Text>
         </View>
-        <Pressable onPress={() => setAdminReportPage("user-insights")} style={styles.adminLightButton}>
+        <Pressable
+              accessibilityRole="button" onPress={() => setAdminReportPage("user-insights")} style={styles.adminLightButton}>
           <Ionicons color="#7555C7" name="open-outline" size={17} />
           <Text style={styles.adminLightButtonText}>Open</Text>
         </Pressable>
@@ -2237,6 +2277,7 @@ function AdminDashboard() {
         <View style={styles.adminRangeSelector}>
           {[1, 7, 14, 30].map((days) => (
             <Pressable
+              accessibilityRole="button"
               key={days}
               onPress={() => setModuleTrendDays(days as 1 | 7 | 14 | 30)}
               style={[styles.adminRangeButton, moduleTrendDays === days && styles.adminRangeButtonSelected]}
@@ -2321,13 +2362,15 @@ function AdminDashboard() {
       <Text style={styles.adminSectionTitle}>Report page responses</Text>
       <View style={styles.adminRow}>
         <Text style={styles.bodyText}>Average rating</Text>
-        <Pressable onPress={() => openReportDetail("feedback")}>
+        <Pressable
+              accessibilityRole="button" onPress={() => openReportDetail("feedback")}>
           <Text style={styles.adminClickableValue}>{report.averageRating ? `${report.averageRating}/10` : "No ratings yet"}</Text>
         </Pressable>
       </View>
       <View style={styles.adminRow}>
         <Text style={styles.bodyText}>Saved comment responses</Text>
-        <Pressable onPress={() => openReportDetail("feedback")}>
+        <Pressable
+              accessibilityRole="button" onPress={() => openReportDetail("feedback")}>
           <Text style={styles.adminClickableValue}>{report.improvementResponses.length}</Text>
         </Pressable>
       </View>
