@@ -2689,6 +2689,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         {treasureFlowStep === "choose" && (
           <View style={styles.treasureModeGrid}>
             <Pressable
+              accessibilityRole="button"
               onPress={() => chooseTreasureMode("friend")}
               style={[styles.treasureModeCard, styles.treasureModeFriendCard]}
             >
@@ -2697,6 +2698,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               <Text style={[styles.treasureModeText, styles.treasureModeFriendText]}>Add their email, arrange your five treasure tiles, then send the challenge.</Text>
             </Pressable>
             <Pressable
+              accessibilityRole="button"
               onPress={() => chooseTreasureMode("computer")}
               style={[styles.treasureModeCard, styles.treasureModeComputerCard]}
             >
@@ -2709,6 +2711,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         {treasureFlowStep !== "choose" && (
           <View style={styles.opponentToggle}>
             <Pressable
+              accessibilityRole="button"
               onPress={() => chooseTreasureMode("friend")}
               style={[styles.opponentOption, styles.opponentOptionFriend]}
             >
@@ -2716,6 +2719,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               <Text style={[styles.opponentOptionText, styles.opponentOptionFriendText]}>Play with friend</Text>
             </Pressable>
             <Pressable
+              accessibilityRole="button"
               onPress={() => chooseTreasureMode("computer")}
               style={styles.opponentOption}
             >
@@ -2768,6 +2772,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             {friendPhoneError ? <Text style={styles.inputError}>{friendPhoneError}</Text> : null}
             <Pressable
               accessibilityLabel="Save friend and continue to treasure tiles"
+              accessibilityRole="button"
               disabled={!friendName.trim() || !friendEmail.trim()}
               onPress={saveTreasureFriendAndContinue}
               style={[styles.primaryButton, (!friendName.trim() || !friendEmail.trim()) && styles.disabledButton]}
@@ -2780,6 +2785,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 <Text style={styles.savedFriendsLabel}>Saved friends · tap to select</Text>
                 <Pressable
                   accessibilityLabel="Open saved friends"
+                  accessibilityRole="button"
                   onPress={() => setShowSavedFriends((current) => !current)}
                   style={styles.savedFriendsDropdownButton}
                 >
@@ -2797,6 +2803,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                     return (
                       <Pressable
                         accessibilityLabel={`Select friend ${friend.name}`}
+                        accessibilityRole="button"
                         key={friendKey}
                         onPress={() => {
                           setFriendPhoneError("");
@@ -2823,6 +2830,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         )}
         {treasureFlowStep === "choose" ? null : !treasureStarted || treasureWinText ? (
           <Pressable
+            accessibilityRole="button"
             disabled={opponent === "friend" && selectedFriendPhones.length === 0 && !treasureWinText}
             onPress={() => startTreasureChallenge(opponent)}
             style={[
@@ -4929,6 +4937,7 @@ function PageHeader({
             {onBack && (
               <Pressable
                 accessibilityLabel="Go back"
+                accessibilityRole="button"
                 hitSlop={8}
                 onPress={() => runHeaderAction(onBack)}
                 style={[styles.headerDirectionButton, styles.webTapTarget]}
@@ -4942,6 +4951,7 @@ function PageHeader({
             {onNext && (
               <Pressable
                 accessibilityLabel="Go to next module"
+                accessibilityRole="button"
                 hitSlop={8}
                 onPress={() => runHeaderAction(onNext)}
                 style={[styles.headerDirectionButton, styles.webTapTarget]}

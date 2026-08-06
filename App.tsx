@@ -316,6 +316,7 @@ export default function App() {
       <View style={styles.floatingScore}>
         <Pressable
           accessibilityLabel="Go to home page"
+          accessibilityRole="button"
           hitSlop={8}
           onPress={returnHome}
           pressRetentionOffset={12}
@@ -333,6 +334,7 @@ export default function App() {
         <View style={styles.topRightActions}>
           <Pressable
             accessibilityLabel="Change language"
+            accessibilityRole="button"
             hitSlop={8}
             onPress={() => setShowLanguageMenu((current) => !current)}
             pressRetentionOffset={12}
@@ -343,6 +345,7 @@ export default function App() {
           </Pressable>
           <Pressable
             accessibilityLabel="Log out"
+            accessibilityRole="button"
             hitSlop={8}
             onPress={confirmLogout}
             pressRetentionOffset={12}
