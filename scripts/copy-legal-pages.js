@@ -16,7 +16,9 @@ const pages = [
   { from: path.join(legal, "terms.html"), to: path.join(dist, "terms.html") },
   { from: path.join(root, "sitemap.xml"), to: path.join(dist, "sitemap.xml") },
   { from: path.join(root, "robots.txt"), to: path.join(dist, "robots.txt") },
-  { from: path.join(root, "llms.txt"), to: path.join(dist, "llms.txt") }
+  { from: path.join(root, "llms.txt"), to: path.join(dist, "llms.txt") },
+  { from: path.join(root, "intuition-training.html"), to: path.join(dist, "intuition-training.html") },
+  { from: path.join(root, "intuition-games-with-friends.html"), to: path.join(dist, "intuition-games-with-friends.html") }
 ];
 
 const seoTitle = "Intuisity | Daily Intuition Training, Astrology Insights, and Remote Viewing";
