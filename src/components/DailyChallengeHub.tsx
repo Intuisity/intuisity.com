@@ -3769,15 +3769,8 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               key={`feature-${challenge.id}`}
               onPress={() => openHomeChallenge(challenge.id)}
               pressRetentionOffset={12}
-              style={({ pressed }) => [
-                styles.forestFeatureLink,
-                styles.webTapTarget,
-                pressed && styles.bannerIconLinkPressed
-              ]}
-            >
-              <Ionicons color={intuTheme.gold} name={challengeIcons[challenge.id]} size={24} />
-              <Text style={styles.forestFeatureText}>{challenge.title.replace(/^Challenge \d+: /, "")}</Text>
-            </Pressable>
+              style={[styles.forestFeatureLink, styles.webTapTarget]}
+            />
           ))}
         </View>
       </View>
