@@ -1,4 +1,5 @@
 const { allowCors, normalizeEmail, readJsonBody, sendJson, supabaseRequest } = require("../_supabase");
+const idleStopMs = 180000;
 
 module.exports = async function handler(request, response) {
   if (allowCors(request, response)) return;
@@ -9,13 +10,18 @@ module.exports = async function handler(request, response) {
     const email = normalizeEmail(body.email);
     if (!email) return sendJson(response, 400, { error: "Email is required" });
 
+    const durationMs = Number(body.durationMs || 0);
+    const activeDurationMs = body.activeDurationMs === undefined || body.activeDurationMs === null
+      ? Math.min(durationMs, idleStopMs)
+      : Math.min(durationMs, Number(body.activeDurationMs || 0));
+
     const payload = {
       email,
       module_id: body.moduleId || "",
       module_label: body.moduleLabel || "Unknown area",
       started_at: body.startedAt || new Date().toISOString(),
-      duration_ms: Number(body.durationMs || 0),
-      active_duration_ms: Number(body.activeDurationMs || body.durationMs || 0),
+      duration_ms: durationMs,
+      active_duration_ms: activeDurationMs,
       date: body.date || new Date().toISOString().slice(0, 10),
       event_json: body || {},
       recorded_at: new Date().toISOString()
