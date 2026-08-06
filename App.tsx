@@ -1572,6 +1572,7 @@ function AdminDashboard() {
   const [showAdminSecret, setShowAdminSecret] = useState(false);
   const [adminReportPage, setAdminReportPage] = useState<"overview" | "user-insights">("overview");
   const [showBackendDetails, setShowBackendDetails] = useState(false);
+  const [selectedReportDetail, setSelectedReportDetail] = useState<string | null>(null);
   const [reportStartDate, setReportStartDate] = useState("");
   const [reportEndDate, setReportEndDate] = useState("");
   const [moduleTrendDays, setModuleTrendDays] = useState<1 | 7 | 14 | 30>(7);
@@ -1588,12 +1589,18 @@ function AdminDashboard() {
   const moduleTrendLabels = Array.from(new Set(moduleTrendRows.flatMap((day) => day.modules.map((module) => module.moduleLabel))));
   const moduleTrendMax = Math.max(1, ...moduleTrendRows.flatMap((day) => day.modules.map((module) => module.activeMs || module.totalMs)));
   const moduleTrendColors = ["#7555C7", "#00AEBB", "#43C987", "#F4B740", "#B15A60", "#6544B8", "#706982"];
+  const visitorBreakdown = report.visitorBreakdown || {
+    anonymous: Math.max(0, report.uniqueVisitors - report.totalUsers),
+    profileSignups: report.totalUsers,
+    signedIn: Math.min(report.totalUsers, report.uniqueVisitors),
+    totalUnique: report.uniqueVisitors
+  };
   const summaryMetrics = [
-    { icon: "people-outline" as const, label: "Saved users", value: report.totalUsers },
-    { icon: "pulse-outline" as const, label: "Tracked visits", value: report.totalVisits },
-    { icon: "person-circle-outline" as const, label: "Unique visitors", value: report.uniqueVisitors },
-    { icon: "flash-outline" as const, label: "Active time", value: formatDuration(report.totalActiveTimeMs || report.totalTimeMs) },
-    { icon: "time-outline" as const, label: "Page time", value: formatDuration(report.totalTimeMs) }
+    { detailKey: "saved-users", icon: "people-outline" as const, label: "Saved users", value: report.totalUsers },
+    { detailKey: "tracked-visits", icon: "pulse-outline" as const, label: "Tracked visits", value: report.totalVisits },
+    { detailKey: "unique-visitors", icon: "person-circle-outline" as const, label: "Unique visitors", value: report.uniqueVisitors },
+    { detailKey: "active-time", icon: "flash-outline" as const, label: "Active time", value: formatDuration(report.totalActiveTimeMs || report.totalTimeMs) },
+    { detailKey: "page-time", icon: "time-outline" as const, label: "Page time", value: formatDuration(report.totalTimeMs) }
   ];
   const downloadUserInsights = () => {
     const opener = (globalThis as unknown as { open?: (url: string, target?: string) => void }).open;
@@ -1610,6 +1617,91 @@ function AdminDashboard() {
   const refreshReports = () => {
     setBackendStatus("Refreshing backend report...");
     setReportRefreshId((current) => current + 1);
+  };
+  const openReportDetail = (detailKey: string) => {
+    setSelectedReportDetail((current) => current === detailKey ? null : detailKey);
+  };
+  const renderReportDetailCard = () => {
+    if (!selectedReportDetail) return null;
+
+    const detailMap: Record<string, { title: string; text: string; rows: Array<{ label: string; value: string | number }> }> = {
+      "saved-users": {
+        title: "Saved users",
+        text: "People with a saved Intuisity profile. This excludes admin test emails and does not include anonymous visitors.",
+        rows: [
+          { label: "Saved profiles", value: report.totalUsers },
+          { label: "Profile signups in this range", value: visitorBreakdown.profileSignups },
+          { label: "User insight rows", value: report.userInsights?.length || 0 }
+        ]
+      },
+      "tracked-visits": {
+        title: "Tracked visits",
+        text: "Every saved analytics event in the selected date range. One person can create several visits by opening modules or returning later.",
+        rows: [
+          { label: "Tracked module and page events", value: report.totalVisits },
+          { label: "Modules with time recorded", value: report.moduleSummaries.length },
+          { label: "Most used area", value: report.mostUsedModule }
+        ]
+      },
+      "unique-visitors": {
+        title: "Unique visitors",
+        text: "Unique visitors can rise when someone uses a new device, browser, private window, app install, or clears site data. Signed-in users are counted by email; non-signed-in visits are counted by a browser visitor ID.",
+        rows: [
+          { label: "Total unique visitors", value: visitorBreakdown.totalUnique || report.uniqueVisitors },
+          { label: "Signed-in visitors", value: visitorBreakdown.signedIn },
+          { label: "Anonymous browser visitors", value: visitorBreakdown.anonymous },
+          { label: "Saved profile signups", value: visitorBreakdown.profileSignups }
+        ]
+      },
+      "active-time": {
+        title: "Active time",
+        text: "Estimated time when the visitor was active on the page. This is better than raw page time when someone walks away or switches tabs.",
+        rows: [
+          { label: "Total active time", value: formatDuration(report.totalActiveTimeMs || report.totalTimeMs) },
+          { label: "Average active session", value: formatDuration(report.averageActiveSessionMs || report.averageSessionMs) },
+          { label: "Most active module", value: report.moduleSummaries[0]?.moduleLabel || "No module activity yet" }
+        ]
+      },
+      "page-time": {
+        title: "Page time",
+        text: "Total elapsed page time. This may be higher than active time when someone leaves Intuisity open while doing something else.",
+        rows: [
+          { label: "Total page time", value: formatDuration(report.totalTimeMs) },
+          { label: "Average page session", value: formatDuration(report.averageSessionMs) },
+          { label: "Active-time comparison", value: formatDuration(report.totalActiveTimeMs || 0) }
+        ]
+      },
+      "feedback": {
+        title: "Report page responses",
+        text: "Ratings and written improvement notes submitted from the results page.",
+        rows: [
+          { label: "Average rating", value: report.averageRating ? `${report.averageRating}/10` : "No ratings yet" },
+          { label: "Written comments", value: report.improvementResponses.length },
+          { label: "Rated modules", value: report.feedbackCount }
+        ]
+      }
+    };
+
+    const detail = detailMap[selectedReportDetail];
+    if (!detail) return null;
+
+    return (
+      <View style={styles.adminDetailCard}>
+        <View style={styles.adminModuleTopline}>
+          <Text style={styles.adminStartTitle}>{detail.title}</Text>
+          <Pressable onPress={() => setSelectedReportDetail(null)} style={styles.adminMiniCloseButton}>
+            <Ionicons color="#7555C7" name="close-outline" size={18} />
+          </Pressable>
+        </View>
+        <Text style={styles.bodyText}>{detail.text}</Text>
+        {detail.rows.map((row) => (
+          <View key={row.label} style={styles.adminDetailRow}>
+            <Text style={styles.adminFeedbackMeta}>{row.label}</Text>
+            <Text style={styles.adminValue}>{row.value}</Text>
+          </View>
+        ))}
+      </View>
+    );
   };
   const renderUserInsightsList = (limit?: number) => (
     report.userInsights?.length ? report.userInsights.slice(0, limit || report.userInsights.length).map((user) => (
@@ -1896,16 +1988,17 @@ function AdminDashboard() {
 
       <View style={styles.adminMetricGrid}>
         {summaryMetrics.map((metric) => (
-          <Metric key={metric.label} icon={metric.icon} label={metric.label} value={metric.value} />
+          <Metric key={metric.label} icon={metric.icon} label={metric.label} onPress={() => openReportDetail(metric.detailKey)} value={metric.value} />
         ))}
       </View>
+      {renderReportDetailCard()}
 
       <Text style={styles.adminSectionTitle}>Visitor volume</Text>
       <View style={styles.adminVolumeGrid}>
-        <Metric icon="today-outline" label="Today" value={report.visitorVolume?.today || 0} />
-        <Metric icon="calendar-outline" label="Last 7 days" value={report.visitorVolume?.week || 0} />
-        <Metric icon="calendar-number-outline" label="Last 30 days" value={report.visitorVolume?.month || 0} />
-        <Metric icon="filter-outline" label="Selected range" value={report.visitorVolume?.range || report.uniqueVisitors || 0} />
+        <Metric icon="today-outline" label="Today" onPress={() => openReportDetail("unique-visitors")} value={report.visitorVolume?.today || 0} />
+        <Metric icon="calendar-outline" label="Last 7 days" onPress={() => openReportDetail("unique-visitors")} value={report.visitorVolume?.week || 0} />
+        <Metric icon="calendar-number-outline" label="Last 30 days" onPress={() => openReportDetail("unique-visitors")} value={report.visitorVolume?.month || 0} />
+        <Metric icon="filter-outline" label="Selected range" onPress={() => openReportDetail("unique-visitors")} value={report.visitorVolume?.range || report.uniqueVisitors || 0} />
       </View>
 
       <Text style={styles.adminSectionTitle}>Traffic by platform</Text>
@@ -2111,12 +2204,17 @@ function AdminDashboard() {
       <Text style={styles.adminSectionTitle}>Report page responses</Text>
       <View style={styles.adminRow}>
         <Text style={styles.bodyText}>Average rating</Text>
-        <Text style={styles.adminValue}>{report.averageRating ? `${report.averageRating}/10` : "No ratings yet"}</Text>
+        <Pressable onPress={() => openReportDetail("feedback")}>
+          <Text style={styles.adminClickableValue}>{report.averageRating ? `${report.averageRating}/10` : "No ratings yet"}</Text>
+        </Pressable>
       </View>
       <View style={styles.adminRow}>
         <Text style={styles.bodyText}>Saved comment responses</Text>
-        <Text style={styles.adminValue}>{report.improvementResponses.length}</Text>
+        <Pressable onPress={() => openReportDetail("feedback")}>
+          <Text style={styles.adminClickableValue}>{report.improvementResponses.length}</Text>
+        </Pressable>
       </View>
+      {selectedReportDetail === "feedback" && renderReportDetailCard()}
       {report.improvementResponses.length ? report.improvementResponses.map((note, index) => (
         <View key={`${note.moduleLabel}-${index}`} style={styles.adminFeedbackCard}>
           <Text style={styles.adminModuleLabel}>{note.moduleLabel}</Text>
@@ -2158,14 +2256,17 @@ function SectionHeader({
 function Metric({
   icon,
   label,
+  onPress,
   value
 }: {
   icon?: keyof typeof Ionicons.glyphMap;
   label: string;
+  onPress?: () => void;
   value: string | number;
 }) {
+  const Wrapper = onPress ? Pressable : View;
   return (
-    <View style={styles.metric}>
+    <Wrapper onPress={onPress} style={[styles.metric, onPress && styles.metricClickable]}>
       {icon && (
         <View style={styles.metricIcon}>
           <Ionicons color="#008A94" name={icon} size={18} />
@@ -2173,7 +2274,8 @@ function Metric({
       )}
       <Text style={styles.metricValue}>{value}</Text>
       <Text style={styles.metricLabel}>{label}</Text>
-    </View>
+      {onPress && <Text style={styles.metricHint}>Tap for details</Text>}
+    </Wrapper>
   );
 }
 
@@ -2425,6 +2527,13 @@ const styles = StyleSheet.create({
     padding: 12,
     width: "48%"
   },
+  metricClickable: {
+    borderColor: "#D79B16",
+    shadowColor: "#D79B16",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10
+  },
   metricIcon: {
     alignItems: "center",
     backgroundColor: "#EDFBFB",
@@ -2445,6 +2554,13 @@ const styles = StyleSheet.create({
     color: "#756D87",
     fontSize: 12,
     marginTop: 4
+  },
+  metricHint: {
+    color: "#B87908",
+    fontSize: 10,
+    fontWeight: "900",
+    marginTop: 8,
+    textTransform: "uppercase"
   },
   card: {
     backgroundColor: "#FFFFFF",
@@ -2796,6 +2912,12 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginTop: 8
   },
+  adminClickableValue: {
+    color: "#B87908",
+    fontSize: 16,
+    fontWeight: "900",
+    textDecorationLine: "underline"
+  },
   adminCollapseCard: {
     backgroundColor: "#FFFFFF",
     borderColor: "#DCCFF5",
@@ -2825,6 +2947,34 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     padding: 12,
     paddingTop: 10
+  },
+  adminDetailCard: {
+    backgroundColor: "#FFF9E8",
+    borderColor: "#D79B16",
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 14,
+    padding: 14
+  },
+  adminDetailRow: {
+    alignItems: "center",
+    borderTopColor: "#F1DCA1",
+    borderTopWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+    marginTop: 10,
+    paddingTop: 10
+  },
+  adminMiniCloseButton: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#F1DCA1",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 30,
+    justifyContent: "center",
+    width: 30
   },
   adminSectionTitle: {
     color: "#30264C",

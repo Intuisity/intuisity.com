@@ -32,6 +32,7 @@ async function buildAdminReport(options = {}) {
   const volume = buildVisitorVolume(visitorEvents, dateRange);
   const visitorTrend = buildVisitorTrend(rangedVisitorEvents);
   const platformBreakdown = buildPlatformBreakdown(rangedVisitorEvents);
+  const visitorBreakdown = buildVisitorBreakdown(rangedVisitorEvents);
   const rangedModuleEvents = rangedAnalyticsEvents.filter((event) => !isSiteVisitEvent(event));
   const moduleDailyTrend = buildModuleDailyTrend(rangedModuleEvents);
 
@@ -67,6 +68,7 @@ async function buildAdminReport(options = {}) {
     totalUsers: knownUserCount,
     totalVisits: rangedAnalyticsEvents.length,
     uniqueVisitors: countUniqueVisitors(rangedVisitorEvents),
+    visitorBreakdown,
     visitorVolume: volume,
     visitorTrend,
     platformBreakdown,
@@ -349,6 +351,35 @@ function buildPlatformBreakdown(events) {
       visits: entry.visits,
       uniqueVisitors: entry.visitorEmails.size
     }));
+}
+
+function buildVisitorBreakdown(events) {
+  const signedInVisitors = new Set();
+  const anonymousVisitors = new Set();
+  const profileSignups = new Set();
+
+  events.forEach((event) => {
+    const email = normalizeEmail(event.email);
+    const visitorKey = getVisitorKey(event);
+
+    if (event.module_id === "profile-signup" && email && !isAnonymousVisitorEmail(email)) {
+      profileSignups.add(email);
+    }
+
+    if (!visitorKey) return;
+    if (email && !isAnonymousVisitorEmail(email)) {
+      signedInVisitors.add(email);
+    } else {
+      anonymousVisitors.add(visitorKey);
+    }
+  });
+
+  return {
+    signedIn: signedInVisitors.size,
+    anonymous: anonymousVisitors.size,
+    profileSignups: profileSignups.size,
+    totalUnique: new Set([...signedInVisitors, ...anonymousVisitors]).size
+  };
 }
 
 function countUniqueVisitors(events) {

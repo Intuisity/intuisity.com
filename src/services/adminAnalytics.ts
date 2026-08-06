@@ -26,6 +26,12 @@ export type AdminAnalyticsReport = {
   totalUsers: number;
   totalVisits: number;
   uniqueVisitors: number;
+  visitorBreakdown?: {
+    signedIn: number;
+    anonymous: number;
+    profileSignups: number;
+    totalUnique: number;
+  };
   visitorVolume: {
     today: number;
     week: number;
@@ -212,6 +218,7 @@ export function loadAdminAnalyticsReport(startDate = "", endDate = ""): AdminAna
     totalUsers: allProfiles.length,
     totalVisits: events.length,
     uniqueVisitors: countUniqueVisitors(rangedVisitorEvents),
+    visitorBreakdown: buildVisitorBreakdown(rangedVisitorEvents),
     visitorVolume: buildVisitorVolume(visitorEvents, dateRange),
     visitorTrend: buildVisitorTrend(rangedVisitorEvents),
     platformBreakdown: buildPlatformBreakdown(rangedVisitorEvents),
@@ -369,6 +376,10 @@ function isExcludedReportEmail(email: string) {
   return excludedReportEmails.has(String(email || "").trim().toLowerCase());
 }
 
+function isAnonymousVisitorEmail(email: string) {
+  return String(email || "").trim().toLowerCase().endsWith("@anonymous.intuisity");
+}
+
 function buildVisitorVolume(events: AnalyticsEvent[], dateRange: { startDate: string; endDate: string }) {
   const today = getDateKey(Date.now());
   const now = new Date();
@@ -429,6 +440,32 @@ function buildPlatformBreakdown(events: AnalyticsEvent[]) {
       visits: entry.visits,
       uniqueVisitors: entry.visitorEmails.size
     }));
+}
+
+function buildVisitorBreakdown(events: AnalyticsEvent[]) {
+  const signedInVisitors = new Set<string>();
+  const anonymousVisitors = new Set<string>();
+  const profileSignups = new Set<string>();
+
+  events.forEach((event) => {
+    const email = event.email.trim().toLowerCase();
+    if (event.moduleId === "profile-signup" && email && !isAnonymousVisitorEmail(email)) {
+      profileSignups.add(email);
+    }
+    if (!email) return;
+    if (isAnonymousVisitorEmail(email)) {
+      anonymousVisitors.add(email);
+    } else {
+      signedInVisitors.add(email);
+    }
+  });
+
+  return {
+    signedIn: signedInVisitors.size,
+    anonymous: anonymousVisitors.size,
+    profileSignups: profileSignups.size,
+    totalUnique: new Set([...signedInVisitors, ...anonymousVisitors]).size
+  };
 }
 
 function countUniqueVisitors(events: AnalyticsEvent[]) {

@@ -15,6 +15,12 @@ type BackendAdminReport = {
   totalUsers: number;
   totalVisits: number;
   uniqueVisitors: number;
+  visitorBreakdown?: {
+    signedIn: number;
+    anonymous: number;
+    profileSignups: number;
+    totalUnique: number;
+  };
   visitorVolume: {
     today: number;
     week: number;
