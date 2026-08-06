@@ -730,7 +730,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
 
   const historyReadyRef = useRef(false);
   const handlingBrowserBackRef = useRef(false);
-  const lastHomeChallengeOpenRef = useRef(0);
 
   useEffect(() => {
     const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
@@ -924,9 +923,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
   const nextPage = getNextModulePage(page);
   const homeChallenges = getDailyChallenges();
   const openHomeChallenge = (challengeId: string) => {
-    const now = Date.now();
-    if (now - lastHomeChallengeOpenRef.current < 400) return;
-    lastHomeChallengeOpenRef.current = now;
     if (challengeId === "daily-intuition") {
       resetKnowing();
       return;
@@ -4823,46 +4819,44 @@ function getKnowingResultMessage(score: number) {
 }
 
 function getNextModulePage(page: string) {
-  const nextPages: Record<string, string> = {
-    "social-prediction": "knowing",
-    knowing: "remote-viewing-arena",
-    "knowing-results": "remote-viewing-arena",
-    "remote-viewing-arena": "third-eye-activation",
-    "third-eye-activation": "psychic-potential-score",
-    "psychic-potential-score": "remote-viewing-test",
-    "remote-viewing-test": "daily-results",
-    "remote-viewing-results": "daily-results",
-    "daily-results": "hub"
-  };
-  return nextPages[page];
+  const modulePageOrder = [
+    "social-prediction",
+    "daily-intuition",
+    "remote-viewing-arena",
+    "third-eye-activation",
+    "psychic-potential-score",
+    "remote-viewing-test",
+    "daily-results"
+  ];
+  if (page === "knowing" || page === "knowing-results") return "remote-viewing-arena";
+  if (page === "remote-viewing-results") return "daily-results";
+  const currentIndex = modulePageOrder.indexOf(page);
+  if (currentIndex < 0) return undefined;
+  return modulePageOrder[currentIndex + 1];
 }
 
 function getPreviousModulePage(page: string) {
-  const previousPages: Record<string, string> = {
-    "social-prediction": "hub",
-    knowing: "social-prediction",
-    "knowing-results": "knowing",
-    "remote-viewing-arena": "knowing",
-    "third-eye-activation": "remote-viewing-arena",
-    "psychic-potential-score": "third-eye-activation",
-    "remote-viewing-test": "psychic-potential-score",
-    "remote-viewing-results": "remote-viewing-test",
-    "daily-results": "remote-viewing-results"
-  };
-  return previousPages[page];
-}
-
-function loadInitialIntuisityPage() {
-  const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
-  const params = new URLSearchParams(browserWindow?.location?.search || "");
-  const screen = params.get("screen") || "";
-  return getKnownIntuisityPages().has(screen) ? screen : "hub";
+  const modulePageOrder = [
+    "social-prediction",
+    "daily-intuition",
+    "remote-viewing-arena",
+    "third-eye-activation",
+    "psychic-potential-score",
+    "remote-viewing-test",
+    "daily-results"
+  ];
+  if (page === "knowing" || page === "knowing-results") return "daily-intuition";
+  if (page === "remote-viewing-results") return "remote-viewing-test";
+  const currentIndex = modulePageOrder.indexOf(page);
+  if (currentIndex <= 0) return "hub";
+  return modulePageOrder[currentIndex - 1];
 }
 
 function getKnownIntuisityPages() {
   return new Set([
     "hub",
     "social-prediction",
+    "daily-intuition",
     "knowing",
     "knowing-results",
     "remote-viewing-arena",
@@ -4872,6 +4866,13 @@ function getKnownIntuisityPages() {
     "remote-viewing-results",
     "daily-results"
   ]);
+}
+
+function loadInitialIntuisityPage() {
+  const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+  const params = new URLSearchParams(browserWindow?.location?.search || "");
+  const screen = params.get("screen") || "";
+  return getKnownIntuisityPages().has(screen) ? screen : "hub";
 }
 
 function PageHeader({
@@ -4894,14 +4895,6 @@ function PageHeader({
   onNext?: () => void;
 }) {
   const theme = getHeaderTheme(eyebrow, title);
-  const lastHeaderActionRef = useRef(0);
-  const runHeaderAction = (action?: () => void) => {
-    if (!action) return;
-    const now = Date.now();
-    if (now - lastHeaderActionRef.current < 350) return;
-    lastHeaderActionRef.current = now;
-    action();
-  };
   return (
     <View style={[styles.header, compact && styles.headerCompact, { backgroundColor: theme.background, borderColor: theme.border }]}>
       <ImageBackground
@@ -4923,13 +4916,15 @@ function PageHeader({
         </View>
       </ImageBackground>
       {(onBack || onNext) && (
-        <View style={styles.headerNavigation}>
-          <View style={styles.headerDirectionButtons}>
+        <View pointerEvents="box-none" style={styles.headerNavigation}>
+          <View pointerEvents="box-none" style={styles.headerDirectionButtons}>
             {onBack && (
               <Pressable
                 accessibilityLabel="Go back"
+                accessibilityRole="button"
                 hitSlop={8}
-                onPress={() => runHeaderAction(onBack)}
+                onPress={onBack}
+                pressRetentionOffset={12}
                 style={styles.headerDirectionButton}
               >
                 <View pointerEvents="none" style={styles.headerButtonInner}>
@@ -4941,8 +4936,10 @@ function PageHeader({
             {onNext && (
               <Pressable
                 accessibilityLabel="Go to next module"
+                accessibilityRole="button"
                 hitSlop={8}
-                onPress={() => runHeaderAction(onNext)}
+                onPress={onNext}
+                pressRetentionOffset={12}
                 style={styles.headerDirectionButton}
               >
                 <View pointerEvents="none" style={styles.headerButtonInner}>

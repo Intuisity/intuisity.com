@@ -313,7 +313,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.app}>
       <StatusBar style="dark" />
-      <View style={styles.floatingScore}>
+      <View pointerEvents="box-none" style={styles.floatingScore}>
         <Pressable
           accessibilityLabel="Go to home page"
           hitSlop={8}
@@ -330,7 +330,7 @@ export default function App() {
           source={require("./assets/intuisity-logo-gold-transparent.png")}
           style={styles.topBrandLogo}
         />
-        <View style={styles.topRightActions}>
+        <View pointerEvents="box-none" style={styles.topRightActions}>
           <Pressable
             accessibilityLabel="Change language"
             hitSlop={8}
@@ -397,7 +397,7 @@ export default function App() {
         {activeTab === "admin" && userIsAdmin && <AdminDashboard />}
       </ScrollView>
 
-      <View style={styles.tabBar}>
+      <View pointerEvents="box-none" style={styles.tabBar}>
         {visibleTabs.map((tab) => {
           const selected = activeTab === tab.key;
           return (
