@@ -1155,13 +1155,11 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             </Text>
           </View>
         </View>
-        <Pressable
-              accessibilityRole="button" onPress={() => setPage("remote-viewing-arena")} style={styles.primaryButton}>
+        <Pressable onPress={() => setPage("remote-viewing-arena")} style={styles.primaryButton}>
           <Text style={styles.primaryButtonText}>Carry the signal forward</Text>
           <Ionicons color="#FFFFFF" name="arrow-forward-outline" size={18} />
         </Pressable>
-        <Pressable
-              accessibilityRole="button" onPress={resetKnowing} style={styles.primaryButton}>
+        <Pressable onPress={resetKnowing} style={styles.primaryButton}>
           <Ionicons color="#FFFFFF" name="refresh-outline" size={18} />
           <Text style={styles.primaryButtonText}>Follow five more signals</Text>
         </Pressable>
@@ -1205,7 +1203,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             const showCorrectBox = choice !== null && choice !== target && color === target;
             return (
               <Pressable
-              accessibilityRole="button"
                 disabled={choice !== null}
                 key={color}
                 onPress={() => {
@@ -1290,7 +1287,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               value={learningResponse}
             />
             <Pressable
-              accessibilityRole="button"
               disabled={!learningResponse.trim()}
               onPress={() => {
                 saveLearningResponse(priorLearningEntry.date, learningResponse.trim());
@@ -1326,7 +1322,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             const selected = learningChallenge === lesson.practice;
             return (
               <Pressable
-              accessibilityRole="button"
                 accessibilityLabel={`Choose positivity idea ${index + 1}`}
                 disabled={learningTaskSaved}
                 key={`${lesson.title}-${index}`}
@@ -1379,7 +1374,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         {learningTaskSaved ? (
           <View style={styles.taskActionRow}>
             <Pressable
-              accessibilityRole="button"
               onPress={() => setLearningTaskSaved(false)}
               style={[styles.secondaryButton, styles.taskEditButton]}
             >
@@ -1387,7 +1381,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               <Text style={styles.taskEditButtonText}>Edit task</Text>
             </Pressable>
             <Pressable
-              accessibilityRole="button"
               onPress={() => setPage("third-eye-activation")}
               style={[styles.primaryButton, styles.taskContinueButton]}
             >
@@ -1397,7 +1390,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
           </View>
         ) : (
           <Pressable
-              accessibilityRole="button"
             disabled={!learningChallenge.trim()}
             onPress={() => {
               saveLearningChallenge(learningChallenge.trim());
@@ -1524,7 +1516,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             const correctAttribute = personCorrectAttributes.includes(attribute);
             return (
               <Pressable
-              accessibilityRole="button"
                 disabled={showPersonResults}
                 key={attribute}
                 onPress={() => {
@@ -1633,8 +1624,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 Select three attributes to automatically reveal their story.
               </Text>
             </View>
-            <Pressable
-              accessibilityRole="button" onPress={() => setPage("hub")} style={styles.secondaryButton}>
+            <Pressable onPress={() => setPage("hub")} style={styles.secondaryButton}>
               <Ionicons color="#FFFFFF" name="arrow-back-outline" size={18} />
               <Text style={styles.secondaryButtonText}>Return to challenges</Text>
             </Pressable>
@@ -1657,7 +1647,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 : "Today's official Read the Person score is locked in. You can still play more practice rounds today."}
             </Text>
             <Pressable
-              accessibilityRole="button"
               onPress={startPersonPracticeRound}
               style={styles.secondaryButton}
             >
@@ -1665,15 +1654,13 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               <Text style={styles.secondaryButtonText}>Play another person</Text>
             </Pressable>
             <Pressable
-              accessibilityRole="button"
               onPress={() => setPage("psychic-potential-score")}
               style={styles.primaryButton}
             >
               <Text style={styles.primaryButtonText}>Carry this insight forward</Text>
               <Ionicons color="#FFFFFF" name="arrow-forward-outline" size={18} />
             </Pressable>
-            <Pressable
-              accessibilityRole="button" onPress={() => setPage("hub")} style={styles.primaryButton}>
+            <Pressable onPress={() => setPage("hub")} style={styles.primaryButton}>
               <Text style={styles.primaryButtonText}>Back to challenges</Text>
             </Pressable>
           </View>
@@ -1699,7 +1686,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         <View style={styles.birthdateCard}>
           {hasSavedBirthDetails ? (
             <Pressable
-              accessibilityRole="button"
               accessibilityLabel="Open saved birth details"
               onPress={() => setBirthDetailsOpen(!birthDetailsOpen)}
               style={styles.birthDetailsDropdown}
@@ -1772,7 +1758,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                   <View style={styles.birthLocationSuggestionList}>
                     {birthLocationSuggestions.map((location) => (
                       <Pressable
-              accessibilityRole="button"
                         accessibilityLabel={`Use birthplace ${location.label}`}
                         key={location.label}
                         onPress={() => applyBirthLocationSuggestion(location.label)}
@@ -1790,7 +1775,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 value={birthDetails.birthTime}
               />
               <Pressable
-              accessibilityRole="button"
                 disabled={!birthdateReady}
                 onPress={saveBirthDetails}
                 style={[styles.secondaryButton, !birthdateReady && styles.disabledButton]}
@@ -1908,7 +1892,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                   value={astrologyUpdate}
                 />
                 <Pressable
-              accessibilityRole="button"
                   disabled={!astrologyUpdate.trim()}
                   onPress={() => {
                     saveAstrologyUpdate(priorAstrologyEntry.date, astrologyUpdate.trim());
@@ -1937,7 +1920,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 value={astrologyPlan}
               />
               <Pressable
-              accessibilityRole="button"
                 disabled={!astrologyPlan.trim() || planSaved}
                 onPress={() => {
                   saveAstrologyPlan(astrologyPlan.trim());
@@ -1965,7 +1947,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               </View>
             )}
             <Pressable
-              accessibilityRole="button"
               onPress={() => {
                 setAnswers((current) => ({ ...current, "psychic-potential-score": "Completed" }));
                 resetRemoteViewing();
@@ -2598,7 +2579,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               const disabled = treasureUsed.includes(icon);
               return (
               <Pressable
-              accessibilityRole="button"
                 disabled={disabled}
                 key={icon}
                 onPress={() => tapTreasureIcon({ icon, from: "palette" })}
@@ -2645,7 +2625,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
           <View style={styles.treasureSlotRow}>
             {treasureGuess.map((icon, index) => (
                 <Pressable
-              accessibilityRole="button"
                   key={`treasure-top-slot-${index}`}
                   onPress={() => icon && tapTreasureIcon({ icon, from: "slot", index })}
                   style={[
@@ -2679,7 +2658,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             </View>
           )}
           <Pressable
-              accessibilityRole="button"
             disabled={treasureMissingCount > 0}
             onPress={submitTreasureGuess}
             style={[styles.primaryButton, treasureMissingCount > 0 && styles.disabledButton]}
@@ -2711,7 +2689,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         {treasureFlowStep === "choose" && (
           <View style={styles.treasureModeGrid}>
             <Pressable
-              accessibilityRole="button"
               onPress={() => chooseTreasureMode("friend")}
               style={[styles.treasureModeCard, styles.treasureModeFriendCard]}
             >
@@ -2720,7 +2697,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               <Text style={[styles.treasureModeText, styles.treasureModeFriendText]}>Add their email, arrange your five treasure tiles, then send the challenge.</Text>
             </Pressable>
             <Pressable
-              accessibilityRole="button"
               onPress={() => chooseTreasureMode("computer")}
               style={[styles.treasureModeCard, styles.treasureModeComputerCard]}
             >
@@ -2733,7 +2709,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         {treasureFlowStep !== "choose" && (
           <View style={styles.opponentToggle}>
             <Pressable
-              accessibilityRole="button"
               onPress={() => chooseTreasureMode("friend")}
               style={[styles.opponentOption, styles.opponentOptionFriend]}
             >
@@ -2741,7 +2716,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               <Text style={[styles.opponentOptionText, styles.opponentOptionFriendText]}>Play with friend</Text>
             </Pressable>
             <Pressable
-              accessibilityRole="button"
               onPress={() => chooseTreasureMode("computer")}
               style={styles.opponentOption}
             >
@@ -2794,7 +2768,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             {friendPhoneError ? <Text style={styles.inputError}>{friendPhoneError}</Text> : null}
             <Pressable
               accessibilityLabel="Save friend and continue to treasure tiles"
-              accessibilityRole="button"
               disabled={!friendName.trim() || !friendEmail.trim()}
               onPress={saveTreasureFriendAndContinue}
               style={[styles.primaryButton, (!friendName.trim() || !friendEmail.trim()) && styles.disabledButton]}
@@ -2807,7 +2780,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 <Text style={styles.savedFriendsLabel}>Saved friends · tap to select</Text>
                 <Pressable
                   accessibilityLabel="Open saved friends"
-                  accessibilityRole="button"
                   onPress={() => setShowSavedFriends((current) => !current)}
                   style={styles.savedFriendsDropdownButton}
                 >
@@ -2825,7 +2797,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                     return (
                       <Pressable
                         accessibilityLabel={`Select friend ${friend.name}`}
-                        accessibilityRole="button"
                         key={friendKey}
                         onPress={() => {
                           setFriendPhoneError("");
@@ -2852,7 +2823,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         )}
         {treasureFlowStep === "choose" ? null : !treasureStarted || treasureWinText ? (
           <Pressable
-            accessibilityRole="button"
             disabled={opponent === "friend" && selectedFriendPhones.length === 0 && !treasureWinText}
             onPress={() => startTreasureChallenge(opponent)}
             style={[
@@ -2940,7 +2910,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                   value={treasureResponseMessage}
                 />
                 <Pressable
-              accessibilityRole="button"
                   disabled={treasureResponseSent || !invitedTreasureSenderEmail}
                   onPress={sendTreasureResponse}
                   style={[styles.primaryButton, (treasureResponseSent || !invitedTreasureSenderEmail) && styles.disabledButton]}
@@ -2960,8 +2929,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 <Text style={styles.treasureSiteInviteText}>
                   Intuisity is free to play and includes daily intuition training, remote viewing practice, astrology insights, positivity prompts, and progress results to help you build awareness and inner knowing.
                 </Text>
-                <Pressable
-              accessibilityRole="button" onPress={onCreateAccount} style={styles.treasureSiteInviteButton}>
+                <Pressable onPress={onCreateAccount} style={styles.treasureSiteInviteButton}>
                   <Ionicons color="#FFFFFF" name="person-add-outline" size={18} />
                   <Text style={styles.primaryButtonText}>Create free account</Text>
                 </Pressable>
@@ -3008,8 +2976,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             <Text style={styles.powerWordMeaningTitle}>{computerPowerWord}</Text>
             <Text style={styles.powerWordMeaningText}>{computerWordMeaning}</Text>
           </View>
-          <Pressable
-              accessibilityRole="button" onPress={resetKnowing} style={styles.primaryButton}>
+          <Pressable onPress={resetKnowing} style={styles.primaryButton}>
             <Ionicons color="#FFFFFF" name="checkmark-circle-outline" size={18} />
             <Text style={styles.primaryButtonText}>Continue to Challenge 2</Text>
           </Pressable>
@@ -3053,8 +3020,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               </View>
             </View>
           </View>
-          <Pressable
-              accessibilityRole="button" onPress={resetKnowing} style={styles.primaryButton}>
+          <Pressable onPress={resetKnowing} style={styles.primaryButton}>
             <Ionicons color="#FFFFFF" name="checkmark-circle-outline" size={18} />
             <Text style={styles.primaryButtonText}>Continue to Challenge 2</Text>
           </Pressable>
@@ -3078,7 +3044,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
           />
           <View style={styles.answerNavigation}>
             <Pressable
-              accessibilityRole="button"
               accessibilityLabel="Go back"
               onPress={() => {
                 setFriendPicture(null);
@@ -3090,7 +3055,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               <Text style={styles.answerNavText}>Back</Text>
             </Pressable>
             <Pressable
-              accessibilityRole="button"
               accessibilityLabel="Return home"
               onPress={() => setPage("hub")}
               style={styles.answerNavButton}
@@ -3099,7 +3063,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               <Text style={styles.answerNavText}>Home</Text>
             </Pressable>
             <Pressable
-              accessibilityRole="button"
               accessibilityLabel="Seal choice and continue"
               disabled={!friendPicture}
               onPress={() => {
@@ -3136,7 +3099,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         />
         <View style={styles.opponentToggle}>
           <Pressable
-              accessibilityRole="button"
             onPress={() => setOpponent("friend")}
             style={[styles.opponentOption, styles.opponentOptionFriend]}
           >
@@ -3144,7 +3106,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             <Text style={[styles.opponentOptionText, styles.opponentOptionFriendText]}>Play with friend</Text>
           </Pressable>
           <Pressable
-              accessibilityRole="button"
             onPress={() => setOpponent("computer")}
             style={styles.opponentOption}
           >
@@ -3182,7 +3143,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 value={friendPhone}
               />
               <Pressable
-              accessibilityRole="button"
                 accessibilityLabel="Add friend phone number"
                 disabled={!friendName.trim() || !friendPhone.trim() || selectedFriendPhones.length >= 5}
                 onPress={addFriendPhone}
@@ -3201,7 +3161,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                     const selected = selectedFriendPhones.includes(friendKey);
                     return (
                       <Pressable
-              accessibilityRole="button"
                         accessibilityLabel={`Select friend ${friend.name}`}
                         key={friendKey}
                         onPress={() => {
@@ -3245,7 +3204,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
           <View style={styles.powerWordGrid}>
             {dailyPowerWords.map((word) => (
               <Pressable
-              accessibilityRole="button"
                 key={word}
                 onPress={() => setPredictedPowerWord(word)}
                 style={[
@@ -3271,7 +3229,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
           </View>
         )}
         <Pressable
-              accessibilityRole="button"
           disabled={
             opponent === "friend"
               ? !predictedPicture || selectedFriendPhones.length === 0
@@ -3353,13 +3310,11 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               <DrawingPad points={drawingPoints} setPoints={setDrawingPoints} />
             </View>
             <View style={styles.drawingActions}>
-              <Pressable
-              accessibilityRole="button" onPress={() => setDrawingPoints([])} style={[styles.secondaryButton, styles.drawingActionButton]}>
+              <Pressable onPress={() => setDrawingPoints([])} style={[styles.secondaryButton, styles.drawingActionButton]}>
                 <Ionicons color="#FFFFFF" name="trash-outline" size={17} />
                 <Text style={styles.secondaryButtonText}>Clear drawing</Text>
               </Pressable>
-              <Pressable
-              accessibilityRole="button" onPress={() => setRemotePhase("choose")} style={[styles.primaryButton, styles.drawingActionButton]}>
+              <Pressable onPress={() => setRemotePhase("choose")} style={[styles.primaryButton, styles.drawingActionButton]}>
                 <Text style={styles.primaryButtonText}>Reveal two choices</Text>
                 <Ionicons color="#FFFFFF" name="arrow-forward-outline" size={18} />
               </Pressable>
@@ -3394,7 +3349,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             )}
             {remoteResultReady && (
               <Pressable
-              accessibilityRole="button"
                 onPress={() => {
                   if (remoteRound === 2) {
                     setAnswers((current) => ({
@@ -3437,8 +3391,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
           <Text style={styles.resultsNumber}>{remoteCorrect}/3</Text>
           <Text style={styles.resultsPoints}>{calculateModulePoints(remoteCorrect, 3, dailyPointWeights.remoteViewing)} of {dailyPointWeights.remoteViewing} points added to today's score</Text>
         </View>
-        <Pressable
-              accessibilityRole="button" onPress={() => setPage("daily-results")} style={styles.primaryButton}>
+        <Pressable onPress={() => setPage("daily-results")} style={styles.primaryButton}>
           <Ionicons color="#FFFFFF" name="trophy-outline" size={18} />
           <Text style={styles.primaryButtonText}>View final daily results</Text>
         </Pressable>
@@ -3668,7 +3621,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               <View style={styles.starRow}>
                 {Array.from({ length: 10 }, (_, index) => index + 1).map((rating) => (
                   <Pressable
-              accessibilityRole="button"
                     accessibilityLabel={`Rate ${row.label} ${rating} out of 10`}
                     key={rating}
                     onPress={() => {
@@ -3708,7 +3660,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
           );
         })}
         <Pressable
-              accessibilityRole="button"
           onPress={() => {
             saveModuleFeedback(userProfile.email, stampModuleFeedback(moduleFeedback));
             setFeedbackSaved(true);
@@ -3762,7 +3713,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         <View style={styles.choiceGrid}>
           {selected.choices.map((answer) => (
             <Pressable
-              accessibilityRole="button"
               key={answer}
               onPress={() => setAnswers((current) => ({ ...current, [selected.id]: answer }))}
               style={[styles.choice, answers[selected.id] === answer && styles.selectedChoice]}
@@ -3775,8 +3725,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             </Pressable>
           ))}
         </View>
-        <Pressable
-              accessibilityRole="button" onPress={() => setPage("hub")} style={styles.primaryButton}>
+        <Pressable onPress={() => setPage("hub")} style={styles.primaryButton}>
           <Ionicons color="#FFFFFF" name="checkmark-outline" size={18} />
           <Text style={styles.primaryButtonText}>Save and return</Text>
         </Pressable>
@@ -3814,13 +3763,10 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         <View style={styles.forestFeatureLinks}>
           {homeChallenges.map((challenge, index) => (
             <Pressable
-              accessibilityRole="button"
               accessibilityLabel={`Open ${challenge.title} from banner`}
-              hitSlop={8}
               key={`feature-${challenge.id}`}
               onPress={() => openHomeChallenge(challenge.id)}
-              pressRetentionOffset={12}
-              style={[styles.forestFeatureLink, styles.webTapTarget]}
+              style={[styles.forestFeatureLink]}
             />
           ))}
         </View>
@@ -3828,15 +3774,11 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
       <View style={styles.moduleGrid}>
         {homeChallenges.map((challenge) => (
           <Pressable
-            accessibilityRole="button"
             accessibilityLabel={`Open ${challenge.title}`}
-            hitSlop={8}
             key={challenge.id}
             onPress={() => openHomeChallenge(challenge.id)}
-            pressRetentionOffset={12}
             style={({ pressed }) => [
               styles.moduleGridItem,
-              styles.webTapTarget,
               pressed && styles.moduleGridItemPressed
             ]}
           >
@@ -3855,12 +3797,9 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         ))}
       </View>
       <Pressable
-        accessibilityRole="button"
         accessibilityLabel="View my ongoing results"
-        hitSlop={8}
         onPress={() => setPage("daily-results")}
-        pressRetentionOffset={12}
-        style={[styles.homeResultsButton, styles.webTapTarget]}
+        style={[styles.homeResultsButton]}
       >
         <View style={styles.homeResultsIcon}>
           <Ionicons color="#FFFFFF" name="stats-chart-outline" size={23} />
@@ -3872,10 +3811,9 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         <Ionicons color="#f3c64d" name="arrow-forward-circle-outline" size={26} />
       </Pressable>
       <Pressable
-              accessibilityRole="button"
         accessibilityLabel="Log out"
         onPress={onLogout}
-        style={[styles.homeLogoutButton, styles.webTapTarget]}
+        style={[styles.homeLogoutButton]}
       >
         <Ionicons color="#008A94" name="log-out-outline" size={19} />
         <Text style={styles.homeLogoutText}>Log out</Text>
@@ -3973,7 +3911,6 @@ function BirthTimePicker({ onChange, value }: { onChange: (value: string) => voi
       >
         {options.map((option) => (
           <Pressable
-              accessibilityRole="button"
             accessibilityLabel={`Select birth ${label.toLowerCase()} ${option}`}
             key={option}
             onPress={() => onSelect(option)}
@@ -3994,8 +3931,7 @@ function BirthTimePicker({ onChange, value }: { onChange: (value: string) => voi
           <Text style={styles.birthTimeSelected}>{selectedLabel}</Text>
         </View>
         {value.trim() ? (
-          <Pressable
-              accessibilityRole="button" accessibilityLabel="Clear birth time" onPress={() => onChange("")} style={styles.birthTimeClearButton}>
+          <Pressable accessibilityLabel="Clear birth time" onPress={() => onChange("")} style={styles.birthTimeClearButton}>
             <Text style={styles.birthTimeClearText}>Clear</Text>
           </Pressable>
         ) : null}
@@ -4983,10 +4919,8 @@ function PageHeader({
             {onBack && (
               <Pressable
                 accessibilityLabel="Go back"
-                accessibilityRole="button"
-                hitSlop={8}
                 onPress={() => runHeaderAction(onBack)}
-                style={[styles.headerDirectionButton, styles.webTapTarget]}
+                style={[styles.headerDirectionButton]}
               >
                 <View pointerEvents="none" style={styles.headerButtonInner}>
                   <Ionicons color="#f3c64d" name="arrow-back-outline" size={17} />
@@ -4997,10 +4931,8 @@ function PageHeader({
             {onNext && (
               <Pressable
                 accessibilityLabel="Go to next module"
-                accessibilityRole="button"
-                hitSlop={8}
                 onPress={() => runHeaderAction(onNext)}
-                style={[styles.headerDirectionButton, styles.webTapTarget]}
+                style={[styles.headerDirectionButton]}
               >
                 <View pointerEvents="none" style={styles.headerButtonInner}>
                   <Text style={styles.headerNextText}>Next</Text>
@@ -5087,7 +5019,6 @@ function VirtualRoom({
           const spot = kitchenObjectSpots[index % kitchenObjectSpots.length];
           return (
             <Pressable
-              accessibilityRole="button"
               accessibilityLabel={`Choose ${object.label}`}
               key={object.id}
               onPress={() => onSelect(object.id)}
@@ -5158,7 +5089,6 @@ function PictureGrid({
     <View style={[styles.pictureGrid, columns === 3 && styles.pictureGridCompact, compact && styles.remotePictureGridCompact]}>
       {pictures.map((picture) => (
         <Pressable
-              accessibilityRole="button"
           accessibilityLabel={picture.label}
           key={picture.id}
           onPress={() => onSelect(picture.id)}
@@ -5350,11 +5280,6 @@ function drawLine(canvas: any, from: { x: number; y: number }, to: { x: number; 
 }
 
 const styles = StyleSheet.create({
-  webTapTarget: {
-    touchAction: "manipulation" as any,
-    userSelect: "none" as any,
-    WebkitTapHighlightColor: "rgba(243, 198, 77, 0.24)" as any
-  },
   header: { borderRadius: 22, borderWidth: 1, elevation: 8, marginBottom: 10, minHeight: 154, overflow: "hidden", shadowColor: "#5126ad", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.22, shadowRadius: 18 },
   headerCompact: { marginBottom: 10, minHeight: 118 },
   headerShade: { flex: 1, justifyContent: "flex-end", minHeight: 154, padding: 18, paddingTop: 58, position: "relative" },
