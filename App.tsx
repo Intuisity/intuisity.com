@@ -377,7 +377,7 @@ export default function App() {
         </View>
       )}
 
-      <ScrollView ref={mainScrollRef} style={styles.mainScrollArea} contentContainerStyle={styles.content} keyboardShouldPersistTaps="always">
+      <ScrollView ref={mainScrollRef} style={styles.mainScrollArea} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {activeTab === "today" && (
           <DailyChallengeHub
             answers={answers}
@@ -406,6 +406,7 @@ export default function App() {
           const selected = activeTab === tab.key;
           return (
             <Pressable
+              accessibilityRole="button"
               key={tab.key}
               onPress={() => setActiveTab(tab.key)}
               style={[styles.tabButton, selected && styles.tabButtonSelected]}
@@ -2411,6 +2412,7 @@ function updateWebMetadata() {
   setMetaTag("og:image", "https://www.intuisity.com/intuisity-preview.png", "property");
   setMetaTag("twitter:card", "summary_large_image");
   setMetaTag("twitter:image", "https://www.intuisity.com/intuisity-preview.png");
+  ensureMobileTapStyles();
 }
 
 function setMetaTag(name: string, content: string, attribute = "name") {
@@ -2423,6 +2425,28 @@ function setMetaTag(name: string, content: string, attribute = "name") {
     documentRef.head.appendChild(tag);
   }
   tag.setAttribute("content", content);
+}
+
+function ensureMobileTapStyles() {
+  const documentRef = (globalThis as any).document;
+  if (!documentRef || documentRef.getElementById("intuisity-mobile-tap-styles")) return;
+  const tag = documentRef.createElement("style");
+  tag.id = "intuisity-mobile-tap-styles";
+  tag.textContent = `
+    [role="button"], button, a, div[tabindex], input, textarea, select {
+      pointer-events: auto;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: rgba(215, 155, 22, 0.22);
+    }
+    input, textarea, select {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    canvas {
+      touch-action: none;
+    }
+  `;
+  documentRef.head.appendChild(tag);
 }
 
 const styles = StyleSheet.create({

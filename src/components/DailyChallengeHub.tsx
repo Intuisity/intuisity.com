@@ -3783,27 +3783,26 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
       </View>
       <View style={styles.moduleGrid}>
         {homeChallenges.map((challenge) => (
-          <Pressable
-            accessibilityLabel={`Open ${challenge.title}`}
-            key={challenge.id}
-            onPress={() => openHomeChallenge(challenge.id)}
-            style={({ pressed }) => [
-              styles.moduleGridItem,
-              pressed && styles.moduleGridItemPressed
-            ]}
-          >
-            <View pointerEvents="none" style={styles.moduleIconButton}>
-              <Ionicons
-                color="#d79b16"
-                name={challengeIcons[challenge.id]}
-                size={38}
-              />
-            </View>
-            <View pointerEvents="none" style={styles.moduleGridCopy}>
-              <Text style={styles.moduleGridTitle}>{challenge.title}</Text>
-              <Text style={styles.moduleGridTagline}>{challenge.prompt}</Text>
-            </View>
-          </Pressable>
+          <View key={challenge.id} style={styles.moduleGridItem}>
+            <Pressable
+              accessibilityLabel={`Open ${challenge.title}`}
+              accessibilityRole="button"
+              onPress={() => openHomeChallenge(challenge.id)}
+              style={styles.moduleGridTapTarget}
+            >
+              <View pointerEvents="none" style={styles.moduleIconButton}>
+                <Ionicons
+                  color="#d79b16"
+                  name={challengeIcons[challenge.id]}
+                  size={38}
+                />
+              </View>
+              <View pointerEvents="none" style={styles.moduleGridCopy}>
+                <Text style={styles.moduleGridTitle}>{challenge.title}</Text>
+                <Text style={styles.moduleGridTagline}>{challenge.prompt}</Text>
+              </View>
+            </Pressable>
+          </View>
         ))}
       </View>
       <Pressable
@@ -4895,14 +4894,6 @@ function PageHeader({
   onNext?: () => void;
 }) {
   const theme = getHeaderTheme(eyebrow, title);
-  const lastHeaderActionRef = useRef(0);
-  const runHeaderAction = (action?: () => void) => {
-    if (!action) return;
-    const now = Date.now();
-    if (now - lastHeaderActionRef.current < 350) return;
-    lastHeaderActionRef.current = now;
-    action();
-  };
   return (
     <View style={[styles.header, compact && styles.headerCompact, { backgroundColor: theme.background, borderColor: theme.border }]}>
       <ImageBackground
@@ -4928,7 +4919,8 @@ function PageHeader({
             {onBack && (
               <Pressable
                 accessibilityLabel="Go back"
-                onPress={() => runHeaderAction(onBack)}
+                accessibilityRole="button"
+                onPress={onBack}
                 style={[styles.headerDirectionButton]}
               >
                 <View style={styles.headerButtonInner}>
@@ -4940,7 +4932,8 @@ function PageHeader({
             {onNext && (
               <Pressable
                 accessibilityLabel="Go to next module"
-                onPress={() => runHeaderAction(onNext)}
+                accessibilityRole="button"
+                onPress={onNext}
                 style={[styles.headerDirectionButton]}
               >
                 <View style={styles.headerButtonInner}>
@@ -5339,7 +5332,8 @@ const styles = StyleSheet.create({
   menuTitle: { color: "#211B34", fontSize: 17, fontWeight: "900" },
   menuTagline: { color: "#00AEBB", fontSize: 13, fontWeight: "800", marginTop: 3 },
   moduleGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "space-between" },
-  moduleGridItem: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 18, borderWidth: 1, cursor: "pointer" as any, elevation: 3, minHeight: 172, padding: 16, shadowColor: "#b87908", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.1, shadowRadius: 12, width: "48%" },
+  moduleGridItem: { alignItems: "stretch", backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 18, borderWidth: 1, elevation: 3, minHeight: 172, overflow: "hidden", shadowColor: "#b87908", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.1, shadowRadius: 12, width: "48%" },
+  moduleGridTapTarget: { alignItems: "center", cursor: "pointer" as any, flex: 1, justifyContent: "center", minHeight: 172, padding: 16 },
   moduleGridItemPressed: { backgroundColor: "#fff4cf", borderColor: "#d79b16", transform: [{ scale: 0.99 }] },
   moduleIconButton: { alignItems: "center", backgroundColor: "transparent", borderColor: "transparent", borderRadius: 0, borderWidth: 0, height: 48, justifyContent: "center", marginBottom: 2, width: 58 },
   moduleIconButtonPurple: { backgroundColor: "#6537c7", borderColor: "#f3c64d", shadowColor: "#6537c7" },
