@@ -33,6 +33,14 @@ const purpleGoldHeaderBanner = require("../../assets/intuisity-purple-gold-banne
 
 type Answers = Record<string, string>;
 
+function isMobileWebBrowser() {
+  const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+  const navigatorRef = typeof globalThis !== "undefined" ? (globalThis as any).navigator : undefined;
+  if (!browserWindow || !navigatorRef) return false;
+  const coarsePointer = browserWindow.matchMedia?.("(pointer: coarse)")?.matches;
+  return Boolean(coarsePointer && /Android|iPhone|iPad|iPod/i.test(navigatorRef.userAgent || ""));
+}
+
 type AstrologyJournalEntry = {
   date: string;
   plan: string;
@@ -734,6 +742,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
 
   useEffect(() => {
     const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+    if (isMobileWebBrowser()) return;
     if (!browserWindow?.history || !browserWindow?.addEventListener) return;
 
     const handlePopState = (event: any) => {
@@ -749,6 +758,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
 
   useEffect(() => {
     const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+    if (isMobileWebBrowser()) return;
     if (!browserWindow?.history) return;
 
     const nextState = {
@@ -4897,12 +4907,11 @@ function PageHeader({
     <View style={[styles.header, compact && styles.headerCompact, { backgroundColor: theme.background, borderColor: theme.border }]}>
       <ImageBackground
         imageStyle={styles.headerBannerImage}
-        pointerEvents="none"
         resizeMode="cover"
         source={purpleGoldHeaderBanner}
         style={[styles.headerShade, compact && styles.headerShadeCompact, homeLayout && styles.homeHeaderShade]}
       >
-        <View pointerEvents="none" style={styles.headerContent}>
+        <View style={styles.headerContent}>
           <View style={styles.headerTopRow}>
             <View style={[styles.headerIcon, { backgroundColor: theme.accent }]}>
               <Ionicons color="#FFFFFF" name={theme.icon} size={24} />
@@ -4922,7 +4931,7 @@ function PageHeader({
                 onPress={() => runHeaderAction(onBack)}
                 style={[styles.headerDirectionButton]}
               >
-                <View pointerEvents="none" style={styles.headerButtonInner}>
+                <View style={styles.headerButtonInner}>
                   <Ionicons color="#f3c64d" name="arrow-back-outline" size={17} />
                   <Text style={styles.headerNextText}>Back</Text>
                 </View>
@@ -4934,7 +4943,7 @@ function PageHeader({
                 onPress={() => runHeaderAction(onNext)}
                 style={[styles.headerDirectionButton]}
               >
-                <View pointerEvents="none" style={styles.headerButtonInner}>
+                <View style={styles.headerButtonInner}>
                   <Text style={styles.headerNextText}>Next</Text>
                   <Ionicons color="#f3c64d" name="arrow-forward-outline" size={17} />
                 </View>
@@ -5286,11 +5295,11 @@ const styles = StyleSheet.create({
   headerShadeCompact: { minHeight: 116, padding: 10, paddingTop: 50 },
   homeHeaderShade: { justifyContent: "flex-start", minHeight: 138, paddingTop: 18 },
   headerBannerImage: { opacity: 1 },
-  headerContent: { zIndex: 1 },
-  headerNavigation: { alignItems: "center", flexDirection: "row", justifyContent: "flex-end", left: 12, position: "absolute", right: 12, top: 12, zIndex: 50 },
-  headerNavButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, cursor: "pointer" as any, elevation: 18, height: 42, justifyContent: "center", minWidth: 82, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.28, shadowRadius: 9, zIndex: 51 },
-  headerDirectionButtons: { flexDirection: "row", gap: 6, zIndex: 51 },
-  headerDirectionButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, cursor: "pointer" as any, elevation: 18, justifyContent: "center", minHeight: 42, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.28, shadowRadius: 9, zIndex: 52 },
+  headerContent: {},
+  headerNavigation: { alignItems: "center", flexDirection: "row", justifyContent: "flex-end", left: 12, position: "absolute", right: 12, top: 12 },
+  headerNavButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, height: 42, justifyContent: "center", minWidth: 82, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 7 },
+  headerDirectionButtons: { flexDirection: "row", gap: 6 },
+  headerDirectionButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, justifyContent: "center", minHeight: 42, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 7 },
   headerButtonInner: { alignItems: "center", flexDirection: "row", gap: 4, justifyContent: "center" },
   headerHomeText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
   headerNextText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },

@@ -97,6 +97,14 @@ const tabs: Array<{ key: TabKey; label: string; icon: keyof typeof Ionicons.glyp
   { key: "admin", label: "Admin", icon: "shield-checkmark-outline" }
 ];
 
+function isMobileWebBrowser() {
+  const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+  const navigatorRef = typeof globalThis !== "undefined" ? (globalThis as any).navigator : undefined;
+  if (!browserWindow || !navigatorRef) return false;
+  const coarsePointer = browserWindow.matchMedia?.("(pointer: coarse)")?.matches;
+  return Boolean(coarsePointer && /Android|iPhone|iPad|iPod/i.test(navigatorRef.userAgent || ""));
+}
+
 const tabTranslations: Record<string, Record<TabKey | "score", string>> = {
   en: { today: "Today", remote: "Remote", friends: "Friends", premium: "Premium", admin: "Admin", score: "Score" },
   zh: { today: "今日", remote: "遥视", friends: "朋友", premium: "高级", admin: "管理", score: "得分" },
@@ -181,6 +189,7 @@ export default function App() {
 
   useEffect(() => {
     const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+    if (isMobileWebBrowser()) return;
     if (!browserWindow?.history || !browserWindow?.addEventListener) return;
 
     const handlePopState = (event: any) => {
@@ -196,6 +205,7 @@ export default function App() {
 
   useEffect(() => {
     const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+    if (isMobileWebBrowser()) return;
     if (!browserWindow?.history) return;
 
     const nextState = {
@@ -2486,8 +2496,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   mainScrollArea: {
-    flex: 1,
-    zIndex: 1
+    flex: 1
   },
   floatingScore: {
     alignItems: "center",
@@ -2495,8 +2504,7 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: "space-between",
     paddingHorizontal: 18,
-    paddingTop: 8,
-    zIndex: 30
+    paddingTop: 8
   },
   topBrandLogo: { flex: 1, height: 55, marginHorizontal: 8, maxWidth: 312 },
   profileBadge: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 16, borderWidth: 1, flexDirection: "row", gap: 6, minHeight: 42, paddingHorizontal: 12, paddingVertical: 8, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 7 },
