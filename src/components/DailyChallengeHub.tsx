@@ -4898,6 +4898,7 @@ function PageHeader({
     <View style={[styles.header, compact && styles.headerCompact, { backgroundColor: theme.background, borderColor: theme.border }]}>
       <ImageBackground
         imageStyle={styles.headerBannerImage}
+        pointerEvents="box-none"
         resizeMode="cover"
         source={purpleGoldHeaderBanner}
         style={[styles.headerShade, compact && styles.headerShadeCompact, homeLayout && styles.homeHeaderShade]}
@@ -4914,13 +4915,14 @@ function PageHeader({
         </View>
       </ImageBackground>
       {(onBack || onNext) && (
-        <View style={styles.headerNavigation}>
+        <View pointerEvents="box-none" style={styles.headerNavigation}>
           <View style={styles.headerDirectionButtons}>
             {onBack && (
               <Pressable
                 accessibilityLabel="Go back"
                 accessibilityRole="button"
                 onPress={onBack}
+                hitSlop={10}
                 style={[styles.headerDirectionButton]}
               >
                 <View style={styles.headerButtonInner}>
@@ -4934,6 +4936,7 @@ function PageHeader({
                 accessibilityLabel="Go to next module"
                 accessibilityRole="button"
                 onPress={onNext}
+                hitSlop={10}
                 style={[styles.headerDirectionButton]}
               >
                 <View style={styles.headerButtonInner}>
@@ -5284,15 +5287,15 @@ function drawLine(canvas: any, from: { x: number; y: number }, to: { x: number; 
 const styles = StyleSheet.create({
   header: { borderRadius: 22, borderWidth: 1, elevation: 8, marginBottom: 10, minHeight: 154, overflow: "hidden", shadowColor: "#5126ad", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.22, shadowRadius: 18 },
   headerCompact: { marginBottom: 10, minHeight: 118 },
-  headerShade: { flex: 1, justifyContent: "flex-end", minHeight: 154, padding: 18, paddingTop: 58, position: "relative" },
+  headerShade: { flex: 1, justifyContent: "flex-end", minHeight: 154, padding: 18, paddingTop: 58, position: "relative", zIndex: 1 },
   headerShadeCompact: { minHeight: 116, padding: 10, paddingTop: 50 },
   homeHeaderShade: { justifyContent: "flex-start", minHeight: 138, paddingTop: 18 },
   headerBannerImage: { opacity: 1 },
   headerContent: {},
-  headerNavigation: { alignItems: "center", flexDirection: "row", justifyContent: "flex-end", left: 12, position: "absolute", right: 12, top: 12 },
+  headerNavigation: { alignItems: "center", elevation: 20, flexDirection: "row", justifyContent: "flex-end", left: 12, position: "absolute", right: 12, top: 12, zIndex: 20 },
   headerNavButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, height: 42, justifyContent: "center", minWidth: 82, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 7 },
   headerDirectionButtons: { flexDirection: "row", gap: 6 },
-  headerDirectionButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, justifyContent: "center", minHeight: 42, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 7 },
+  headerDirectionButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, cursor: "pointer" as any, justifyContent: "center", minHeight: 46, minWidth: 78, paddingHorizontal: 12, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 7, zIndex: 21 },
   headerButtonInner: { alignItems: "center", flexDirection: "row", gap: 4, justifyContent: "center" },
   headerHomeText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
   headerNextText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
