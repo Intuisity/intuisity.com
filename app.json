@@ -11,6 +11,7 @@
       "**/*"
     ],
     "ios": {
+      "buildNumber": "10",
       "supportsTablet": false,
       "bundleIdentifier": "com.intuisity.app",
       "config": {
@@ -33,7 +34,9 @@
     "plugins": [
       "expo-asset",
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-notifications"
     ]
   }
 }

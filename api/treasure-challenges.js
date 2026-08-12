@@ -65,14 +65,19 @@ async function createChallenge(body, response) {
   });
 
   try {
-    const deliveryId = await sendEmail({
-      to: friendEmail,
-      subject: `${senderName} invited you to Intuisity`,
-      html: inviteHtml({ challengeUrl, friendName, note, senderName }),
-      text: `Hi ${friendName},\n\n${senderName} invited you to a Treasure Chest challenge.\n\n${note ? `${note}\n\n` : ""}Open it here: ${challengeUrl}`
-    });
-    await updateChallenge(id, { invite_delivery_id: deliveryId, updated_at: new Date().toISOString() });
-    console.info("treasure_challenge_invite_sent", { challengeId: id, deliveryId, recipient: maskEmail(friendEmail) });
+    const pushToken = await findExpoPushToken(friendEmail);
+    let deliveryId = pushToken ? await sendExpoPush({ challengeUrl, friendName, pushToken, senderName }) : "";
+    let deliveryStatus = deliveryId ? "push-sent" : "sent";
+    if (!deliveryId) {
+      deliveryId = await sendEmail({
+        to: friendEmail,
+        subject: `${senderName} invited you to Intuisity`,
+        html: inviteHtml({ challengeUrl, friendName, note, senderName }),
+        text: `Hi ${friendName},\n\n${senderName} invited you to a Treasure Chest challenge.\n\n${note ? `${note}\n\n` : ""}Open it here: ${challengeUrl}`
+      });
+    }
+    await updateChallenge(id, { invite_delivery_id: deliveryId, invite_delivery_status: deliveryStatus, updated_at: new Date().toISOString() });
+    console.info("treasure_challenge_invite_sent", { challengeId: id, deliveryId, deliveryStatus, recipient: maskEmail(friendEmail) });
   } catch (error) {
     await updateChallenge(id, { email_error: safeError(error), updated_at: new Date().toISOString() }).catch(() => {});
     throw error;
@@ -90,7 +95,7 @@ async function getChallenge(request, response) {
   if (!row) return sendJson(response, 404, { error: "Challenge not found" });
 
   if (senderToken && senderToken === row.sender_token) {
-    if (row.invite_delivery_id) {
+    if (row.invite_delivery_id && row.invite_delivery_status !== "push-sent") {
       try {
         const latestDeliveryStatus = await getEmailDeliveryStatus(row.invite_delivery_id);
         if (latestDeliveryStatus && latestDeliveryStatus !== row.invite_delivery_status) {
@@ -114,6 +119,34 @@ async function getChallenge(request, response) {
     note: row.note,
     status: row.status
   });
+}
+
+async function findExpoPushToken(email) {
+  const rows = await supabaseRequest(`/profiles?email=eq.${encodeURIComponent(email)}&select=profile_json&limit=1`);
+  const token = rows?.[0]?.profile_json?.expoPushToken;
+  return /^ExponentPushToken\[[^\]]+\]$|^ExpoPushToken\[[^\]]+\]$/.test(String(token || "")) ? String(token) : "";
+}
+
+async function sendExpoPush({ challengeUrl, friendName, pushToken, senderName }) {
+  try {
+    const pushResponse = await fetch("https://exp.host/--/api/v2/push/send", {
+      body: JSON.stringify({
+        body: `${senderName} sent you a Treasure Chest challenge.`,
+        data: { challengeUrl, type: "treasure-challenge" },
+        sound: "default",
+        title: `A Treasure Chest for ${friendName}`,
+        to: pushToken
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST"
+    });
+    const result = await pushResponse.json().catch(() => ({}));
+    const ticket = Array.isArray(result.data) ? result.data[0] : result.data;
+    if (!pushResponse.ok || ticket?.status !== "ok" || !ticket?.id) return "";
+    return `expo:${ticket.id}`;
+  } catch {
+    return "";
+  }
 }
 
 async function markOpened(body, response) {

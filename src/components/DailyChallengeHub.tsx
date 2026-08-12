@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Image, ImageBackground, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import { Animated, Easing, Image, ImageBackground, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { getAstrologyReading, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
 import { dailyIntuitionLessons } from "../data/dailyLessons";
@@ -618,6 +618,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const [treasureTriesLeft, setTreasureTriesLeft] = useState(4);
   const [treasureWinText, setTreasureWinText] = useState("");
   const [treasureShareStatus, setTreasureShareStatus] = useState("");
+  const [treasureSentChallengeUrl, setTreasureSentChallengeUrl] = useState("");
   const [treasureNote, setTreasureNote] = useState("");
   const [treasureSceneImage, setTreasureSceneImage] = useState(() => treasureSceneImages[0]);
   const [invitedTreasureSender, setInvitedTreasureSender] = useState("");
@@ -629,6 +630,9 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const treasureIgnoreClickRef = useRef(false);
   const [treasurePointerDrag, setTreasurePointerDrag] = useState<TreasureDragItem | null>(null);
   const [treasureDropSlot, setTreasureDropSlot] = useState<number | null>(null);
+  const treasureGlowPulse = useRef(new Animated.Value(0)).current;
+  const treasureNativeDragRef = useRef<TreasureDragItem | null>(null);
+  const treasureSlotRefs = useRef<Array<any>>([]);
   const [dailyPowerWords] = useState(makeDailyPowerWords);
   const [predictedPowerWord, setPredictedPowerWord] = useState<string | null>(null);
   const [computerPowerWord, setComputerPowerWord] = useState<string | null>(null);
@@ -642,6 +646,16 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const [remoteCorrect, setRemoteCorrect] = useState(0);
   const [remoteChoice, setRemoteChoice] = useState<string | null>(null);
   const [remoteTargets, setRemoteTargets] = useState(makeRemoteViewingPairs);
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    const animation = Animated.loop(Animated.sequence([
+      Animated.timing(treasureGlowPulse, { duration: 900, easing: Easing.inOut(Easing.ease), toValue: 1, useNativeDriver: true }),
+      Animated.timing(treasureGlowPulse, { duration: 900, easing: Easing.inOut(Easing.ease), toValue: 0, useNativeDriver: true })
+    ]));
+    animation.start();
+    return () => animation.stop();
+  }, [treasureGlowPulse]);
   const [drawingPoints, setDrawingPoints] = useState<Array<{ x: number; y: number; start?: boolean }>>([]);
   const [moduleFeedback, setModuleFeedback] = useState<ModuleFeedback>(() => loadModuleFeedback(userProfile.email));
   const [feedbackSaved, setFeedbackSaved] = useState(false);
@@ -2148,6 +2162,8 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           return { ...created, friendEmail: friend.email || "", friendName: friend.name } as TreasureChallengeReceipt;
         }))
           .then((created) => {
+            const firstChallenge = created[0];
+            if (firstChallenge) setTreasureSentChallengeUrl(`${getAppOrigin()}/?treasureInvite=1&challenge=${encodeURIComponent(firstChallenge.id)}`);
             const next = [...created, ...sentTreasureChallenges.filter((existing) => !created.some((item) => item.id === existing.id))];
             setSentTreasureChallenges(next);
             saveSentTreasureChallenges(userProfile.email, next);
@@ -2198,6 +2214,21 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         setTreasureGuess(submittedGuess.map((icon, index) => nextLocked[index] ? icon : null));
       }
     };
+    const finishNativeTreasureDrag = (event: any) => {
+      const drag = treasureNativeDragRef.current;
+      treasureNativeDragRef.current = null;
+      setTreasurePointerDrag(null);
+      setTreasureDropSlot(null);
+      if (!drag) return;
+      const pageX = Number(event.nativeEvent?.pageX);
+      const pageY = Number(event.nativeEvent?.pageY);
+      if (!Number.isFinite(pageX) || !Number.isFinite(pageY)) return;
+      treasureSlotRefs.current.forEach((slot, index) => {
+        slot?.measureInWindow?.((x: number, y: number, width: number, height: number) => {
+          if (pageX >= x && pageX <= x + width && pageY >= y && pageY <= y + height) placeTreasureIcon(drag, index);
+        });
+      });
+    };
     const shareTreasureResult = async () => {
       const resultLine = treasureWon
         ? `I opened the Intuisity Treasure Chest in ${treasureTriesUsed} ${treasureTriesUsed === 1 ? "try" : "tries"}—can you beat me?`
@@ -2229,6 +2260,22 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         setTreasureShareStatus("Result and challenge link copied. Paste it into a text, email, or social post.");
       } catch {
         setTreasureShareStatus(`Copy this challenge link: ${url}`);
+      }
+    };
+    const textTreasureChallengeLink = async () => {
+      const url = treasureSentChallengeUrl || "https://www.intuisity.com/treasure-chest.html";
+      const message = `${userProfile.name || "A friend"} invited you to an Intuisity Treasure Chest challenge. Open it here: ${url}`;
+      try {
+        if (Platform.OS === "ios") {
+          await Linking.openURL(`sms:&body=${encodeURIComponent(message)}`);
+        } else if (Platform.OS === "android") {
+          await Linking.openURL(`sms:?body=${encodeURIComponent(message)}`);
+        } else {
+          await Share.share({ message, title: "Intuisity Treasure Chest", url });
+        }
+        setTreasureShareStatus("Your challenge link is ready to text.");
+      } catch {
+        setTreasureShareStatus(`Text this challenge link: ${url}`);
       }
     };
     const renderTreasureInspirationBurst = () => {
@@ -2312,7 +2359,20 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     const renderRealTreasureGlow = () => {
       if (!treasureStarted) return null;
       if (typeof (globalThis as any).document === "undefined") {
-        return <View style={styles.realTreasureGlow} />;
+        return (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.realTreasureGlow,
+              {
+                opacity: treasureGlowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.52, 1] }),
+                transform: [{ scale: treasureGlowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.88, 1.16] }) }]
+              }
+            ]}
+          >
+            <View style={styles.realTreasureGlowCore} />
+          </Animated.View>
+        );
       }
       return React.createElement(
         "div",
@@ -2573,6 +2633,14 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 return (
                   <Pressable
                     disabled={disabled}
+                    onTouchStart={() => {
+                      if (disabled) return;
+                      const drag = { icon, from: "palette" as const };
+                      treasureNativeDragRef.current = drag;
+                      setTreasurePointerDrag(drag);
+                    }}
+                    onTouchEnd={finishNativeTreasureDrag}
+                    onTouchCancel={() => { treasureNativeDragRef.current = null; setTreasurePointerDrag(null); }}
                     key={icon}
                     onPress={() => tapTreasureIcon({ icon, from: "palette" })}
                     style={[styles.treasureToken, disabled && styles.treasureTokenDisabled]}
@@ -2603,8 +2671,17 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                       const correct = Boolean(completedRow) && icon === treasureSecret[index];
                       if (isActiveRow) {
                         return (
-                          <Pressable
+                        <Pressable
+                            ref={(node) => { treasureSlotRefs.current[index] = node; }}
                             key={`treasure-game-${rowIndex}-${index}`}
+                            onTouchStart={() => {
+                              if (!icon || treasureLocked[index]) return;
+                              const drag = { icon, from: "slot" as const, index };
+                              treasureNativeDragRef.current = drag;
+                              setTreasurePointerDrag(drag);
+                            }}
+                            onTouchEnd={finishNativeTreasureDrag}
+                            onTouchCancel={() => { treasureNativeDragRef.current = null; setTreasurePointerDrag(null); }}
                             onPress={() => icon && tapTreasureIcon({ icon, from: "slot", index })}
                             style={[
                               styles.treasureSlot,
@@ -2972,6 +3049,10 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 <Pressable accessibilityLabel="Copy Treasure Chest challenge link" onPress={copyTreasureChallengeLink} style={styles.treasureCopyLinkButton}>
                   <Ionicons color="#6544B8" name="copy-outline" size={18} />
                   <Text style={styles.treasureCopyLinkButtonText}>Copy challenge link</Text>
+                </Pressable>
+                <Pressable accessibilityLabel="Text Treasure Chest challenge link" onPress={textTreasureChallengeLink} style={styles.treasureCopyLinkButton}>
+                  <Ionicons color="#6544B8" name="chatbubble-outline" size={18} />
+                  <Text style={styles.treasureCopyLinkButtonText}>Text Challenge Link</Text>
                 </Pressable>
                 <Pressable onPress={() => setPage("hub")} style={styles.treasureExploreButton}>
                   <Ionicons color="#6544B8" name="grid-outline" size={18} />
@@ -3384,7 +3465,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         ) : (
           <View style={styles.remoteAnswerStage}>
             <PictureGrid
-              compact
+              compact={Platform.OS === "web"}
               pictures={choices}
               selectedId={remoteChoice}
               correctId={roundTarget.target.id}
@@ -5256,13 +5337,14 @@ function DrawingPad({
             <Text style={styles.drawingPromptText}>Draw or trace your impressions here</Text>
           </View>
         )}
-        {points.map((point, index) => (
-          <View
-            key={`native-drawing-point-${index}`}
-            pointerEvents="none"
-            style={[styles.nativeDrawingPoint, { left: point.x - 3, top: point.y - 3 }]}
-          />
-        ))}
+        {points.map((point, index) => {
+          const previous = points[index - 1];
+          if (!previous || point.start) return <View key={`native-drawing-point-${index}`} pointerEvents="none" style={[styles.nativeDrawingPoint, { left: point.x - 3, top: point.y - 3 }]} />;
+          const dx = point.x - previous.x;
+          const dy = point.y - previous.y;
+          const length = Math.sqrt(dx * dx + dy * dy);
+          return <View key={`native-drawing-segment-${index}`} pointerEvents="none" style={[styles.drawingSegment, { left: (previous.x + point.x) / 2 - length / 2, top: (previous.y + point.y) / 2 - 3, width: Math.max(6, length), transform: [{ rotate: `${Math.atan2(dy, dx)}rad` }] }]} />;
+        })}
       </View>
     );
   }
@@ -5690,6 +5772,7 @@ const styles = StyleSheet.create({
   realTreasureChestImage: { height: "100%", width: "112%" },
   realTreasureShadow: { backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 999, bottom: 16, height: 30, left: "12%", position: "absolute", right: "12%" },
   realTreasureGlow: { backgroundColor: "rgba(255, 231, 122, 0.48)", borderRadius: 999, height: "24%", left: "31%", opacity: 0.88, position: "absolute", right: "31%", shadowColor: "#FFE77A", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.82, shadowRadius: 20, top: "48%", zIndex: 3 },
+  realTreasureGlowCore: { alignSelf: "center", backgroundColor: "rgba(255, 250, 183, 0.78)", borderRadius: 999, height: "58%", marginTop: "18%", shadowColor: "#FFF197", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 12, width: "64%" },
   treasureInspirationLayer: { alignItems: "center", bottom: "48%", flexDirection: "row", flexWrap: "wrap", gap: 7, justifyContent: "center", left: "8%", position: "absolute", right: "8%", zIndex: 6 },
   treasureInspirationWord: { color: "#FFFFFF", fontSize: 18, fontWeight: "900", textShadowColor: "rgba(88, 49, 8, 0.55)", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
   treasureMoon: { backgroundColor: "#FFF9E8", borderRadius: 24, height: 48, position: "absolute", right: 22, top: 15, width: 48 },

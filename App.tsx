@@ -1,5 +1,10 @@
 import { StatusBar } from "expo-status-bar";
 import * as SecureStore from "expo-secure-store";
+import * as AuthSession from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
+import Constants from "expo-constants";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -16,6 +21,16 @@ import {
   View,
   type TextInputProps
 } from "react-native";
+
+WebBrowser.maybeCompleteAuthSession();
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true
+  })
+});
 import { Ionicons } from "@expo/vector-icons";
 import {
   dailyChallenges,
@@ -153,6 +168,14 @@ export default function App() {
   useEffect(() => {
     updateWebMetadata();
     syncSiteVisit();
+    if (Platform.OS === "web") return;
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const challengeUrl = response.notification.request.content.data?.challengeUrl;
+      if (typeof challengeUrl === "string" && /^https:\/\/(www\.)?intuisity\.com\//i.test(challengeUrl)) {
+        Linking.openURL(challengeUrl).catch(() => undefined);
+      }
+    });
+    return () => responseSubscription.remove();
   }, []);
 
   useEffect(() => {
@@ -220,8 +243,21 @@ export default function App() {
 
   useEffect(() => {
     if (!userProfile) return;
-    return scheduleDailyReminder(userProfile.reminderTime);
-  }, [userProfile?.reminderTime]);
+    if (Platform.OS === "web") return scheduleDailyReminder(userProfile.reminderTime);
+    let cancelled = false;
+    scheduleNativeDailyReminder(userProfile.reminderTime).catch((error) => console.warn("Daily reminder setup failed", error));
+    if (userProfile.authProvider !== "guest") {
+      registerForPushNotifications()
+        .then((expoPushToken) => {
+          if (cancelled || !expoPushToken || expoPushToken === userProfile.expoPushToken) return;
+          const updatedProfile = { ...userProfile, expoPushToken };
+          setUserProfile(updatedProfile);
+          saveProfile(updatedProfile);
+        })
+        .catch((error) => console.warn("Push notification registration failed", error));
+    }
+    return () => { cancelled = true; };
+  }, [userProfile?.email, userProfile?.reminderTime, userProfile?.expoPushToken]);
 
   useEffect(() => {
     setAnswers(userProfile ? loadDailyAnswers(userProfile.email) : {});
@@ -456,6 +492,11 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
         reminderTime: savedProfile?.reminderTime || "9:00 AM"
       };
       await syncProfile(nextProfile);
+      if (Platform.OS !== "web") {
+        // Persist before leaving the auth screen so an iOS lifecycle restart during
+        // the OAuth callback cannot briefly restore the signed-out state.
+        await SecureStore.setItemAsync(nativeActiveProfileKey, JSON.stringify(nextProfile));
+      }
       authenticate(nextProfile);
     } catch (googleError) {
       setError(googleError instanceof Error ? googleError.message : "Google sign-in could not start.");
@@ -871,14 +912,6 @@ function ProfileInput({ autoComplete, label, value, onChangeText, placeholder = 
 }
 
 function GoogleSignInButton({ onPress }: { onPress: () => void }) {
-  if (Platform.OS !== "web") {
-    return (
-      <View accessibilityLabel="Google sign-in is not available in this test build" style={styles.nativeGoogleNotice}>
-        <Ionicons color="#7555C7" name="information-circle-outline" size={20} />
-        <Text style={styles.nativeGoogleNoticeText}>For this TestFlight build, please use your email and password. Native Google and Apple sign-in are being prepared.</Text>
-      </View>
-    );
-  }
   return (
     <Pressable onPress={onPress} style={styles.googleButton}>
       <View style={styles.googleIconCircle}>
@@ -919,6 +952,7 @@ type GoogleProfile = {
 async function getGoogleClientId() {
   const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
   const bundledClientId =
+    (Platform.OS === "ios" ? process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID : "") ||
     process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
     browserWindow?.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
     browserWindow?.GOOGLE_CLIENT_ID ||
@@ -971,6 +1005,34 @@ async function signInWithGoogle(): Promise<GoogleProfile> {
   const clientId = await getGoogleClientId();
   if (!clientId) {
     throw new Error("Google sign-in needs EXPO_PUBLIC_GOOGLE_CLIENT_ID set for this deployment.");
+  }
+
+  if (Platform.OS !== "web") {
+    const redirectUri = process.env.EXPO_PUBLIC_GOOGLE_IOS_REDIRECT_URI || AuthSession.makeRedirectUri({
+      path: "oauthredirect",
+      scheme: "intuisity"
+    });
+    const request = new AuthSession.AuthRequest({
+      clientId,
+      redirectUri,
+      responseType: AuthSession.ResponseType.Token,
+      scopes: ["openid", "email", "profile"],
+      usePKCE: false
+    });
+    const result = await request.promptAsync({ authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth" });
+    if (result.type !== "success") {
+      if (result.type === "cancel" || result.type === "dismiss") throw new Error("Google sign-in was cancelled.");
+      throw new Error("Google sign-in could not complete. Please try again.");
+    }
+    const accessToken = result.authentication?.accessToken || result.params.access_token;
+    if (!accessToken) throw new Error("Google sign-in returned no access token. Please try again.");
+    const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) throw new Error("Google profile could not be loaded.");
+    const googleProfile = await response.json();
+    if (!googleProfile?.email) throw new Error("Google did not return an email address.");
+    return { email: String(googleProfile.email), name: String(googleProfile.name || googleProfile.email) };
   }
 
   await loadGoogleIdentityScript();
@@ -1271,6 +1333,44 @@ function scheduleDailyReminder(reminderTime = "9:00 AM") {
     clearTimeout(timeout);
     if (dailyInterval) clearInterval(dailyInterval);
   };
+}
+
+const nativeReminderIdentifierKey = "intuisity-native-daily-reminder-id";
+
+async function scheduleNativeDailyReminder(reminderTime = "9:00 AM") {
+  const permissions = await Notifications.getPermissionsAsync();
+  const finalPermissions = permissions.status === "granted" ? permissions : await Notifications.requestPermissionsAsync();
+  if (finalPermissions.status !== "granted") return;
+
+  const previousIdentifier = await SecureStore.getItemAsync(nativeReminderIdentifierKey);
+  if (previousIdentifier) {
+    await Notifications.cancelScheduledNotificationAsync(previousIdentifier).catch(() => undefined);
+  }
+  const { hour, minute } = parseReminderTime(reminderTime);
+  const identifier = await Notifications.scheduleNotificationAsync({
+    content: {
+      body: "Your five intuition challenges are ready.",
+      data: { destination: "today", type: "daily-reminder" },
+      sound: "default",
+      title: "Your daily Intuisity practice is ready"
+    },
+    trigger: {
+      hour,
+      minute,
+      type: Notifications.SchedulableTriggerInputTypes.DAILY
+    }
+  });
+  await SecureStore.setItemAsync(nativeReminderIdentifierKey, identifier);
+}
+
+async function registerForPushNotifications() {
+  if (!Device.isDevice) return "";
+  const permissions = await Notifications.getPermissionsAsync();
+  const finalPermissions = permissions.status === "granted" ? permissions : await Notifications.requestPermissionsAsync();
+  if (finalPermissions.status !== "granted") return "";
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+  if (!projectId) throw new Error("Expo project ID is missing.");
+  return (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 }
 
 function validBirthdate(value: string) {

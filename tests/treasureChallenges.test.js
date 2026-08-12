@@ -7,8 +7,14 @@ process.env.INTUISITY_FROM_EMAIL = "Intuisity <info@intuisity.com>";
 
 const rows = new Map();
 const emails = [];
+const pushes = [];
+const profileTokens = new Map();
 
 global.fetch = async (url, options = {}) => {
+  if (url === "https://exp.host/--/api/v2/push/send" && options.method === "POST") {
+    pushes.push(JSON.parse(options.body));
+    return jsonResponse(200, { data: { status: "ok", id: `push-${pushes.length}` } });
+  }
   if (url === "https://api.resend.com/emails" && options.method === "POST") {
     const message = JSON.parse(options.body);
     emails.push(message);
@@ -19,6 +25,11 @@ global.fetch = async (url, options = {}) => {
   }
 
   const parsed = new URL(url);
+  if (parsed.pathname.endsWith("/profiles") && options.method !== "POST") {
+    const email = parsed.searchParams.get("email")?.replace("eq.", "");
+    const expoPushToken = profileTokens.get(email);
+    return jsonResponse(200, expoPushToken ? [{ profile_json: { expoPushToken } }] : []);
+  }
   const id = parsed.searchParams.get("id")?.replace("eq.", "");
   if (options.method === "POST") {
     const record = JSON.parse(options.body);
@@ -83,6 +94,22 @@ const handler = require("../api/treasure-challenges");
   const secondStatus = await call("GET", { id: second.payload.id, senderToken: second.payload.senderToken });
   assert.equal(secondStatus.payload.playerCount, 2);
   assert.equal(secondStatus.payload.rank, 1, "Two-player matches rank fewer tries first");
+
+  profileTokens.set("registered@example.com", "ExponentPushToken[registered-device]");
+  const emailCountBeforePush = emails.length;
+  const pushed = await call("POST", {}, {
+    senderEmail: "sender@example.com",
+    senderName: "Sender",
+    friendEmail: "registered@example.com",
+    friendName: "Registered Friend",
+    tiles: ["one", "two", "three", "four", "five"],
+    origin: "https://intuisity.com"
+  });
+  assert.equal(pushed.statusCode, 201);
+  assert.equal(pushes.length, 1);
+  assert.match(pushes[0].data.challengeUrl, /challenge=/);
+  assert.equal(emails.length, emailCountBeforePush, "Successful push avoids duplicate invitation email");
+  assert.equal(rows.get(pushed.payload.id).invite_delivery_status, "push-sent");
   console.log("Treasure challenge tests passed");
 })().catch((error) => {
   console.error(error);
