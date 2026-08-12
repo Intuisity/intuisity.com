@@ -741,47 +741,9 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
   const lastHomeChallengeOpenRef = useRef(0);
 
   useEffect(() => {
-    const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
-    if (isMobileWebBrowser()) return;
-    if (!browserWindow?.history || !browserWindow?.addEventListener) return;
-
-    const handlePopState = (event: any) => {
-      const nextPage = event.state?.intuisityPage || "hub";
-      if (!getKnownIntuisityPages().has(nextPage)) return;
-      handlingBrowserBackRef.current = true;
-      setPage(nextPage);
-    };
-
-    browserWindow.addEventListener("popstate", handlePopState);
-    return () => browserWindow.removeEventListener("popstate", handlePopState);
+    historyReadyRef.current = true;
+    handlingBrowserBackRef.current = false;
   }, []);
-
-  useEffect(() => {
-    const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
-    if (isMobileWebBrowser()) return;
-    if (!browserWindow?.history) return;
-
-    const nextState = {
-      ...(browserWindow.history.state || {}),
-      intuisityPage: page
-    };
-    const nextUrl = getIntuisityPageUrl(page);
-
-    if (!historyReadyRef.current) {
-      browserWindow.history.replaceState(nextState, "", nextUrl);
-      historyReadyRef.current = true;
-      return;
-    }
-
-    if (handlingBrowserBackRef.current) {
-      handlingBrowserBackRef.current = false;
-      return;
-    }
-
-    if (browserWindow.history.state?.intuisityPage !== page) {
-      browserWindow.history.pushState(nextState, "", nextUrl);
-    }
-  }, [page]);
 
   const updateBirthDetail = (field: keyof typeof birthDetails, value: string) => {
     setBirthDetails({ ...birthDetails, [field]: value });
@@ -2384,7 +2346,8 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
       );
     };
     const renderTreasurePlacementControls = () => {
-      if (typeof (globalThis as any).document !== "undefined") {
+      const useWebDragControls = typeof (globalThis as any).document !== "undefined" && !isMobileWebBrowser();
+      if (useWebDragControls) {
         const webTokenStyle = (disabled: boolean, active: boolean): any => ({
           alignItems: "center",
           background: active ? "#FFF9E8" : "#FFFFFF",
@@ -2740,38 +2703,44 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             <TextInput
               accessibilityLabel="Friend name"
               autoCapitalize="words"
+              autoCorrect={false}
               onChangeText={(value) => {
                 setFriendName(value);
                 setFriendPhoneError("");
               }}
+              returnKeyType="next"
               placeholder="Friend's name"
               placeholderTextColor="#9A93AA"
-              style={styles.birthdateInput}
+              style={[styles.birthdateInput, styles.treasureFriendInput]}
               value={friendName}
             />
             <TextInput
               accessibilityLabel="Friend phone number"
+              autoCorrect={false}
               keyboardType="phone-pad"
               onChangeText={(value) => {
                 setFriendPhone(formatFriendPhone(value));
                 setFriendPhoneError("");
               }}
+              returnKeyType="next"
               placeholder="Phone number optional"
               placeholderTextColor="#9A93AA"
-              style={styles.birthdateInput}
+              style={[styles.birthdateInput, styles.treasureFriendInput]}
               value={friendPhone}
             />
             <TextInput
               accessibilityLabel="Friend email address"
               autoCapitalize="none"
+              autoCorrect={false}
               keyboardType="email-address"
               onChangeText={(value) => {
                 setFriendEmail(value);
                 setFriendPhoneError("");
               }}
+              returnKeyType="done"
               placeholder="Friend email for invite (required)"
               placeholderTextColor="#9A93AA"
-              style={styles.birthdateInput}
+              style={[styles.birthdateInput, styles.treasureFriendInput]}
               value={friendEmail}
             />
             <Text style={styles.savedFriendsLabel}>Email is required so they can receive the challenge. Phone number is optional.</Text>
@@ -4894,6 +4863,29 @@ function PageHeader({
   onNext?: () => void;
 }) {
   const theme = getHeaderTheme(eyebrow, title);
+  const renderHeaderDirectionButton = (
+    direction: "back" | "next",
+    label: string,
+    onPress: () => void
+  ) => {
+    return (
+      <Pressable
+        accessibilityLabel={direction === "back" ? "Go back" : "Go to next module"}
+        accessibilityRole="button"
+        hitSlop={14}
+        key={direction}
+        onPress={onPress}
+        style={styles.headerDirectionButton}
+      >
+        <View pointerEvents="none" style={styles.headerButtonInner}>
+          {direction === "back" && <Ionicons color="#f3c64d" name="arrow-back-outline" size={17} />}
+          <Text style={styles.headerNextText}>{label}</Text>
+          {direction === "next" && <Ionicons color="#f3c64d" name="arrow-forward-outline" size={17} />}
+        </View>
+      </Pressable>
+    );
+  };
+
   return (
     <View style={[styles.header, compact && styles.headerCompact, { backgroundColor: theme.background, borderColor: theme.border }]}>
       <ImageBackground
@@ -4915,36 +4907,10 @@ function PageHeader({
         </View>
       </ImageBackground>
       {(onBack || onNext) && (
-        <View pointerEvents="box-none" style={styles.headerNavigation}>
+        <View pointerEvents="auto" style={styles.headerNavigation}>
           <View style={styles.headerDirectionButtons}>
-            {onBack && (
-              <Pressable
-                accessibilityLabel="Go back"
-                accessibilityRole="button"
-                onPress={onBack}
-                hitSlop={10}
-                style={[styles.headerDirectionButton]}
-              >
-                <View style={styles.headerButtonInner}>
-                  <Ionicons color="#f3c64d" name="arrow-back-outline" size={17} />
-                  <Text style={styles.headerNextText}>Back</Text>
-                </View>
-              </Pressable>
-            )}
-            {onNext && (
-              <Pressable
-                accessibilityLabel="Go to next module"
-                accessibilityRole="button"
-                onPress={onNext}
-                hitSlop={10}
-                style={[styles.headerDirectionButton]}
-              >
-                <View style={styles.headerButtonInner}>
-                  <Text style={styles.headerNextText}>Next</Text>
-                  <Ionicons color="#f3c64d" name="arrow-forward-outline" size={17} />
-                </View>
-              </Pressable>
-            )}
+            {onBack && renderHeaderDirectionButton("back", "Back", onBack)}
+            {onNext && renderHeaderDirectionButton("next", "Next", onNext)}
           </View>
         </View>
       )}
@@ -5616,6 +5582,7 @@ const styles = StyleSheet.create({
   computerWinPanel: { backgroundColor: "#EDFFF6", borderColor: "#43C987" },
   treasureSplitLayout: { alignItems: "stretch", flexDirection: "row", flexWrap: "wrap", gap: 16, marginBottom: 28, paddingBottom: 28 },
   treasureControlPanel: { flex: 1.02, minWidth: 300 },
+  treasureFriendInput: { minHeight: 54, paddingVertical: 14 },
   treasurePreviewPanel: { alignSelf: "flex-start", backgroundColor: "#FFF9E8", borderColor: "#F2D88F", borderRadius: 8, borderWidth: 1, flex: 0.82, justifyContent: "flex-start", minWidth: 300, padding: 10 },
   treasureModeGrid: { gap: 12, marginBottom: 14 },
   treasureModeCard: { alignItems: "flex-start", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 2, gap: 8, minHeight: 132, padding: 16, shadowColor: "#b87908", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 10 },

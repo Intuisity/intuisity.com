@@ -188,46 +188,9 @@ export default function App() {
   }, [activeTab]);
 
   useEffect(() => {
-    const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
-    if (isMobileWebBrowser()) return;
-    if (!browserWindow?.history || !browserWindow?.addEventListener) return;
-
-    const handlePopState = (event: any) => {
-      const nextTab = event.state?.intuisityTab;
-      if (!tabs.some((tab) => tab.key === nextTab)) return;
-      handlingTabBrowserBackRef.current = true;
-      setActiveTab(nextTab);
-    };
-
-    browserWindow.addEventListener("popstate", handlePopState);
-    return () => browserWindow.removeEventListener("popstate", handlePopState);
+    tabHistoryReadyRef.current = true;
+    handlingTabBrowserBackRef.current = false;
   }, []);
-
-  useEffect(() => {
-    const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
-    if (isMobileWebBrowser()) return;
-    if (!browserWindow?.history) return;
-
-    const nextState = {
-      ...(browserWindow.history.state || {}),
-      intuisityTab: activeTab
-    };
-
-    if (!tabHistoryReadyRef.current) {
-      browserWindow.history.replaceState(nextState, "", browserWindow.location.href);
-      tabHistoryReadyRef.current = true;
-      return;
-    }
-
-    if (handlingTabBrowserBackRef.current) {
-      handlingTabBrowserBackRef.current = false;
-      return;
-    }
-
-    if (browserWindow.history.state?.intuisityTab !== activeTab) {
-      browserWindow.history.pushState(nextState, "", browserWindow.location.href);
-    }
-  }, [activeTab]);
 
   const dailyScore = useMemo(() => {
     const baseScore = scoreDailyChallenge(dailyChallenges, answers);
@@ -377,7 +340,7 @@ export default function App() {
         </View>
       )}
 
-      <ScrollView ref={mainScrollRef} style={styles.mainScrollArea} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={mainScrollRef} style={styles.mainScrollArea} contentContainerStyle={styles.content} keyboardShouldPersistTaps="always">
         {activeTab === "today" && (
           <DailyChallengeHub
             answers={answers}
