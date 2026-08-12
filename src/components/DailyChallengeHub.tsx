@@ -4318,6 +4318,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             key={challenge.id}
             onPress={() => openChallenge(challenge.id)}
             style={({ pressed }) => [styles.moduleGridItem, pressed && styles.moduleGridItemPressed]}
+            unstable_pressDelay={0}
           >
             <View style={[styles.moduleIconButton, styles.moduleIconButtonPurple]}>
               <Ionicons

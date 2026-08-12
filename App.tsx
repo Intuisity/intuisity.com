@@ -446,7 +446,7 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView onTouchStart={markSessionActivity} style={styles.app}>
+    <SafeAreaView onTouchEnd={markSessionActivity} style={styles.app}>
       <StatusBar style="dark" />
       <View style={styles.floatingScore}>
         <Pressable
