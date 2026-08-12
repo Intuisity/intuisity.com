@@ -77,6 +77,8 @@ const noscriptContent = `
         <p>Use daily games, reflection prompts, friend challenges, hidden picture exercises, birth chart guidance, and progress results to notice patterns, strengthen calm decision-making, and explore your natural sixth sense.</p>
         <h2>Build Awareness and Inner Wisdom</h2>
         <p>Each practice is designed for gentle self-discovery: quiet your mind, notice your first impression, compare results, and learn which kinds of intuitive signals feel calm, immediate, and repeatable. Intuisity supports personal growth through playful exercises for mindfulness, manifestation, synchronicity recognition, and remote viewing.</p>
+        <h2>Practice Intuition With Feedback</h2>
+        <p>Intuisity helps make intuition practice practical by pairing simple daily prompts with results, reflection, and feedback. Users can play a quick challenge, compare impressions with outcomes, notice which modules feel natural, and return each day for a grounded awareness practice.</p>
       </section>
     `;
 
@@ -87,6 +89,8 @@ const seoFallbackContent = `
       <p>Use Intuisity to practice six guided daily challenges: Treasure Chest friend challenges, Train Your Knowing hidden picture games, Positivity Practice, Read the Person, Daily Astrology Tips, and Remote Viewing Challenge.</p>
       <p>The Treasure Chest friend game lets users send a playful intuition challenge and secret note to a friend. Train Your Knowing helps users sense which colored square hides a beautiful picture. Remote Viewing encourages users to draw first impressions before choosing between images. Astrology guidance offers daily chart-based reflection. Positivity Practice gives gentle real-world ideas to build awareness and mindfulness. Results tracking helps users notice apparent strengths over time.</p>
       <p>Intuisity is built for people interested in intuition development, consciousness, insight, spiritual awakening, remote viewing, astrology, manifestation, mindfulness, and personal growth through free daily practice.</p>
+      <p>Daily practice can include choosing a hidden picture, sending a Treasure Chest friend challenge, answering a birth-chart reflection, reading a portrait through first impressions, completing a tangible positivity task, or reviewing results to see how awareness changes over time.</p>
+      <p>People use Intuisity to explore intuition in a grounded way: short exercises, calm attention, real feedback, and simple progress tracking instead of pressure or perfection.</p>
     </main>
   `;
 

@@ -4,6 +4,34 @@
   "framework": null,
   "cleanUrls": true,
   "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/robots.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    },
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/xml; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/privacy",
@@ -16,6 +44,14 @@
     {
       "source": "/treasure-chest",
       "destination": "/treasure-chest.html"
+    },
+    {
+      "source": "/intuition-training",
+      "destination": "/intuition-training.html"
+    },
+    {
+      "source": "/intuition-games-with-friends",
+      "destination": "/intuition-games-with-friends.html"
     },
     {
       "source": "/challenge/:path*",
