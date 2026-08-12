@@ -1152,7 +1152,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
           subtitle="Notice how often your first impression guided you to the hidden picture."
         />
         <View style={styles.resultsPanel}>
-          <Ionicons color="#7555C7" name="sparkles-outline" size={42} />
+          <Ionicons color="#6537c7" name="sparkles-outline" size={42} />
           <Text style={styles.resultsNumber}>{correct} of 5</Text>
           <Text style={styles.resultsLabel}>colors correctly sensed</Text>
           <Text style={styles.resultsPoints}>{calculateModulePoints(correct, 5, dailyPointWeights.knowing)} of {dailyPointWeights.knowing} points earned</Text>
@@ -1424,7 +1424,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               </Text>
               {!isPremium && (
                 <View style={styles.premiumPill}>
-                  <Ionicons color="#6544B8" name="lock-closed-outline" size={13} />
+                  <Ionicons color="#6537c7" name="lock-closed-outline" size={13} />
                   <Text style={styles.premiumPillText}>Premium shows all days</Text>
                 </View>
               )}
@@ -1458,7 +1458,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             subtitle="Preparing a person with an available photograph and factual history."
           />
           <View style={styles.loadingPanel}>
-            <Ionicons color="#7555C7" name="image-outline" size={34} />
+            <Ionicons color="#6537c7" name="image-outline" size={34} />
             <Text style={styles.loadingPanelText}>Loading a real photo for this challenge...</Text>
           </View>
         </View>
@@ -1591,7 +1591,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                       : showPersonResults && correctAttribute
                       ? "#239963"
                       : selectedAttribute
-                        ? "#7555C7"
+                        ? "#6537c7"
                         : "#9A93AA"
                   }
                   name={
@@ -1629,7 +1629,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         {!showPersonResults ? (
           <View>
             <View style={styles.selectionPrompt}>
-              <Ionicons color="#7555C7" name="sparkles-outline" size={20} />
+              <Ionicons color="#6537c7" name="sparkles-outline" size={20} />
               <Text style={styles.selectionPromptText}>
                 Select three attributes to automatically reveal their story.
               </Text>
@@ -1642,7 +1642,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         ) : (
           <View style={styles.remoteAnswerStage}>
             <View style={styles.scoreAdded}>
-              <Ionicons color="#7555C7" name="trophy-outline" size={22} />
+              <Ionicons color="#6537c7" name="trophy-outline" size={22} />
               <Text style={styles.scoreAddedText}>
                 {personPracticeMode ? `${personCorrect} correct in this practice round` : (
                   <>
@@ -2420,7 +2420,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         });
         const webPastSlotStyle = (correct: boolean): any => ({
           alignItems: "center",
-          background: correct ? "#EDFFF6" : "#F8F7FC",
+          background: correct ? "#EDFFF6" : "#faf8ff",
           border: correct ? "2px solid #43C987" : "1px solid #E7E3F2",
           borderRadius: 8,
           color: correct ? "#176F42" : "#8A8299",
@@ -2518,7 +2518,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
           React.createElement("div", { style: { color: "#8A6B20", fontSize: 12, fontWeight: 900, lineHeight: "17px", marginBottom: 12, textAlign: "center" } }, treasureAttemptRows.length > 0 ? "Use the row below your last try to enter the next order." : "Your chosen order appears here. Tap a filled box to remove that treasure."),
           opponent === "friend" && React.createElement(
             "label",
-            { style: { color: "#6544B8", display: "block", fontSize: 13, fontWeight: 900, marginBottom: 7 } },
+            { style: { color: "#6537c7", display: "block", fontSize: 13, fontWeight: 900, marginBottom: 7 } },
             "Message to your friend"
           ),
           opponent === "friend" && React.createElement(
@@ -2528,7 +2528,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               placeholder: "Write a short message that appears when your friend opens the chest.",
               style: {
                 background: "#FFFFFF",
-                border: "2px solid #BFE8E8",
+                border: "2px solid #f0dca0",
                 borderRadius: 8,
                 color: "#30264C",
                 fontFamily: "inherit",
@@ -2556,7 +2556,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               },
               style: {
                 alignItems: "center",
-                background: treasureMissingCount > 0 ? "#CFC8DA" : "#7555C7",
+                background: treasureMissingCount > 0 ? "#CFC8DA" : "#6537c7",
                 border: 0,
                 borderRadius: 8,
                 color: "#FFFFFF",
@@ -2794,10 +2794,10 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                   style={styles.savedFriendsDropdownButton}
                 >
                   <View style={styles.savedFriendsDropdownTitle}>
-                    <Ionicons color="#6544B8" name="folder-open-outline" size={18} />
+                    <Ionicons color="#6537c7" name="folder-open-outline" size={18} />
                     <Text style={styles.savedFriendsLabel}>{showSavedFriends ? "Hide saved friends" : `Open saved friends (${savedFriends.length})`}</Text>
                   </View>
-                  <Ionicons color="#6544B8" name={showSavedFriends ? "chevron-up-outline" : "chevron-down-outline"} size={18} />
+                  <Ionicons color="#6537c7" name={showSavedFriends ? "chevron-up-outline" : "chevron-down-outline"} size={18} />
                 </Pressable>
                 {showSavedFriends && (
                 <View style={styles.friendChipGrid}>
@@ -2816,7 +2816,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                         }}
                         style={[styles.friendChip, selected && styles.friendChipSelected]}
                       >
-                        <Ionicons color={selected ? "#FFFFFF" : "#7555C7"} name={selected ? "checkmark-circle" : "person-add-outline"} size={16} />
+                        <Ionicons color={selected ? "#FFFFFF" : "#6537c7"} name={selected ? "checkmark-circle" : "person-add-outline"} size={16} />
                         <View style={styles.friendChipCopy}>
                           <Text style={[styles.friendChipText, selected && styles.friendChipTextSelected]}>{friend.name}</Text>
                           <Text style={[styles.friendChipDetail, selected && styles.friendChipTextSelected]}>{formatFriendContactDetail(friend)}</Text>
@@ -2865,7 +2865,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               {renderTreasureInspirationBurst()}
             </ImageBackground>
             <View style={styles.treasureChestCard}>
-              <Ionicons color={treasureLost ? "#6544B8" : "#8A6B20"} name={treasureLost ? "lock-closed-outline" : treasureWon ? "gift-outline" : "sparkles-outline"} size={34} />
+              <Ionicons color={treasureLost ? "#6537c7" : "#8A6B20"} name={treasureLost ? "lock-closed-outline" : treasureWon ? "gift-outline" : "sparkles-outline"} size={34} />
               <Text style={styles.treasureChestTitle}>
                 {treasureWinText || (treasureStarted ? `${treasureCorrect} of 5 treasures in the right spot` : "Start a treasure challenge")}
               </Text>
@@ -2889,7 +2889,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             {treasureWon && (
               <View style={styles.treasureFriendMessageCard}>
                 <View style={styles.treasureFriendMessageHeader}>
-                  <Ionicons color="#6544B8" name="chatbubble-ellipses-outline" size={20} />
+                  <Ionicons color="#6537c7" name="chatbubble-ellipses-outline" size={20} />
                   <Text style={styles.treasureFriendMessageTitle}>
                     {invitedTreasureSender ? `${invitedTreasureSender}'s message` : opponent === "friend" ? "Message for your friend" : "Treasure message"}
                   </Text>
@@ -2900,7 +2900,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             {invitedTreasureFinished && (
               <View style={styles.treasureResponseCard}>
                 <View style={styles.treasureFriendMessageHeader}>
-                  <Ionicons color="#008A94" name={treasureResponseSent ? "checkmark-circle-outline" : "mail-outline"} size={22} />
+                  <Ionicons color="#b87908" name={treasureResponseSent ? "checkmark-circle-outline" : "mail-outline"} size={22} />
                   <Text style={styles.treasureSiteInviteTitle}>
                     {treasureResponseSent ? "Response sent" : `Reply to ${invitedTreasureSender}`}
                   </Text>
@@ -2933,7 +2933,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             {treasureWon && invitedTreasureSender && (
               <View style={styles.treasureSiteInviteCard}>
                 <View style={styles.treasureFriendMessageHeader}>
-                  <Ionicons color="#008A94" name="sparkles-outline" size={22} />
+                  <Ionicons color="#b87908" name="sparkles-outline" size={22} />
                   <Text style={styles.treasureSiteInviteTitle}>Explore Intuisity free</Text>
                 </View>
                 <Text style={styles.treasureSiteInviteText}>
@@ -2964,7 +2964,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             subtitle={match ? "Your intuition matched the computer's hidden power word." : "Notice which word first called to you and keep practicing."}
           />
           <View style={[styles.pendingPanel, match && styles.computerWinPanel]}>
-            <Ionicons color={match ? "#239963" : "#7555C7"} name={match ? "trophy-outline" : "sparkles-outline"} size={42} />
+            <Ionicons color={match ? "#239963" : "#6537c7"} name={match ? "trophy-outline" : "sparkles-outline"} size={42} />
             <Text style={styles.pendingTitle}>{match ? "You got it right" : "Try again tomorrow"}</Text>
             <Text style={styles.pendingText}>
               {match ? "This correct prediction has been added to your daily score." : "Compare the two words and notice which one first called to your intuition."}
@@ -2981,7 +2981,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             </View>
           </View>
           <View style={styles.powerWordMeaning}>
-            <Ionicons color="#7555C7" name="sunny-outline" size={28} />
+            <Ionicons color="#6537c7" name="sunny-outline" size={28} />
             <Text style={styles.powerWordMeaningLabel}>Today's inspiration</Text>
             <Text style={styles.powerWordMeaningTitle}>{computerPowerWord}</Text>
             <Text style={styles.powerWordMeaningText}>{computerWordMeaning}</Text>
@@ -3006,7 +3006,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             subtitle={`The result will be revealed on ${revealLabel}.`}
           />
           <View style={styles.pendingPanel}>
-            <Ionicons color={friendMatches ? "#239963" : "#7555C7"} name={friendMatches ? "trophy-outline" : "time-outline"} size={42} />
+            <Ionicons color={friendMatches ? "#239963" : "#6537c7"} name={friendMatches ? "trophy-outline" : "time-outline"} size={42} />
             <Text style={styles.pendingTitle}>
               {friendMatches
                 ? `${calculateModulePoints(friendMatches, friendMaximum, dailyPointWeights.friend)} of ${dailyPointWeights.friend} points earned`
@@ -3061,7 +3061,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               }}
               style={styles.answerNavButton}
             >
-              <Ionicons color="#6544B8" name="arrow-back-outline" size={22} />
+              <Ionicons color="#6537c7" name="arrow-back-outline" size={22} />
               <Text style={styles.answerNavText}>Back</Text>
             </Pressable>
             <Pressable
@@ -3069,7 +3069,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               onPress={() => setPage("hub")}
               style={styles.answerNavButton}
             >
-              <Ionicons color="#6544B8" name="home-outline" size={22} />
+              <Ionicons color="#6537c7" name="home-outline" size={22} />
               <Text style={styles.answerNavText}>Home</Text>
             </Pressable>
             <Pressable
@@ -3186,7 +3186,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                         }}
                         style={[styles.friendChip, selected && styles.friendChipSelected]}
                       >
-                        <Ionicons color={selected ? "#FFFFFF" : "#7555C7"} name={selected ? "checkmark-circle" : "person-add-outline"} size={16} />
+                        <Ionicons color={selected ? "#FFFFFF" : "#6537c7"} name={selected ? "checkmark-circle" : "person-add-outline"} size={16} />
                         <View style={styles.friendChipCopy}>
                           <Text style={[styles.friendChipText, selected && styles.friendChipTextSelected]}>{friend.name}</Text>
                           <Text style={[styles.friendChipDetail, selected && styles.friendChipTextSelected]}>{formatFriendContactDetail(friend)}</Text>
@@ -3222,7 +3222,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 ]}
               >
                 <Ionicons
-                  color={predictedPowerWord === word ? "#FFFFFF" : "#7555C7"}
+                  color={predictedPowerWord === word ? "#FFFFFF" : "#6537c7"}
                   name="sparkles-outline"
                   size={19}
                 />
@@ -3311,7 +3311,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         {remotePhase === "sense" ? (
           <View>
             <View style={styles.remoteInstructionCard}>
-              <Ionicons color="#7555C7" name="pencil-outline" size={22} />
+              <Ionicons color="#6537c7" name="pencil-outline" size={22} />
               <Text style={styles.remoteInstructionText}>
                 Imagine which image is showing on the next page. Draw your ideas before you see the choices. It is great to start with basic shapes, lines, colors, textures, or the first feeling that comes to mind.
               </Text>
@@ -3397,7 +3397,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
           subtitle="Notice which impressions helped you recognize the hidden targets."
         />
         <View style={styles.resultsPanel}>
-          <Ionicons color="#7555C7" name="radio-outline" size={42} />
+          <Ionicons color="#6537c7" name="radio-outline" size={42} />
           <Text style={styles.resultsNumber}>{remoteCorrect}/3</Text>
           <Text style={styles.resultsPoints}>{calculateModulePoints(remoteCorrect, 3, dailyPointWeights.remoteViewing)} of {dailyPointWeights.remoteViewing} points added to today's score</Text>
         </View>
@@ -3824,7 +3824,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         onPress={onLogout}
         style={[styles.homeLogoutButton]}
       >
-        <Ionicons color="#008A94" name="log-out-outline" size={19} />
+        <Ionicons color="#b87908" name="log-out-outline" size={19} />
         <Text style={styles.homeLogoutText}>Log out</Text>
       </Pressable>
     </View>
@@ -5012,7 +5012,7 @@ function VirtualRoom({
         </View>
       </View>
       <View style={styles.kitchenPromptPill}>
-        <Ionicons color="#008A94" name="hand-left-outline" size={15} />
+        <Ionicons color="#b87908" name="hand-left-outline" size={15} />
         <Text style={styles.kitchenPromptText}>Tap one of the kitchen objects</Text>
       </View>
       {objects.map((object, index) => {
@@ -5038,7 +5038,7 @@ function VirtualRoom({
               ]}
             >
               <Ionicons
-                color={primarySelected ? "#FFFFFF" : secondarySelected ? "#008A94" : "#30264C"}
+                color={primarySelected ? "#FFFFFF" : secondarySelected ? "#b87908" : "#30264C"}
                 name={object.icon}
                 size={compact ? 30 : 36}
               />
@@ -5303,7 +5303,7 @@ const styles = StyleSheet.create({
   headerTitleCompact: { fontSize: 19, marginTop: 3 },
   headerSubtitle: { color: "#FFFFFF", fontSize: 13, fontWeight: "700", lineHeight: 20, marginTop: 6, maxWidth: 690, textShadowColor: "rgba(0,0,0,0.35)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
   headerSubtitleCompact: { fontSize: 11, lineHeight: 14, marginTop: 2 },
-  eyebrow: { color: "#7555C7", fontSize: 12, fontWeight: "800", textTransform: "uppercase" },
+  eyebrow: { color: "#6537c7", fontSize: 12, fontWeight: "800", textTransform: "uppercase" },
   title: { color: "#201B35", fontSize: 28, fontWeight: "900", marginTop: 6 },
   subtitle: { color: "#706982", fontSize: 15, lineHeight: 22, marginTop: 8 },
   hero: { aspectRatio: 2.56, backgroundColor: "#F4F0E7", borderRadius: 22, elevation: 8, marginBottom: 18, marginTop: -2, overflow: "hidden", shadowColor: "#211842", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.16, shadowRadius: 18, width: "100%" },
@@ -5322,22 +5322,22 @@ const styles = StyleSheet.create({
   bannerIconLinkTeal: {},
   bannerIconLinkPressed: { backgroundColor: "rgba(255,255,255,0.18)" },
   heroCopy: { backgroundColor: "rgba(30,17,55,0.72)", padding: 16 },
-  heroEyebrow: { color: "#63E3E0", fontSize: 12, fontWeight: "800", textTransform: "uppercase" },
+  heroEyebrow: { color: "#f3c64d", fontSize: 12, fontWeight: "800", textTransform: "uppercase" },
   heroTitle: { color: "#FFFFFF", fontSize: 21, fontWeight: "900", lineHeight: 27, marginTop: 4 },
   menuItem: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 12, marginBottom: 12, padding: 14 },
-  menuNumber: { alignItems: "center", backgroundColor: "#F1EDFF", borderRadius: 8, height: 40, justifyContent: "center", width: 40 },
-  menuNumberText: { color: "#6544B8", fontSize: 17, fontWeight: "900" },
+  menuNumber: { alignItems: "center", backgroundColor: "#fff4cf", borderRadius: 8, height: 40, justifyContent: "center", width: 40 },
+  menuNumberText: { color: "#6537c7", fontSize: 17, fontWeight: "900" },
   menuCopy: { flex: 1 },
   menuTitleRow: { alignItems: "center", flexDirection: "row", gap: 7 },
   menuTitle: { color: "#211B34", fontSize: 17, fontWeight: "900" },
-  menuTagline: { color: "#00AEBB", fontSize: 13, fontWeight: "800", marginTop: 3 },
+  menuTagline: { color: "#d79b16", fontSize: 13, fontWeight: "800", marginTop: 3 },
   moduleGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "space-between" },
   moduleGridItem: { alignItems: "stretch", backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 18, borderWidth: 1, elevation: 3, minHeight: 172, overflow: "hidden", shadowColor: "#b87908", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.1, shadowRadius: 12, width: "48%" },
   moduleGridTapTarget: { alignItems: "center", cursor: "pointer" as any, flex: 1, justifyContent: "center", minHeight: 172, padding: 16 },
   moduleGridItemPressed: { backgroundColor: "#fff4cf", borderColor: "#d79b16", transform: [{ scale: 0.99 }] },
   moduleIconButton: { alignItems: "center", backgroundColor: "transparent", borderColor: "transparent", borderRadius: 0, borderWidth: 0, height: 48, justifyContent: "center", marginBottom: 2, width: 58 },
   moduleIconButtonPurple: { backgroundColor: "#6537c7", borderColor: "#f3c64d", shadowColor: "#6537c7" },
-  moduleIconButtonTeal: { backgroundColor: "#008A94", borderColor: "#63E3E0", shadowColor: "#00AEBB" },
+  moduleIconButtonTeal: { backgroundColor: "#b87908", borderColor: "#f3c64d", shadowColor: "#d79b16" },
   moduleGridCopy: { alignItems: "center", marginTop: 11, width: "100%" },
   moduleGridTitle: { color: "#211842", fontSize: 14, fontWeight: "900", lineHeight: 19, textAlign: "center" },
   moduleGridTagline: { color: "#6537c7", fontSize: 12, fontWeight: "800", lineHeight: 17, marginTop: 4, textAlign: "center" },
@@ -5346,8 +5346,8 @@ const styles = StyleSheet.create({
   homeResultsCopy: { flex: 1 },
   homeResultsTitle: { color: "#f3c64d", fontSize: 16, fontWeight: "900" },
   homeResultsText: { color: "#fff4cf", fontSize: 11, fontWeight: "800", lineHeight: 16, marginTop: 2 },
-  homeLogoutButton: { alignItems: "center", alignSelf: "center", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 7, justifyContent: "center", marginTop: 12, minHeight: 44, paddingHorizontal: 18, paddingVertical: 10 },
-  homeLogoutText: { color: "#008A94", fontSize: 14, fontWeight: "900" },
+  homeLogoutButton: { alignItems: "center", alignSelf: "center", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 7, justifyContent: "center", marginTop: 12, minHeight: 44, paddingHorizontal: 18, paddingVertical: 10 },
+  homeLogoutText: { color: "#b87908", fontSize: 14, fontWeight: "900" },
   progressTrack: { backgroundColor: "#f6ecd0", borderRadius: 8, height: 8, marginBottom: 16, overflow: "hidden" },
   progressFill: { backgroundColor: "#d79b16", borderRadius: 8, height: "100%" },
   progressLabel: { color: "#b87908", fontSize: 13, fontWeight: "900", marginBottom: 7 },
@@ -5371,7 +5371,7 @@ const styles = StyleSheet.create({
   remoteAnswerStage: { marginTop: 0, paddingBottom: 4 },
   remoteNextButtonCompact: { marginBottom: 0, minHeight: 36, padding: 7 },
   choiceGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 16 },
-  choice: { backgroundColor: "#F8F7FC", borderColor: "#E4DFF0", borderRadius: 8, borderWidth: 1, minWidth: "47%", padding: 14 },
+  choice: { backgroundColor: "#faf8ff", borderColor: "#E4DFF0", borderRadius: 8, borderWidth: 1, minWidth: "47%", padding: 14 },
   selectedChoice: { backgroundColor: "#6537c7", borderColor: "#f3c64d" },
   choiceText: { color: "#393149", fontSize: 15, fontWeight: "800", textAlign: "center" },
   selectedChoiceText: { color: "#fff4cf" },
@@ -5383,11 +5383,11 @@ const styles = StyleSheet.create({
   resultsPanel: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 22, borderWidth: 2, elevation: 5, marginBottom: 14, padding: 26, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 16 },
   resultsNumber: { color: "#f3c64d", fontFamily: "Georgia", fontSize: 56, fontWeight: "700", marginTop: 10 },
   resultsLabel: { color: "#706982", fontSize: 16, fontWeight: "700" },
-  resultsPoints: { color: "#00AEBB", fontSize: 16, fontWeight: "900", marginTop: 14 },
-  abilityMessage: { backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, marginTop: 18, padding: 14, width: "100%" },
+  resultsPoints: { color: "#d79b16", fontSize: 16, fontWeight: "900", marginTop: 14 },
+  abilityMessage: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, marginTop: 18, padding: 14, width: "100%" },
   abilityMessageStrong: { backgroundColor: "#FFF4D8", borderColor: "#F4C95D", borderWidth: 2, shadowColor: "#F4C95D", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.45, shadowRadius: 10 },
-  abilityMessageTitle: { color: "#008A94", fontSize: 18, fontWeight: "900", textAlign: "center" },
-  abilityMessageTitleStrong: { color: "#7555C7", fontSize: 21 },
+  abilityMessageTitle: { color: "#b87908", fontSize: 18, fontWeight: "900", textAlign: "center" },
+  abilityMessageTitleStrong: { color: "#6537c7", fontSize: 21 },
   abilityMessageText: { color: "#706982", fontSize: 13, lineHeight: 19, marginTop: 6, textAlign: "center" },
   lessonCard: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 12, borderWidth: 1, marginBottom: 8, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 4 },
   lessonIcon: { alignItems: "center", backgroundColor: "#fff4cf", borderRadius: 8, height: 48, justifyContent: "center", marginBottom: 14, width: 48 },
@@ -5431,26 +5431,26 @@ const styles = StyleSheet.create({
   historyDate: { color: "#b87908", fontSize: 12, fontWeight: "900", marginBottom: 6, textTransform: "uppercase" },
   historyChallenge: { color: "#30264C", fontSize: 15, fontWeight: "900", lineHeight: 21 },
   historyResponse: { color: "#706982", fontSize: 14, lineHeight: 20, marginTop: 7 },
-  practiceLabel: { color: "#6544B8", fontSize: 12, fontWeight: "900", marginBottom: 4, textTransform: "uppercase" },
+  practiceLabel: { color: "#6537c7", fontSize: 12, fontWeight: "900", marginBottom: 4, textTransform: "uppercase" },
   practiceText: { color: "#393149", fontSize: 14, lineHeight: 19 },
-  loadingPanel: { alignItems: "center", backgroundColor: "#F8F5FF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, gap: 12, marginBottom: 16, padding: 24 },
+  loadingPanel: { alignItems: "center", backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, gap: 12, marginBottom: 16, padding: 24 },
   loadingPanelText: { color: "#30264C", fontSize: 15, fontWeight: "800", textAlign: "center" },
-  personPortraitFrame: { alignSelf: "center", backgroundColor: "#F8F7FC", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, height: 320, marginBottom: 16, maxWidth: 360, overflow: "hidden", width: "100%" },
+  personPortraitFrame: { alignSelf: "center", backgroundColor: "#faf8ff", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, height: 320, marginBottom: 16, maxWidth: 360, overflow: "hidden", width: "100%" },
   personPortrait: { height: "100%", width: "100%" },
-  personHistory: { backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, marginBottom: 16, padding: 16 },
-  selectionCount: { color: "#6544B8", fontSize: 14, fontWeight: "900", marginBottom: 10 },
+  personHistory: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, marginBottom: 16, padding: 16 },
+  selectionCount: { color: "#6537c7", fontSize: 14, fontWeight: "900", marginBottom: 10 },
   attributeList: { flexDirection: "row", flexWrap: "wrap", gap: 7, justifyContent: "space-between", marginBottom: 16 },
   attributeChoice: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 6, minHeight: 52, padding: 8, width: "48.5%" },
-  attributeSelected: { backgroundColor: "#EDFBFB", borderColor: "#00AEBB" },
+  attributeSelected: { backgroundColor: "#fffaf0", borderColor: "#d79b16" },
   attributeCorrect: { backgroundColor: "#EDFFF6", borderColor: "#43C987", borderWidth: 2 },
   attributeCorrectSelected: { backgroundColor: "#18B86A", borderColor: "#079653", borderWidth: 3, shadowColor: "#18B86A", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 9 },
   attributeCorrectSelectedText: { color: "#FFFFFF", fontWeight: "900" },
   attributeIncorrect: { backgroundColor: "#FFF4F4", borderColor: "#D99196" },
   attributeText: { color: "#393149", flex: 1, fontSize: 11, fontWeight: "700", lineHeight: 14 },
-  scoreAdded: { alignItems: "center", backgroundColor: "#EDFBFB", borderRadius: 8, flexDirection: "row", gap: 10, marginBottom: 12, padding: 14 },
-  scoreAddedText: { color: "#008A94", flex: 1, fontSize: 15, fontWeight: "900" },
-  selectionPrompt: { alignItems: "center", backgroundColor: "#EDFBFB", borderRadius: 8, flexDirection: "row", gap: 10, marginBottom: 14, padding: 14 },
-  selectionPromptText: { color: "#008A94", flex: 1, fontSize: 14, fontWeight: "800", lineHeight: 20 },
+  scoreAdded: { alignItems: "center", backgroundColor: "#fffaf0", borderRadius: 8, flexDirection: "row", gap: 10, marginBottom: 12, padding: 14 },
+  scoreAddedText: { color: "#b87908", flex: 1, fontSize: 15, fontWeight: "900" },
+  selectionPrompt: { alignItems: "center", backgroundColor: "#fffaf0", borderRadius: 8, flexDirection: "row", gap: 10, marginBottom: 14, padding: 14 },
+  selectionPromptText: { color: "#b87908", flex: 1, fontSize: 14, fontWeight: "800", lineHeight: 20 },
   birthdateCard: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 12, borderWidth: 1, padding: 18 },
   birthDetailsHeader: { alignItems: "center", flexDirection: "row", gap: 10, marginBottom: 12 },
   birthDetailsDropdown: { alignItems: "center", flexDirection: "row", gap: 10 },
@@ -5473,7 +5473,7 @@ const styles = StyleSheet.create({
   birthTimePickerLabel: { color: "#706982", flex: 1, fontSize: 10, fontWeight: "900", textAlign: "center", textTransform: "uppercase" },
   birthTimeScroller: { marginBottom: 7 },
   birthTimeOption: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, justifyContent: "center", marginRight: 6, minHeight: 38, minWidth: 44, paddingHorizontal: 10 },
-  birthTimeOptionSelected: { backgroundColor: "#6544B8", borderColor: "#6544B8" },
+  birthTimeOptionSelected: { backgroundColor: "#6537c7", borderColor: "#6537c7" },
   birthTimeOptionText: { color: "#30264C", fontSize: 14, fontWeight: "900" },
   birthTimeOptionTextSelected: { color: "#FFFFFF" },
   birthTimePeriodRow: { flexDirection: "row", gap: 8, marginTop: 4 },
@@ -5484,7 +5484,7 @@ const styles = StyleSheet.create({
   birthTimeWheelOption: { alignItems: "center", borderRadius: 999, justifyContent: "center", marginHorizontal: 4, marginVertical: 3, minHeight: 32 },
   birthTimeScrollHint: { color: "#706982", fontSize: 11, fontWeight: "800", lineHeight: 15, marginTop: 7, textAlign: "center" },
   inputError: { color: "#B15A60", fontSize: 13, fontWeight: "700", marginBottom: 8 },
-  inviteStatus: { color: "#008A94", fontSize: 12, fontWeight: "800", lineHeight: 17, marginBottom: 10, marginTop: -4 },
+  inviteStatus: { color: "#b87908", fontSize: 12, fontWeight: "800", lineHeight: 17, marginBottom: 10, marginTop: -4 },
   birthChartNote: { color: "#706982", fontSize: 13, lineHeight: 19, marginBottom: 16 },
   birthChartTitle: { color: "#30264C", fontSize: 16, fontWeight: "900" },
   signBanner: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 2, flexDirection: "row", gap: 12, marginBottom: 14, padding: 16 },
@@ -5516,7 +5516,7 @@ const styles = StyleSheet.create({
   followUpPlan: { color: "#30264C", fontSize: 16, fontWeight: "800", lineHeight: 23, marginBottom: 14 },
   journalInput: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 15, lineHeight: 21, marginBottom: 10, marginTop: 10, minHeight: 96, padding: 12 },
   journalInputLocked: { backgroundColor: "#fffaf0", borderColor: "#d79b16" },
-  virtualRoom: { alignSelf: "center", aspectRatio: 1.22, backgroundColor: "#F8FCFC", borderColor: "#00AEBB", borderRadius: 8, borderWidth: 2, marginBottom: 12, maxWidth: 620, overflow: "hidden", position: "relative", width: "100%" },
+  virtualRoom: { alignSelf: "center", aspectRatio: 1.22, backgroundColor: "#F8FCFC", borderColor: "#d79b16", borderRadius: 8, borderWidth: 2, marginBottom: 12, maxWidth: 620, overflow: "hidden", position: "relative", width: "100%" },
   virtualRoomCompact: { maxWidth: 560 },
   virtualKitchenWall: { backgroundColor: "#F4FAFA", borderBottomColor: "#9FD9D9", borderBottomWidth: 2, height: "62%", left: 0, position: "absolute", right: 0, top: 0 },
   virtualKitchenWindow: { backgroundColor: "#FFFFFF", borderColor: "#69BFC7", borderRadius: 8, borderWidth: 3, flexDirection: "row", gap: 4, height: "42%", justifyContent: "center", left: "35%", padding: 5, position: "absolute", top: "13%", width: "24%" },
@@ -5527,25 +5527,25 @@ const styles = StyleSheet.create({
   virtualSink: { backgroundColor: "#D8F4F2", borderColor: "#69BFC7", borderRadius: 8, borderWidth: 2, height: "30%", left: "30%", position: "absolute", top: "14%", width: "22%" },
   virtualCabinetLeft: { backgroundColor: "#4BA6BD", borderColor: "rgba(255,255,255,0.85)", borderRadius: 8, borderWidth: 1, bottom: 0, left: "4%", position: "absolute", top: "46%", width: "30%" },
   virtualCabinetCenter: { backgroundColor: "#4BA6BD", borderColor: "rgba(255,255,255,0.85)", borderRadius: 8, borderWidth: 1, bottom: 0, left: "36%", position: "absolute", top: "46%", width: "26%" },
-  virtualStove: { backgroundColor: "#F8F7FC", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 2, flexDirection: "row", gap: 8, height: "36%", justifyContent: "center", padding: 9, position: "absolute", right: "6%", top: "12%", width: "26%" },
+  virtualStove: { backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 2, flexDirection: "row", gap: 8, height: "36%", justifyContent: "center", padding: 9, position: "absolute", right: "6%", top: "12%", width: "26%" },
   stoveBurner: { backgroundColor: "#30264C", borderRadius: 20, height: 25, opacity: 0.75, width: 25 },
-  kitchenPromptPill: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.94)", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 5, left: 12, paddingHorizontal: 9, paddingVertical: 7, position: "absolute", top: 12 },
+  kitchenPromptPill: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.94)", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 5, left: 12, paddingHorizontal: 9, paddingVertical: 7, position: "absolute", top: 12 },
   kitchenPromptText: { color: "#30264C", fontSize: 11, fontWeight: "900" },
-  kitchenStepPanel: { alignItems: "center", backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, gap: 7, marginBottom: 14, marginTop: -4, padding: 11 },
+  kitchenStepPanel: { alignItems: "center", backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, gap: 7, marginBottom: 14, marginTop: -4, padding: 11 },
   kitchenStepText: { color: "#30264C", fontSize: 13, fontWeight: "800", lineHeight: 18, textAlign: "center" },
-  kitchenResetButton: { backgroundColor: "#F1EDFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 7 },
-  kitchenResetText: { color: "#7555C7", fontSize: 12, fontWeight: "900" },
-  kitchenBacksplash: { backgroundColor: "rgba(237,251,251,0.82)", borderBottomColor: "#BFE8E8", borderBottomWidth: 1, height: 104, left: 0, position: "absolute", right: 0, top: 0 },
+  kitchenResetButton: { backgroundColor: "#fff4cf", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 7 },
+  kitchenResetText: { color: "#6537c7", fontSize: 12, fontWeight: "900" },
+  kitchenBacksplash: { backgroundColor: "rgba(237,251,251,0.82)", borderBottomColor: "#f0dca0", borderBottomWidth: 1, height: 104, left: 0, position: "absolute", right: 0, top: 0 },
   kitchenCabinetRow: { flexDirection: "row", gap: 8, left: 16, position: "absolute", right: 88, top: 14 },
   kitchenCabinet: { backgroundColor: "rgba(117,85,199,0.16)", borderColor: "rgba(117,85,199,0.3)", borderRadius: 8, borderWidth: 1, flex: 1, height: 34 },
-  roomWindow: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, height: 42, justifyContent: "center", position: "absolute", right: 14, top: 13, width: 56 },
+  roomWindow: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, height: 42, justifyContent: "center", position: "absolute", right: 14, top: 13, width: 56 },
   roomShelf: { backgroundColor: "#8F65D6", borderRadius: 8, height: 8, left: 18, position: "absolute", right: 18, top: 92 },
   roomObjectGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "space-between", marginTop: 105, zIndex: 2 },
-  roomObject: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 2, justifyContent: "center", minHeight: 86, overflow: "hidden", padding: 5, width: "31.5%" },
+  roomObject: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 2, justifyContent: "center", minHeight: 86, overflow: "hidden", padding: 5, width: "31.5%" },
   kitchenObject: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.72)", borderColor: "rgba(255,255,255,0.75)", borderRadius: 8, borderWidth: 1, elevation: 5, justifyContent: "center", overflow: "visible", padding: 3, position: "absolute", shadowColor: "#30264C", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 5, zIndex: 3 },
   roomObjectCompact: { minHeight: 78 },
-  roomObjectSelected: { backgroundColor: "#7555C7", borderColor: "#63E3E0", shadowColor: "#7555C7", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 14 },
-  roomObjectSecondarySelected: { backgroundColor: "#EDFBFB", borderColor: "#00AEBB", shadowColor: "#00AEBB", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 10 },
+  roomObjectSelected: { backgroundColor: "#6537c7", borderColor: "#f3c64d", shadowColor: "#6537c7", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 14 },
+  roomObjectSecondarySelected: { backgroundColor: "#fffaf0", borderColor: "#d79b16", shadowColor: "#d79b16", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 10 },
   roomObjectImage: { borderColor: "rgba(255,255,255,0.45)", borderRadius: 8, borderWidth: 1, height: "100%", width: "100%" },
   kitchenObjectLabel: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.94)", borderRadius: 7, left: 0, paddingHorizontal: 4, paddingVertical: 2, position: "absolute", right: 0, top: "82%" },
   kitchenObjectLabelSelected: { backgroundColor: "rgba(117,85,199,0.95)" },
@@ -5553,8 +5553,8 @@ const styles = StyleSheet.create({
   roomObjectText: { color: "#30264C", fontSize: 10, fontWeight: "900", textAlign: "center" },
   roomObjectTextSelected: { color: "#FFFFFF" },
   roomObjectBadge: { color: "#FFFFFF", fontSize: 8, fontWeight: "900", marginTop: 3, textAlign: "center", textTransform: "uppercase" },
-  roomObjectSecondaryBadge: { color: "#008A94", fontSize: 8, fontWeight: "900", marginTop: 3, textAlign: "center", textTransform: "uppercase" },
-  roomFloor: { backgroundColor: "#F1EDFF", borderTopColor: "#DCCFF5", borderTopWidth: 1, bottom: 0, height: 48, left: 0, position: "absolute", right: 0 },
+  roomObjectSecondaryBadge: { color: "#b87908", fontSize: 8, fontWeight: "900", marginTop: 3, textAlign: "center", textTransform: "uppercase" },
+  roomFloor: { backgroundColor: "#fff4cf", borderTopColor: "#f0dca0", borderTopWidth: 1, bottom: 0, height: 48, left: 0, position: "absolute", right: 0 },
   pictureGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 16 },
   pictureGridCompact: { gap: 5, marginBottom: 7 },
   remotePictureGridCompact: { gap: 6, marginBottom: 5 },
@@ -5574,20 +5574,20 @@ const styles = StyleSheet.create({
   pictureChoiceTextCompact: { fontSize: 8, lineHeight: 9 },
   remotePictureTextCompact: { fontSize: 8, lineHeight: 9 },
   prototypeNote: { color: "#706982", fontSize: 12, lineHeight: 18, marginBottom: 14, textAlign: "center" },
-  pendingPanel: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, marginBottom: 16, padding: 26 },
+  pendingPanel: { alignItems: "center", backgroundColor: "#faf8ff", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, marginBottom: 16, padding: 26 },
   pendingTitle: { color: "#30264C", fontSize: 21, fontWeight: "900", marginTop: 10 },
   pendingText: { color: "#706982", fontSize: 14, lineHeight: 21, marginTop: 7, textAlign: "center" },
   sealedRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
   sealedItem: { flex: 1 },
   sealedImage: { aspectRatio: 1, borderRadius: 8, width: "100%" },
-  sealedObject: { alignItems: "center", aspectRatio: 1, backgroundColor: "#F8F5FF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, justifyContent: "center", padding: 8, width: "100%" },
+  sealedObject: { alignItems: "center", aspectRatio: 1, backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, justifyContent: "center", padding: 8, width: "100%" },
   sealedObjectImage: { borderRadius: 6, height: 54, width: "100%" },
   sealedObjectText: { color: "#30264C", fontSize: 11, fontWeight: "900", marginTop: 6, textAlign: "center" },
-  hiddenChoice: { alignItems: "center", aspectRatio: 1, backgroundColor: "#6544B8", borderRadius: 8, justifyContent: "center", width: "100%" },
+  hiddenChoice: { alignItems: "center", aspectRatio: 1, backgroundColor: "#6537c7", borderRadius: 8, justifyContent: "center", width: "100%" },
   answerNavigation: { flexDirection: "row", gap: 8, marginBottom: 14 },
   answerNavButton: { alignItems: "center", backgroundColor: "#fff4cf", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 1, flex: 1, gap: 3, justifyContent: "center", minHeight: 58, padding: 7 },
-  answerNavForward: { backgroundColor: "#7555C7", borderColor: "#7555C7" },
-  answerNavText: { color: "#6544B8", fontSize: 11, fontWeight: "900" },
+  answerNavForward: { backgroundColor: "#6537c7", borderColor: "#6537c7" },
+  answerNavText: { color: "#6537c7", fontSize: 11, fontWeight: "900" },
   answerNavForwardText: { color: "#FFFFFF", fontSize: 11, fontWeight: "900" },
   opponentToggle: { backgroundColor: "#FFFFFF", borderColor: "transparent", borderRadius: 8, borderWidth: 0, flexDirection: "row", gap: 6, marginBottom: 16, padding: 5 },
   opponentOption: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 1, flex: 1, flexDirection: "row", gap: 6, justifyContent: "center", minHeight: 44, padding: 8 },
@@ -5598,18 +5598,18 @@ const styles = StyleSheet.create({
   opponentOptionTextSelected: { color: "#fff4cf" },
   friendPhoneRow: { alignItems: "stretch", flexDirection: "row", gap: 7 },
   friendPhoneInput: { flex: 1 },
-  addFriendButton: { alignItems: "center", backgroundColor: "#008A94", borderRadius: 8, height: 48, justifyContent: "center", width: 48 },
+  addFriendButton: { alignItems: "center", backgroundColor: "#b87908", borderRadius: 8, height: 48, justifyContent: "center", width: 48 },
   savedFriendsLabel: { color: "#706982", fontSize: 11, fontWeight: "800", marginBottom: 7, marginTop: 5 },
-  savedFriendsDropdownButton: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", marginBottom: 8, marginTop: 4, paddingHorizontal: 10, paddingVertical: 9 },
+  savedFriendsDropdownButton: { alignItems: "center", backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", marginBottom: 8, marginTop: 4, paddingHorizontal: 10, paddingVertical: 9 },
   savedFriendsDropdownTitle: { alignItems: "center", flexDirection: "row", gap: 7 },
   friendChipGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  friendChip: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 5, maxWidth: "100%", paddingHorizontal: 8, paddingVertical: 7 },
-  friendChipSelected: { backgroundColor: "#008A94", borderColor: "#00AEBB" },
+  friendChip: { alignItems: "center", backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 5, maxWidth: "100%", paddingHorizontal: 8, paddingVertical: 7 },
+  friendChipSelected: { backgroundColor: "#b87908", borderColor: "#d79b16" },
   friendChipCopy: { flexShrink: 1 },
-  friendChipText: { color: "#008A94", flexShrink: 1, fontSize: 11, fontWeight: "800" },
+  friendChipText: { color: "#b87908", flexShrink: 1, fontSize: 11, fontWeight: "800" },
   friendChipDetail: { color: "#706982", flexShrink: 1, fontSize: 10, fontWeight: "700", marginTop: 1 },
   friendChipTextSelected: { color: "#FFFFFF" },
-  selectedFriendsCount: { color: "#008A94", fontSize: 11, fontWeight: "900", marginBottom: 12, marginTop: 8 },
+  selectedFriendsCount: { color: "#b87908", fontSize: 11, fontWeight: "900", marginBottom: 12, marginTop: 8 },
   computerWinPanel: { backgroundColor: "#EDFFF6", borderColor: "#43C987" },
   treasureSplitLayout: { alignItems: "stretch", flexDirection: "row", flexWrap: "wrap", gap: 16, marginBottom: 28, paddingBottom: 28 },
   treasureControlPanel: { flex: 1.02, minWidth: 300 },
@@ -5623,8 +5623,8 @@ const styles = StyleSheet.create({
   treasureModeFriendTitle: { color: "#fff4cf" },
   treasureModeFriendText: { color: "#fff4cf" },
   treasureScene: { aspectRatio: 1.28, borderColor: "rgba(255,255,255,0.86)", borderRadius: 8, borderWidth: 1, minHeight: 250, maxHeight: 310, overflow: "hidden", position: "relative", width: "100%" },
-  treasureSceneFriend: { borderColor: "#DCCFF5" },
-  treasureSceneComputer: { borderColor: "#BFE8E8" },
+  treasureSceneFriend: { borderColor: "#f0dca0" },
+  treasureSceneComputer: { borderColor: "#f0dca0" },
   treasureSceneActive: { borderColor: "#F2D88F" },
   treasureSceneWon: { borderColor: "#43C987", borderWidth: 2 },
   treasureSceneLost: { borderColor: "#CFC8DA" },
@@ -5639,7 +5639,7 @@ const styles = StyleSheet.create({
   treasureInspirationLayer: { alignItems: "center", bottom: "48%", flexDirection: "row", flexWrap: "wrap", gap: 7, justifyContent: "center", left: "8%", position: "absolute", right: "8%", zIndex: 6 },
   treasureInspirationWord: { color: "#FFFFFF", fontSize: 18, fontWeight: "900", textShadowColor: "rgba(88, 49, 8, 0.55)", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
   treasureMoon: { backgroundColor: "#FFF9E8", borderRadius: 24, height: 48, position: "absolute", right: 22, top: 15, width: 48 },
-  treasureStarOne: { backgroundColor: "#63E3E0", borderRadius: 5, height: 10, left: 28, position: "absolute", top: 20, width: 10 },
+  treasureStarOne: { backgroundColor: "#f3c64d", borderRadius: 5, height: 10, left: 28, position: "absolute", top: 20, width: 10 },
   treasureStarTwo: { backgroundColor: "#FFFFFF", borderRadius: 4, height: 8, left: "45%", position: "absolute", top: 34, width: 8 },
   treasureStarThree: { backgroundColor: "#F4C542", borderRadius: 4, height: 8, left: "63%", position: "absolute", top: 17, width: 8 },
   treasureChestVisual: { display: "none" },
@@ -5651,25 +5651,25 @@ const styles = StyleSheet.create({
   treasureGlowText: { color: "#FFFFFF", fontSize: 30, fontWeight: "900" },
   treasureChestCard: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.88)", borderColor: "rgba(242,216,143,0.9)", borderRadius: 8, borderWidth: 1, marginTop: 8, padding: 10 },
   treasureChestTitle: { color: "#30264C", fontSize: 17, fontWeight: "900", marginTop: 6, textAlign: "center" },
-  treasurePointsText: { color: "#008A94", fontSize: 14, fontWeight: "900", marginTop: 6, textAlign: "center" },
+  treasurePointsText: { color: "#b87908", fontSize: 14, fontWeight: "900", marginTop: 6, textAlign: "center" },
   treasureChestText: { color: "#5D536A", fontSize: 14, fontWeight: "800", lineHeight: 21, marginTop: 6, textAlign: "center" },
-  treasureFriendMessageCard: { backgroundColor: "#FFFFFF", borderColor: "#63E3E0", borderRadius: 8, borderWidth: 2, marginTop: 10, padding: 14 },
+  treasureFriendMessageCard: { backgroundColor: "#FFFFFF", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 2, marginTop: 10, padding: 14 },
   treasureFriendMessageHeader: { alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "center", marginBottom: 8 },
-  treasureFriendMessageTitle: { color: "#6544B8", fontSize: 14, fontWeight: "900", textAlign: "center" },
-  treasureNoteText: { color: "#008A94", fontSize: 18, fontWeight: "900", lineHeight: 25, textAlign: "center" },
-  treasureSiteInviteCard: { backgroundColor: "#F8F5FF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 2, marginTop: 10, padding: 14 },
+  treasureFriendMessageTitle: { color: "#6537c7", fontSize: 14, fontWeight: "900", textAlign: "center" },
+  treasureNoteText: { color: "#b87908", fontSize: 18, fontWeight: "900", lineHeight: 25, textAlign: "center" },
+  treasureSiteInviteCard: { backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 2, marginTop: 10, padding: 14 },
   treasureSiteInviteTitle: { color: "#30264C", fontSize: 16, fontWeight: "900", textAlign: "center" },
   treasureSiteInviteText: { color: "#5D536A", fontSize: 14, fontWeight: "800", lineHeight: 21, marginBottom: 12, textAlign: "center" },
   treasureSiteInviteButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 48, paddingHorizontal: 14, paddingVertical: 12 },
-  treasureResponseCard: { backgroundColor: "#F2FAFA", borderColor: "#63E3E0", borderRadius: 8, borderWidth: 2, marginTop: 10, padding: 14 },
+  treasureResponseCard: { backgroundColor: "#F2FAFA", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 2, marginTop: 10, padding: 14 },
   treasureTokenGrid: { flexDirection: "row", gap: 8, justifyContent: "center", marginBottom: 14 },
   treasureToken: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 2, cursor: "grab" as any, flex: 1, minHeight: 66, justifyContent: "center" },
   treasureTokenSelected: { backgroundColor: "#FFF9E8", borderColor: "#F4B740", borderWidth: 3, shadowColor: "#F4B740", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 10 },
   treasureTokenDisabled: { opacity: 0.16 },
   treasureTokenText: { color: "#30264C", fontSize: 28, fontWeight: "900" },
-  treasureMessageCard: { backgroundColor: "#F2FAFA", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 2, marginBottom: 14, padding: 12 },
-  treasureMessageLabel: { color: "#6544B8", fontSize: 13, fontWeight: "900", marginBottom: 7 },
-  treasureMessageInput: { backgroundColor: "#FFFFFF", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 14, fontWeight: "700", lineHeight: 20, minHeight: 84, padding: 12 },
+  treasureMessageCard: { backgroundColor: "#F2FAFA", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 2, marginBottom: 14, padding: 12 },
+  treasureMessageLabel: { color: "#6537c7", fontSize: 13, fontWeight: "900", marginBottom: 7 },
+  treasureMessageInput: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 14, fontWeight: "700", lineHeight: 20, minHeight: 84, padding: 12 },
   treasurePlacementHint: { color: "#8A6B20", fontSize: 12, fontWeight: "900", lineHeight: 17, marginBottom: 12, textAlign: "center" },
   treasureAttemptList: { gap: 8, marginBottom: 18 },
   treasureAttemptBlock: { gap: 5 },
@@ -5679,7 +5679,7 @@ const styles = StyleSheet.create({
   treasureSlotReady: { backgroundColor: "#FFFDF5", borderColor: "#F4B740" },
   treasureSlotCorrect: { backgroundColor: "#EDFFF6", borderColor: "#43C987", borderStyle: "solid" },
   treasureEmptySlotText: { color: "#8A6B20", fontSize: 12 },
-  treasurePastSlot: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, flex: 1, minHeight: 44, justifyContent: "center", opacity: 0.72 },
+  treasurePastSlot: { alignItems: "center", backgroundColor: "#faf8ff", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, flex: 1, minHeight: 44, justifyContent: "center", opacity: 0.72 },
   treasurePastSlotCorrect: { backgroundColor: "#EDFFF6", borderColor: "#43C987", borderWidth: 2, opacity: 1 },
   treasurePastSlotText: { color: "#8A8299", fontSize: 24, fontWeight: "900" },
   powerWordGrid: { gap: 9, marginBottom: 16 },
@@ -5688,7 +5688,7 @@ const styles = StyleSheet.create({
   powerWordText: { color: "#393149", fontSize: 16, fontWeight: "900" },
   powerWordTextSelected: { color: "#fff4cf" },
   powerResultRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  powerResult: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, flex: 1, minHeight: 120, justifyContent: "center", padding: 12 },
+  powerResult: { alignItems: "center", backgroundColor: "#faf8ff", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, flex: 1, minHeight: 120, justifyContent: "center", padding: 12 },
   powerResultMatch: { backgroundColor: "#EDFFF6", borderColor: "#43C987" },
   powerResultWord: { color: "#30264C", fontSize: 19, fontWeight: "900", marginTop: 8, textAlign: "center" },
   powerWordMeaning: { alignItems: "center", backgroundColor: "#FFF9E8", borderColor: "#F2D88F", borderRadius: 8, borderWidth: 1, marginBottom: 16, padding: 18 },
@@ -5750,7 +5750,7 @@ const styles = StyleSheet.create({
   communityLabel: { color: "#706982", fontSize: 12, fontWeight: "700", marginTop: 4 },
   communityComparison: { backgroundColor: "#fff4cf", borderColor: "#d79b16", borderRadius: 10, borderWidth: 1, marginBottom: 14, padding: 16 },
   communityComparisonTitle: { color: "#6537c7", fontSize: 16, fontWeight: "900", marginBottom: 7 },
-  remoteInstructionCard: { alignItems: "flex-start", backgroundColor: "#F8F5FF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, marginBottom: 8, padding: 9 },
+  remoteInstructionCard: { alignItems: "flex-start", backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, marginBottom: 8, padding: 9 },
   remoteInstructionText: { color: "#5D536A", flex: 1, fontSize: 12, fontWeight: "800", lineHeight: 17 },
   remoteDrawingPadWrap: { marginBottom: 8 },
   drawingPad: { backgroundColor: "#FFFFFF", borderColor: "#C5E1F3", borderRadius: 8, borderWidth: 2, height: 190, marginBottom: 0, overflow: "hidden", position: "relative" },

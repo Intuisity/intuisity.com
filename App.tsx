@@ -499,7 +499,7 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
             <Text style={styles.accountHeroTitle}>Welcome to Intuisity</Text>
             <Text style={styles.accountHeroText}>Awaken your intuition. Expand your awareness. Unlock your inner wisdom.</Text>
             <View style={styles.freePlayBadge}>
-              <Ionicons color="#008A94" name="gift-outline" size={17} />
+              <Ionicons color="#b87908" name="gift-outline" size={17} />
               <Text style={styles.freePlayBadgeText}>Free to play daily challenges</Text>
             </View>
           </View>
@@ -533,7 +533,7 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
           <Text style={styles.accountTitle}>Welcome back</Text>
           <Text style={styles.accountSubtitle}>Enter your email and password to return to your saved Intuisity profile.</Text>
           <View style={styles.loginFreePlayNote}>
-            <Ionicons color="#008A94" name="sparkles-outline" size={17} />
+            <Ionicons color="#b87908" name="sparkles-outline" size={17} />
             <Text style={styles.loginFreePlayText}>Free to play. Premium extras are optional.</Text>
           </View>
           <GoogleSignInButton onPress={handleGoogleSignIn} />
@@ -579,7 +579,7 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
                   ]}
                 >
                   <Ionicons
-                    color={profile.email.toLowerCase() === savedProfile.email.toLowerCase() ? "#FFFFFF" : "#7555C7"}
+                    color={profile.email.toLowerCase() === savedProfile.email.toLowerCase() ? "#FFFFFF" : "#6537c7"}
                     name="person-circle-outline"
                     size={20}
                   />
@@ -726,7 +726,7 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
         {confirmPassword.length > 0 && password !== confirmPassword ? <Text style={styles.accountError}>Passwords do not match yet.</Text> : null}
         <ProfileInput autoComplete="tel" label="Phone number" placeholder="(555) 555-5555" textContentType="telephoneNumber" value={profile.phone} onChangeText={(phone) => setProfile({ ...profile, phone: formatPhoneNumber(phone) })} />
         <View style={styles.reminderNotice}>
-          <Ionicons color="#7555C7" name="alarm-outline" size={22} />
+          <Ionicons color="#6537c7" name="alarm-outline" size={22} />
           <View style={styles.reminderNoticeCopy}>
             <Text style={styles.reminderNoticeTitle}>Daily intuition reminder</Text>
             <Text style={styles.reminderNoticeText}>We will use your device time zone for the 9:00 AM reminder.</Text>
@@ -803,7 +803,7 @@ function LanguageSelector({ selected, onSelect }: { selected: string; onSelect: 
           onPress={() => setShowOptions((current) => !current)}
           style={styles.languageButton}
         >
-          <Ionicons color="#6544B8" name="language-outline" size={21} />
+          <Ionicons color="#6537c7" name="language-outline" size={21} />
           <Text style={styles.languageButtonText}>{selectedLanguage.code.toUpperCase()}</Text>
         </Pressable>
       </View>
@@ -849,7 +849,7 @@ function ProfileInput({ autoComplete, label, value, onChangeText, placeholder = 
             onPress={() => setPasswordVisible((current) => !current)}
             style={styles.passwordVisibilityButton}
           >
-            <Ionicons color="#6544B8" name={passwordVisible ? "eye-off-outline" : "eye-outline"} size={21} />
+            <Ionicons color="#6537c7" name={passwordVisible ? "eye-off-outline" : "eye-outline"} size={21} />
           </Pressable>
         ) : null}
       </View>
@@ -862,7 +862,7 @@ function ProfileInput({ autoComplete, label, value, onChangeText, placeholder = 
               onPress={() => onChangeText(suggestion)}
               style={styles.stateSuggestion}
             >
-              <Ionicons color="#7555C7" name="location-outline" size={16} />
+              <Ionicons color="#6537c7" name="location-outline" size={16} />
               <Text style={styles.stateSuggestionText}>{suggestion}</Text>
             </Pressable>
           ))}
@@ -892,7 +892,7 @@ function PasswordRequirementList({ password }: { password: string }) {
       {rules.map((rule) => (
         <View key={rule.label} style={styles.passwordRuleRow}>
           <Ionicons
-            color={rule.passed ? "#008A94" : "#9A93AA"}
+            color={rule.passed ? "#b87908" : "#9A93AA"}
             name={rule.passed ? "checkmark-circle" : "ellipse-outline"}
             size={16}
           />
@@ -1303,7 +1303,7 @@ function DailyChallenge({
           subtitle="Every session helps you notice your strongest intuitive signals."
         />
         <View style={styles.resultsPanel}>
-          <Ionicons color="#7555C7" name="sparkles-outline" size={42} />
+          <Ionicons color="#6537c7" name="sparkles-outline" size={42} />
           <Text style={styles.resultsNumber}>
             {dailyScore.correct} of {dailyScore.total}
           </Text>
@@ -1494,7 +1494,7 @@ function RemoteViewing({
         subtitle="Read the cue impressions, pick the closest match, then reveal the target."
       />
       <View style={styles.remotePanel}>
-        <Ionicons color="#7555C7" name="radio-outline" size={28} />
+        <Ionicons color="#6537c7" name="radio-outline" size={28} />
         <Text style={styles.remotePrompt}>Target sealed. Choose the signal that feels strongest.</Text>
       </View>
       {remoteViewingOptions.map((option) => {
@@ -1552,7 +1552,7 @@ function FriendChallenges() {
       </Pressable>
       {friendChallenges.length === 0 && (
         <View style={styles.card}>
-          <Ionicons color="#7555C7" name="people-outline" size={32} />
+          <Ionicons color="#6537c7" name="people-outline" size={32} />
           <Text style={styles.cardTitle}>No friend challenges yet</Text>
           <Text style={styles.bodyText}>When you invite friends, their challenges will appear here.</Text>
         </View>
@@ -1584,7 +1584,7 @@ function Premium({ status, startCheckout }: { status: string; startCheckout: () 
           <Text style={styles.statusPill}>{status === "Free" ? "Not live yet" : status}</Text>
         </View>
         <View style={styles.premiumOfferCard}>
-          <Ionicons color="#7555C7" name="gift-outline" size={22} />
+          <Ionicons color="#6537c7" name="gift-outline" size={22} />
           <View style={styles.adminInsightCopy}>
             <Text style={styles.cardTitle}>First 100 signups</Text>
             <Text style={styles.bodyText}>The first 100 people who request premium access will receive Premium free for the first year.</Text>
@@ -1629,7 +1629,7 @@ function AdminDashboard() {
   const moduleTrendRows = (report.moduleDailyTrend || []).slice(-moduleTrendDays);
   const moduleTrendLabels = Array.from(new Set(moduleTrendRows.flatMap((day) => day.modules.map((module) => module.moduleLabel))));
   const moduleTrendMax = Math.max(1, ...moduleTrendRows.flatMap((day) => day.modules.map((module) => module.activeMs || module.totalMs)));
-  const moduleTrendColors = ["#7555C7", "#00AEBB", "#43C987", "#F4B740", "#B15A60", "#6544B8", "#706982"];
+  const moduleTrendColors = ["#6537c7", "#d79b16", "#43C987", "#F4B740", "#B15A60", "#6537c7", "#706982"];
   const visitorBreakdown = report.visitorBreakdown || {
     anonymous: Math.max(0, report.uniqueVisitors - report.totalUsers),
     profileSignups: report.totalUsers,
@@ -1784,7 +1784,7 @@ function AdminDashboard() {
         <View style={styles.adminModuleTopline}>
           <Text style={styles.adminStartTitle}>{detail.title}</Text>
           <Pressable onPress={() => setSelectedReportDetail(null)} style={styles.adminMiniCloseButton}>
-            <Ionicons color="#7555C7" name="close-outline" size={18} />
+            <Ionicons color="#6537c7" name="close-outline" size={18} />
           </Pressable>
         </View>
         <Text style={styles.bodyText}>{detail.text}</Text>
@@ -1797,7 +1797,7 @@ function AdminDashboard() {
         {(selectedReportDetail === "unique-visitors" || selectedReportDetail === "tracked-visits") && renderVisitorDetailRows()}
         {selectedReportDetail === "saved-users" && (
           <Pressable onPress={() => setAdminReportPage("user-insights")} style={styles.adminLightButton}>
-            <Ionicons color="#7555C7" name="open-outline" size={17} />
+            <Ionicons color="#6537c7" name="open-outline" size={17} />
             <Text style={styles.adminLightButtonText}>Open full user list</Text>
           </Pressable>
         )}
@@ -1840,7 +1840,7 @@ function AdminDashboard() {
       </View>
     )) : (
       <View style={styles.adminEmptyCard}>
-        <Ionicons color="#7555C7" name="person-add-outline" size={24} />
+        <Ionicons color="#6537c7" name="person-add-outline" size={24} />
         <Text style={styles.adminEmptyTitle}>No user insight rows yet</Text>
         <Text style={styles.bodyText}>Once users sign in and click modules, their name, email, activity, strongest modules, and saved feedback will appear here.</Text>
       </View>
@@ -1894,7 +1894,7 @@ function AdminDashboard() {
         </View>
         <View style={styles.adminRefreshRow}>
           <Pressable onPress={refreshReports} style={styles.adminLightButton}>
-            <Ionicons color="#7555C7" name="refresh-outline" size={17} />
+            <Ionicons color="#6537c7" name="refresh-outline" size={17} />
             <Text style={styles.adminLightButtonText}>Refresh reports</Text>
           </Pressable>
           <Text style={styles.adminFeedbackMeta}>
@@ -1912,7 +1912,7 @@ function AdminDashboard() {
               }}
               style={styles.adminLightButton}
             >
-              <Ionicons color="#7555C7" name="refresh-outline" size={17} />
+              <Ionicons color="#6537c7" name="refresh-outline" size={17} />
               <Text style={styles.adminLightButtonText}>Clear</Text>
             </Pressable>
           </View>
@@ -1971,7 +1971,7 @@ function AdminDashboard() {
 
       <View style={styles.adminInsightCard}>
         <View style={styles.adminStatusIcon}>
-          <Ionicons color="#008A94" name={backendReport ? "checkmark-circle-outline" : "desktop-outline"} size={24} />
+          <Ionicons color="#b87908" name={backendReport ? "checkmark-circle-outline" : "desktop-outline"} size={24} />
         </View>
         <View style={styles.adminInsightCopy}>
           <Text style={styles.adminInsightTitle}>{backendStatus}</Text>
@@ -1984,7 +1984,7 @@ function AdminDashboard() {
 
       <View style={styles.adminRefreshRow}>
         <Pressable onPress={refreshReports} style={styles.adminLightButton}>
-          <Ionicons color="#7555C7" name="refresh-outline" size={17} />
+          <Ionicons color="#6537c7" name="refresh-outline" size={17} />
           <Text style={styles.adminLightButtonText}>Refresh reports</Text>
         </Pressable>
         <Text style={styles.adminFeedbackMeta}>Use this after testing a new signup or login.</Text>
@@ -1992,7 +1992,7 @@ function AdminDashboard() {
 
       <View style={styles.adminSecretCard}>
         <View style={styles.adminSecretHeader}>
-          <Ionicons color="#7555C7" name="lock-closed-outline" size={22} />
+          <Ionicons color="#6537c7" name="lock-closed-outline" size={22} />
           <View style={styles.adminInsightCopy}>
             <Text style={styles.adminStartTitle}>Admin report password</Text>
             <Text style={styles.adminStartText}>
@@ -2016,11 +2016,11 @@ function AdminDashboard() {
         />
         <View style={styles.adminSecretActions}>
           <Pressable onPress={() => setShowAdminSecret((current) => !current)} style={styles.adminLightButton}>
-            <Ionicons color="#7555C7" name={showAdminSecret ? "eye-off-outline" : "eye-outline"} size={17} />
+            <Ionicons color="#6537c7" name={showAdminSecret ? "eye-off-outline" : "eye-outline"} size={17} />
             <Text style={styles.adminLightButtonText}>{showAdminSecret ? "Hide" : "Show"}</Text>
           </Pressable>
           <Pressable onPress={saveAdminPasswordForDevice} style={styles.adminLightButton}>
-            <Ionicons color="#008A94" name="save-outline" size={17} />
+            <Ionicons color="#b87908" name="save-outline" size={17} />
             <Text style={styles.adminLightButtonText}>Save on this device</Text>
           </Pressable>
         </View>
@@ -2033,7 +2033,7 @@ function AdminDashboard() {
 
       {!hasActivity && (
         <View style={styles.adminStartCard}>
-          <Ionicons color="#7555C7" name="sparkles-outline" size={26} />
+          <Ionicons color="#6537c7" name="sparkles-outline" size={26} />
           <View style={styles.adminInsightCopy}>
             <Text style={styles.adminStartTitle}>No live activity recorded yet</Text>
             <Text style={styles.adminStartText}>
@@ -2046,13 +2046,13 @@ function AdminDashboard() {
       <View style={styles.adminCollapseCard}>
         <Pressable onPress={() => setShowBackendDetails((current) => !current)} style={styles.adminCollapseHeader}>
           <View style={styles.adminCollapseIcon}>
-            <Ionicons color="#7555C7" name="server-outline" size={20} />
+            <Ionicons color="#6537c7" name="server-outline" size={20} />
           </View>
           <View style={styles.adminInsightCopy}>
             <Text style={styles.adminStartTitle}>Backend API reports</Text>
             <Text style={styles.adminFeedbackMeta}>Closed by default. Open only when you want to check API saves or troubleshoot Supabase.</Text>
           </View>
-          <Ionicons color="#7555C7" name={showBackendDetails ? "chevron-up-outline" : "chevron-down-outline"} size={22} />
+          <Ionicons color="#6537c7" name={showBackendDetails ? "chevron-up-outline" : "chevron-down-outline"} size={22} />
         </Pressable>
 
         {showBackendDetails && (
@@ -2070,7 +2070,7 @@ function AdminDashboard() {
             }}
             style={styles.adminLightButton}
           >
-            <Ionicons color="#7555C7" name="trash-outline" size={17} />
+            <Ionicons color="#6537c7" name="trash-outline" size={17} />
             <Text style={styles.adminLightButtonText}>Clear old checks</Text>
           </Pressable>
         )}
@@ -2090,7 +2090,7 @@ function AdminDashboard() {
         ))
       ) : (
         <View style={styles.adminEmptyCard}>
-          <Ionicons color="#008A94" name="cloud-upload-outline" size={24} />
+          <Ionicons color="#b87908" name="cloud-upload-outline" size={24} />
           <Text style={styles.adminEmptyTitle}>No backend save attempts in this browser yet</Text>
           <Text style={styles.bodyText}>Sign in, open a challenge for a few seconds, complete results, or save feedback. Then come back here to see whether those saves reached Supabase.</Text>
         </View>
@@ -2123,7 +2123,7 @@ function AdminDashboard() {
         ]).map((platform) => (
           <View key={platform.channel} style={styles.adminPlatformCard}>
             <Ionicons
-              color={platform.channel === "app" ? "#6544B8" : platform.channel === "mobile-web" ? "#008A94" : "#7555C7"}
+              color={platform.channel === "app" ? "#6537c7" : platform.channel === "mobile-web" ? "#b87908" : "#6537c7"}
               name={platform.channel === "app" ? "phone-portrait-outline" : platform.channel === "mobile-web" ? "phone-portrait-outline" : "desktop-outline"}
               size={24}
             />
@@ -2143,7 +2143,7 @@ function AdminDashboard() {
             }}
             style={styles.adminLightButton}
           >
-            <Ionicons color="#7555C7" name="refresh-outline" size={17} />
+            <Ionicons color="#6537c7" name="refresh-outline" size={17} />
             <Text style={styles.adminLightButtonText}>Clear</Text>
           </Pressable>
         </View>
@@ -2201,7 +2201,7 @@ function AdminDashboard() {
         </View>
       ) : (
         <View style={styles.adminEmptyCard}>
-          <Ionicons color="#008A94" name="bar-chart-outline" size={24} />
+          <Ionicons color="#b87908" name="bar-chart-outline" size={24} />
           <Text style={styles.adminEmptyTitle}>No visitor trend yet</Text>
           <Text style={styles.bodyText}>As users visit modules, daily unique visitor and visit counts will appear here.</Text>
         </View>
@@ -2216,13 +2216,13 @@ function AdminDashboard() {
           </Text>
         </View>
         <Pressable onPress={() => setAdminReportPage("user-insights")} style={styles.adminLightButton}>
-          <Ionicons color="#7555C7" name="open-outline" size={17} />
+          <Ionicons color="#6537c7" name="open-outline" size={17} />
           <Text style={styles.adminLightButtonText}>Open</Text>
         </Pressable>
       </View>
       {report.userInsights?.length ? renderUserInsightsList(3) : (
         <View style={styles.adminEmptyCard}>
-          <Ionicons color="#7555C7" name="person-add-outline" size={24} />
+          <Ionicons color="#6537c7" name="person-add-outline" size={24} />
           <Text style={styles.adminEmptyTitle}>No user insight rows yet</Text>
           <Text style={styles.bodyText}>Once users sign in and click modules, their name, email, activity, strongest modules, and saved feedback will appear here.</Text>
         </View>
@@ -2280,7 +2280,7 @@ function AdminDashboard() {
           </View>
         ) : (
           <View style={styles.adminEmptyCard}>
-            <Ionicons color="#008A94" name="stats-chart-outline" size={24} />
+            <Ionicons color="#b87908" name="stats-chart-outline" size={24} />
             <Text style={styles.adminEmptyTitle}>No daily module graph yet</Text>
             <Text style={styles.bodyText}>As people use modules each day, this graph will show where time is being spent over 1, 7, 14, or 30 days.</Text>
           </View>
@@ -2308,7 +2308,7 @@ function AdminDashboard() {
         </View>
       )) : (
         <View style={styles.adminEmptyCard}>
-          <Ionicons color="#008A94" name="hourglass-outline" size={24} />
+          <Ionicons color="#b87908" name="hourglass-outline" size={24} />
           <Text style={styles.adminEmptyTitle}>No module time yet</Text>
           <Text style={styles.bodyText}>Open a challenge on the live site, spend a few seconds there, then return here after the backend saves the visit.</Text>
         </View>
@@ -2339,7 +2339,7 @@ function AdminDashboard() {
         </View>
       )) : (
         <View style={styles.adminEmptyCard}>
-          <Ionicons color="#7555C7" name="chatbubble-ellipses-outline" size={24} />
+          <Ionicons color="#6537c7" name="chatbubble-ellipses-outline" size={24} />
           <Text style={styles.adminEmptyTitle}>No written responses yet</Text>
           <Text style={styles.bodyText}>Ratings and improvement comments from the results page will show here for review.</Text>
         </View>
@@ -2382,7 +2382,7 @@ function Metric({
     <Wrapper onPress={onPress} style={[styles.metric, onPress && styles.metricClickable]}>
       {icon && (
         <View style={styles.metricIcon}>
-          <Ionicons color="#008A94" name={icon} size={18} />
+          <Ionicons color="#b87908" name={icon} size={18} />
         </View>
       )}
       <Text style={styles.metricValue}>{value}</Text>
@@ -2462,8 +2462,8 @@ const styles = StyleSheet.create({
   freePlayBadgeText: { color: "#3f1b91", fontSize: 13, fontWeight: "900" },
   accountTitle: { color: "#b87908", fontFamily: "Georgia", fontSize: 29, fontWeight: "700", marginBottom: 7 },
   accountSubtitle: { color: "#706982", fontSize: 15, lineHeight: 22, marginBottom: 16 },
-  loginFreePlayNote: { alignItems: "center", alignSelf: "flex-start", backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 999, borderWidth: 1, flexDirection: "row", gap: 7, marginBottom: 16, marginTop: -8, paddingHorizontal: 12, paddingVertical: 8 },
-  loginFreePlayText: { color: "#008A94", fontSize: 12, fontWeight: "900" },
+  loginFreePlayNote: { alignItems: "center", alignSelf: "flex-start", backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 999, borderWidth: 1, flexDirection: "row", gap: 7, marginBottom: 16, marginTop: -8, paddingHorizontal: 12, paddingVertical: 8 },
+  loginFreePlayText: { color: "#b87908", fontSize: 12, fontWeight: "900" },
   googleButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#e2dff0", borderRadius: 16, borderWidth: 1, flexDirection: "row", gap: 10, justifyContent: "center", marginBottom: 12, minHeight: 50, padding: 12 },
   googleIconCircle: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 999, borderWidth: 1, height: 26, justifyContent: "center", width: 26 },
   googleIconText: { color: "#4285F4", fontSize: 16, fontWeight: "900" },
@@ -2471,11 +2471,11 @@ const styles = StyleSheet.create({
   loginDivider: { alignItems: "center", flexDirection: "row", gap: 10, marginBottom: 12, marginTop: 2 },
   loginDividerLine: { backgroundColor: "#E7E3F2", flex: 1, height: 1 },
   loginDividerText: { color: "#706982", fontSize: 11, fontWeight: "900", textTransform: "uppercase" },
-  accountGroupLabel: { color: "#6544B8", fontSize: 16, fontWeight: "900", marginBottom: 10, marginTop: 12 },
+  accountGroupLabel: { color: "#6537c7", fontSize: 16, fontWeight: "900", marginBottom: 10, marginTop: 12 },
   languageSetup: { marginBottom: 14 },
-  languageSetupHeader: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", padding: 10 },
+  languageSetupHeader: { alignItems: "center", backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", padding: 10 },
   languageSetupDefault: { color: "#706982", fontSize: 11, lineHeight: 16 },
-  signupLanguageMenu: { backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, marginTop: 6, padding: 6 },
+  signupLanguageMenu: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, marginTop: 6, padding: 6 },
   accountField: { marginBottom: 12 },
   accountFieldLabel: { color: "#211842", fontSize: 13, fontWeight: "900", marginBottom: 6 },
   accountInputWrap: { position: "relative" },
@@ -2484,37 +2484,37 @@ const styles = StyleSheet.create({
   passwordVisibilityButton: { alignItems: "center", bottom: 0, justifyContent: "center", position: "absolute", right: 6, top: 0, width: 42 },
   savedAccountList: { marginBottom: 14 },
   savedAccountLabel: { color: "#706982", fontSize: 11, fontWeight: "900", marginBottom: 7, textTransform: "uppercase" },
-  savedAccountButton: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 9, marginBottom: 7, padding: 10 },
-  savedAccountButtonSelected: { backgroundColor: "#008A94", borderColor: "#00AEBB" },
+  savedAccountButton: { alignItems: "center", backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 9, marginBottom: 7, padding: 10 },
+  savedAccountButtonSelected: { backgroundColor: "#b87908", borderColor: "#d79b16" },
   savedAccountCopy: { flex: 1 },
   savedAccountName: { color: "#30264C", fontSize: 13, fontWeight: "900" },
   savedAccountEmail: { color: "#706982", fontSize: 11, marginTop: 2 },
-  savedAccountAction: { color: "#008A94", fontSize: 10, fontWeight: "900", marginTop: 3 },
+  savedAccountAction: { color: "#b87908", fontSize: 10, fontWeight: "900", marginTop: 3 },
   savedAccountTextSelected: { color: "#FFFFFF" },
-  stateSuggestions: { backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, marginTop: 4, overflow: "hidden" },
+  stateSuggestions: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, marginTop: 4, overflow: "hidden" },
   stateSuggestion: { alignItems: "center", borderBottomColor: "#EEEAF5", borderBottomWidth: 1, flexDirection: "row", gap: 8, minHeight: 40, paddingHorizontal: 12, paddingVertical: 8 },
   stateSuggestionText: { color: "#30264C", fontSize: 14, fontWeight: "700" },
-  reminderNotice: { alignItems: "center", backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 10, marginBottom: 14, padding: 12 },
+  reminderNotice: { alignItems: "center", backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 10, marginBottom: 14, padding: 12 },
   reminderNoticeCopy: { flex: 1 },
   reminderNoticeTitle: { color: "#30264C", fontSize: 13, fontWeight: "900" },
   reminderNoticeText: { color: "#706982", fontSize: 11, lineHeight: 16, marginTop: 2 },
-  reminderNoticeTimeZone: { color: "#008A94", fontSize: 11, fontWeight: "900", lineHeight: 16, marginTop: 4 },
-  reminderTimeInput: { backgroundColor: "#FFFFFF", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 15, fontWeight: "800", marginTop: 8, maxWidth: 150, paddingHorizontal: 12, paddingVertical: 9 },
+  reminderNoticeTimeZone: { color: "#b87908", fontSize: 11, fontWeight: "900", lineHeight: 16, marginTop: 4 },
+  reminderTimeInput: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 15, fontWeight: "800", marginTop: 8, maxWidth: 150, paddingHorizontal: 12, paddingVertical: 9 },
   accountError: { color: "#B34B56", fontSize: 13, fontWeight: "700", marginBottom: 12 },
   accountHint: { color: "#706982", fontSize: 12, fontWeight: "700", marginBottom: 10, marginTop: -4 },
-  passwordRules: { backgroundColor: "#F8F7FC", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, marginBottom: 12, marginTop: -2, padding: 10 },
+  passwordRules: { backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, marginBottom: 12, marginTop: -2, padding: 10 },
   passwordRulesTitle: { color: "#30264C", fontSize: 13, fontWeight: "900", marginBottom: 7 },
   passwordRuleRow: { alignItems: "center", flexDirection: "row", gap: 7, marginBottom: 5 },
   passwordRuleText: { color: "#706982", flex: 1, fontSize: 12, fontWeight: "700", lineHeight: 16 },
-  passwordRuleTextPassed: { color: "#008A94" },
+  passwordRuleTextPassed: { color: "#b87908" },
   forgotPasswordButton: { alignSelf: "flex-end", marginBottom: 14, marginTop: -4, paddingHorizontal: 4, paddingVertical: 4 },
-  forgotPasswordText: { color: "#6544B8", fontSize: 13, fontWeight: "900" },
+  forgotPasswordText: { color: "#6537c7", fontSize: 13, fontWeight: "900" },
   accountSecondaryButton: { alignItems: "center", backgroundColor: "#fffdf7", borderColor: "#e2dff0", borderRadius: 16, borderWidth: 1, justifyContent: "center", minHeight: 48, padding: 12 },
   accountSecondaryText: { color: "#3f1b91", fontSize: 15, fontWeight: "900" },
   legalLinks: { alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "center", marginTop: 16 },
   legalLinkButton: { paddingHorizontal: 4, paddingVertical: 4 },
   legalLinkDivider: { color: "#B8AFCB", fontSize: 12, fontWeight: "800" },
-  legalLinkText: { color: "#6544B8", fontSize: 12, fontWeight: "900" },
+  legalLinkText: { color: "#6537c7", fontSize: 12, fontWeight: "900" },
   app: {
     backgroundColor: "#FFFFFF",
     flex: 1
@@ -2538,14 +2538,14 @@ const styles = StyleSheet.create({
   languageButtonText: { color: "#fff4cf", fontSize: 10, fontWeight: "900" },
   logoutIconButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 16, borderWidth: 1, flexDirection: "row", gap: 6, height: 42, justifyContent: "center", paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.16, shadowRadius: 6 },
   logoutIconText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
-  languageMenu: { backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, elevation: 12, left: 18, padding: 6, position: "absolute", right: 18, shadowColor: "#30264C", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, top: 58, zIndex: 60 },
+  languageMenu: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, elevation: 12, left: 18, padding: 6, position: "absolute", right: 18, shadowColor: "#30264C", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, top: 58, zIndex: 60 },
   languageMenuOption: { alignItems: "center", borderRadius: 7, flexDirection: "row", justifyContent: "space-between", minHeight: 38, paddingHorizontal: 10, paddingVertical: 6 },
-  languageMenuOptionSelected: { backgroundColor: "#008A94" },
+  languageMenuOptionSelected: { backgroundColor: "#b87908" },
   languageMenuNative: { color: "#30264C", fontSize: 13, fontWeight: "900" },
   languageMenuEnglish: { color: "#706982", fontSize: 11 },
   languageMenuTextSelected: { color: "#FFFFFF" },
   kicker: {
-    color: "#7555C7",
+    color: "#6537c7",
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0,
@@ -2582,8 +2582,8 @@ const styles = StyleSheet.create({
     marginBottom: 14
   },
   adminHero: {
-    backgroundColor: "#6544B8",
-    borderColor: "#63E3E0",
+    backgroundColor: "#6537c7",
+    borderColor: "#f3c64d",
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 14,
@@ -2592,7 +2592,7 @@ const styles = StyleSheet.create({
   },
   adminHeroIcon: {
     alignItems: "center",
-    backgroundColor: "#008A94",
+    backgroundColor: "#b87908",
     borderColor: "rgba(255,255,255,0.55)",
     borderRadius: 8,
     borderWidth: 1,
@@ -2622,8 +2622,8 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   adminSubpageHeader: {
-    backgroundColor: "#6544B8",
-    borderColor: "#63E3E0",
+    backgroundColor: "#6537c7",
+    borderColor: "#f3c64d",
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 14,
@@ -2683,7 +2683,7 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   metric: {
-    backgroundColor: "#F8F7FC",
+    backgroundColor: "#faf8ff",
     borderColor: "#E7E3F2",
     borderRadius: 8,
     borderWidth: 1,
@@ -2700,8 +2700,8 @@ const styles = StyleSheet.create({
   },
   metricIcon: {
     alignItems: "center",
-    backgroundColor: "#EDFBFB",
-    borderColor: "#BFE8E8",
+    backgroundColor: "#fffaf0",
+    borderColor: "#f0dca0",
     borderRadius: 8,
     borderWidth: 1,
     height: 34,
@@ -2735,11 +2735,11 @@ const styles = StyleSheet.create({
     padding: 14
   },
   focusCard: {
-    borderColor: "#00AEBB",
+    borderColor: "#d79b16",
     borderWidth: 2
   },
   cardCount: {
-    color: "#7555C7",
+    color: "#6537c7",
     fontSize: 12,
     fontWeight: "800",
     marginBottom: 6,
@@ -2759,7 +2759,7 @@ const styles = StyleSheet.create({
     marginTop: 6
   },
   challengeTagline: {
-    color: "#00AEBB",
+    color: "#d79b16",
     fontSize: 14,
     fontWeight: "800",
     marginBottom: 12,
@@ -2777,7 +2777,7 @@ const styles = StyleSheet.create({
     width: "100%"
   },
   choice: {
-    backgroundColor: "#F8F7FC",
+    backgroundColor: "#faf8ff",
     borderColor: "#E4DFF0",
     borderRadius: 8,
     borderWidth: 1,
@@ -2812,8 +2812,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 3
   },
   choiceSelected: {
-    backgroundColor: "#7555C7",
-    borderColor: "#7555C7"
+    backgroundColor: "#6537c7",
+    borderColor: "#6537c7"
   },
   choiceText: {
     color: "#393149",
@@ -2870,7 +2870,7 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   resultText: {
-    color: "#008A94",
+    color: "#b87908",
     fontSize: 16,
     fontWeight: "900",
     marginTop: 10
@@ -2887,9 +2887,9 @@ const styles = StyleSheet.create({
     gap: 10
   },
   statusPill: {
-    backgroundColor: "#F1EDFF",
+    backgroundColor: "#fff4cf",
     borderRadius: 8,
-    color: "#6544B8",
+    color: "#6537c7",
     flexShrink: 1,
     fontSize: 12,
     fontWeight: "800",
@@ -2911,8 +2911,8 @@ const styles = StyleSheet.create({
   },
   premiumOfferCard: {
     alignItems: "flex-start",
-    backgroundColor: "#F8F5FF",
-    borderColor: "#DCCFF5",
+    backgroundColor: "#faf8ff",
+    borderColor: "#f0dca0",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -2933,8 +2933,8 @@ const styles = StyleSheet.create({
   },
   adminInsightCard: {
     alignItems: "center",
-    backgroundColor: "#EDFBFB",
-    borderColor: "#BFE8E8",
+    backgroundColor: "#fffaf0",
+    borderColor: "#f0dca0",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -2944,8 +2944,8 @@ const styles = StyleSheet.create({
   },
   adminInsightOpenCard: {
     alignItems: "center",
-    backgroundColor: "#F8F5FF",
-    borderColor: "#DCCFF5",
+    backgroundColor: "#faf8ff",
+    borderColor: "#f0dca0",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -2956,7 +2956,7 @@ const styles = StyleSheet.create({
   adminStatusIcon: {
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderColor: "#BFE8E8",
+    borderColor: "#f0dca0",
     borderRadius: 8,
     borderWidth: 1,
     height: 44,
@@ -2972,7 +2972,7 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   adminInsightText: {
-    color: "#008A94",
+    color: "#b87908",
     fontSize: 17,
     fontWeight: "900",
     marginTop: 3
@@ -2985,8 +2985,8 @@ const styles = StyleSheet.create({
   },
   adminStartCard: {
     alignItems: "flex-start",
-    backgroundColor: "#F8F5FF",
-    borderColor: "#DCCFF5",
+    backgroundColor: "#faf8ff",
+    borderColor: "#f0dca0",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -3007,7 +3007,7 @@ const styles = StyleSheet.create({
   },
   adminSecretCard: {
     backgroundColor: "#FFFFFF",
-    borderColor: "#DCCFF5",
+    borderColor: "#f0dca0",
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 14,
@@ -3020,7 +3020,7 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   adminSecretInput: {
-    backgroundColor: "#F8F7FC",
+    backgroundColor: "#faf8ff",
     borderColor: "#DAD3E8",
     borderRadius: 8,
     borderWidth: 1,
@@ -3046,7 +3046,7 @@ const styles = StyleSheet.create({
   adminLightButton: {
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderColor: "#DCCFF5",
+    borderColor: "#f0dca0",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -3062,7 +3062,7 @@ const styles = StyleSheet.create({
   adminPlatformCard: {
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderColor: "#DCCFF5",
+    borderColor: "#f0dca0",
     borderRadius: 8,
     borderWidth: 1,
     flex: 1,
@@ -3071,7 +3071,7 @@ const styles = StyleSheet.create({
     padding: 14
   },
   adminSavedText: {
-    color: "#008A94",
+    color: "#b87908",
     fontSize: 12,
     fontWeight: "900",
     marginTop: 8
@@ -3084,7 +3084,7 @@ const styles = StyleSheet.create({
   },
   adminCollapseCard: {
     backgroundColor: "#FFFFFF",
-    borderColor: "#DCCFF5",
+    borderColor: "#f0dca0",
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 14,
@@ -3098,8 +3098,8 @@ const styles = StyleSheet.create({
   },
   adminCollapseIcon: {
     alignItems: "center",
-    backgroundColor: "#F8F5FF",
-    borderColor: "#DCCFF5",
+    backgroundColor: "#faf8ff",
+    borderColor: "#f0dca0",
     borderRadius: 8,
     borderWidth: 1,
     height: 38,
@@ -3153,7 +3153,7 @@ const styles = StyleSheet.create({
   },
   adminDateRangeCard: {
     backgroundColor: "#FFFFFF",
-    borderColor: "#DCCFF5",
+    borderColor: "#f0dca0",
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 14,
@@ -3166,7 +3166,7 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   adminDateInput: {
-    backgroundColor: "#F8F7FC",
+    backgroundColor: "#faf8ff",
     borderColor: "#DAD3E8",
     borderRadius: 8,
     borderWidth: 1,
@@ -3188,7 +3188,7 @@ const styles = StyleSheet.create({
   },
   adminTrendGraph: {
     alignItems: "flex-end",
-    backgroundColor: "#F8F7FC",
+    backgroundColor: "#faf8ff",
     borderColor: "#E7E3F2",
     borderRadius: 8,
     borderWidth: 1,
@@ -3207,7 +3207,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end"
   },
   adminTrendBar: {
-    backgroundColor: "#00AEBB",
+    backgroundColor: "#d79b16",
     borderTopLeftRadius: 6,
     borderTopRightRadius: 6,
     minHeight: 8,
@@ -3236,11 +3236,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   adminTrendHeaderRow: {
-    backgroundColor: "#F8F5FF",
+    backgroundColor: "#faf8ff",
     borderTopWidth: 0
   },
   adminTrendHeaderText: {
-    color: "#6544B8",
+    color: "#6537c7",
     flex: 1,
     fontSize: 11,
     fontWeight: "900",
@@ -3260,8 +3260,8 @@ const styles = StyleSheet.create({
   },
   adminRangeButton: {
     alignItems: "center",
-    backgroundColor: "#F8F7FC",
-    borderColor: "#DCCFF5",
+    backgroundColor: "#faf8ff",
+    borderColor: "#f0dca0",
     borderRadius: 8,
     borderWidth: 1,
     flex: 1,
@@ -3271,11 +3271,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10
   },
   adminRangeButtonSelected: {
-    backgroundColor: "#7555C7",
-    borderColor: "#7555C7"
+    backgroundColor: "#6537c7",
+    borderColor: "#6537c7"
   },
   adminRangeButtonText: {
-    color: "#6544B8",
+    color: "#6537c7",
     fontSize: 12,
     fontWeight: "900"
   },
@@ -3284,7 +3284,7 @@ const styles = StyleSheet.create({
   },
   adminModuleTrendGraph: {
     alignItems: "flex-end",
-    backgroundColor: "#F8F7FC",
+    backgroundColor: "#faf8ff",
     borderColor: "#E7E3F2",
     borderRadius: 8,
     borderWidth: 1,
@@ -3363,14 +3363,14 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   adminTrack: {
-    backgroundColor: "#F1EDFF",
+    backgroundColor: "#fff4cf",
     borderRadius: 8,
     height: 9,
     marginTop: 12,
     overflow: "hidden"
   },
   adminTrackFill: {
-    backgroundColor: "#00AEBB",
+    backgroundColor: "#d79b16",
     borderRadius: 8,
     height: "100%"
   },
@@ -3382,8 +3382,8 @@ const styles = StyleSheet.create({
   },
   adminDownloadButton: {
     alignItems: "center",
-    backgroundColor: "#7555C7",
-    borderColor: "#63E3E0",
+    backgroundColor: "#6537c7",
+    borderColor: "#f3c64d",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -3394,15 +3394,15 @@ const styles = StyleSheet.create({
   },
   adminUserCard: {
     backgroundColor: "#FFFFFF",
-    borderColor: "#DCCFF5",
+    borderColor: "#f0dca0",
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 9,
     padding: 13
   },
   adminUserPill: {
-    backgroundColor: "#EDFBFB",
-    borderColor: "#BFE8E8",
+    backgroundColor: "#fffaf0",
+    borderColor: "#f0dca0",
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 10,
@@ -3413,7 +3413,7 @@ const styles = StyleSheet.create({
     borderColor: "#F3B4B4"
   },
   adminUserPillText: {
-    color: "#008A94",
+    color: "#b87908",
     fontSize: 12,
     fontWeight: "900"
   },
@@ -3428,7 +3428,7 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   adminUserStat: {
-    backgroundColor: "#F8F7FC",
+    backgroundColor: "#faf8ff",
     borderColor: "#E7E3F2",
     borderRadius: 8,
     borderWidth: 1,
@@ -3450,7 +3450,7 @@ const styles = StyleSheet.create({
   },
   adminEmptyCard: {
     alignItems: "flex-start",
-    backgroundColor: "#F8F7FC",
+    backgroundColor: "#faf8ff",
     borderColor: "#E7E3F2",
     borderRadius: 8,
     borderWidth: 1,
@@ -3474,7 +3474,7 @@ const styles = StyleSheet.create({
     padding: 14
   },
   adminFeedbackMeta: {
-    color: "#008A94",
+    color: "#b87908",
     fontSize: 12,
     fontWeight: "800"
   },
@@ -3549,7 +3549,7 @@ const styles = StyleSheet.create({
     padding: 16
   },
   heroEyebrow: {
-    color: "#63E3E0",
+    color: "#f3c64d",
     fontSize: 12,
     fontWeight: "800",
     textTransform: "uppercase"
@@ -3577,13 +3577,13 @@ const styles = StyleSheet.create({
     overflow: "hidden"
   },
   progressFill: {
-    backgroundColor: "#00AEBB",
+    backgroundColor: "#d79b16",
     borderRadius: 8,
     height: "100%"
   },
   resultsPanel: {
     alignItems: "center",
-    backgroundColor: "#F8F7FC",
+    backgroundColor: "#faf8ff",
     borderColor: "#E7E3F2",
     borderRadius: 8,
     borderWidth: 1,
@@ -3604,7 +3604,7 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   resultsPoints: {
-    color: "#00AEBB",
+    color: "#d79b16",
     fontSize: 16,
     fontWeight: "900",
     marginTop: 14
