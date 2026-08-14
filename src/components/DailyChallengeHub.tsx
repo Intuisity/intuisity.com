@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, ImageBackground, Pressable as NativePressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { getAstrologyReading, getBirthLocationSuggestions, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
 import { dailyIntuitionLessons } from "../data/dailyLessons";
@@ -39,6 +39,29 @@ function isMobileWebBrowser() {
   if (!browserWindow || !navigatorRef) return false;
   const coarsePointer = browserWindow.matchMedia?.("(pointer: coarse)")?.matches;
   return Boolean(coarsePointer && /Android|iPhone|iPad|iPod/i.test(navigatorRef.userAgent || ""));
+}
+
+let lastDirectMobileTapAt = 0;
+
+function Pressable(props: React.ComponentProps<typeof NativePressable>) {
+  const { onPress, ...rest } = props;
+  if (isMobileWebBrowser() && onPress && !(props as any).disabled) {
+    const directTapHandlers = {
+      delayPressIn: 0,
+      onClick: (event: any) => {
+        if (Date.now() - lastDirectMobileTapAt < 650) return;
+        lastDirectMobileTapAt = Date.now();
+        onPress(event);
+      },
+      onPress: undefined,
+      onTouchEnd: (event: any) => {
+        lastDirectMobileTapAt = Date.now();
+        onPress(event);
+      }
+    } as any;
+    return <NativePressable {...rest} {...directTapHandlers} />;
+  }
+  return <NativePressable {...props} />;
 }
 
 type AstrologyJournalEntry = {

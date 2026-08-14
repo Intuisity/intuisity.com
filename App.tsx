@@ -4,7 +4,7 @@ import {
   Alert,
   Image,
   Linking,
-  Pressable,
+  Pressable as NativePressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -103,6 +103,29 @@ function isMobileWebBrowser() {
   if (!browserWindow || !navigatorRef) return false;
   const coarsePointer = browserWindow.matchMedia?.("(pointer: coarse)")?.matches;
   return Boolean(coarsePointer && /Android|iPhone|iPad|iPod/i.test(navigatorRef.userAgent || ""));
+}
+
+let lastDirectMobileTapAt = 0;
+
+function Pressable(props: React.ComponentProps<typeof NativePressable>) {
+  const { onPress, ...rest } = props;
+  if (isMobileWebBrowser() && onPress && !(props as any).disabled) {
+    const directTapHandlers = {
+      delayPressIn: 0,
+      onClick: (event: any) => {
+        if (Date.now() - lastDirectMobileTapAt < 650) return;
+        lastDirectMobileTapAt = Date.now();
+        onPress(event);
+      },
+      onPress: undefined,
+      onTouchEnd: (event: any) => {
+        lastDirectMobileTapAt = Date.now();
+        onPress(event);
+      }
+    } as any;
+    return <NativePressable {...rest} {...directTapHandlers} />;
+  }
+  return <NativePressable {...props} />;
 }
 
 const tabTranslations: Record<string, Record<TabKey | "score", string>> = {
