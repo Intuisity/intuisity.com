@@ -28,13 +28,14 @@ async function buildAdminReport(options = {}) {
 
   const dateRange = normalizeDateRange(options.startDate, options.endDate);
   const rangedAnalyticsEvents = filterEventsByDateRange(analyticsEvents, dateRange);
-  const visitorEvents = buildVisitorEvents(analyticsEvents, profiles);
+  const visitorEvents = coalesceVisitorSessions(buildVisitorEvents(analyticsEvents, profiles));
   const rangedVisitorEvents = filterEventsByDateRange(visitorEvents, dateRange);
   const volume = buildVisitorVolume(visitorEvents, dateRange);
   const visitorTrend = buildVisitorTrend(rangedVisitorEvents);
   const platformBreakdown = buildPlatformBreakdown(rangedVisitorEvents);
   const visitorBreakdown = buildVisitorBreakdown(rangedVisitorEvents);
   const visitorDetails = buildVisitorDetails(rangedVisitorEvents);
+  const rangedTrackedEvents = rangedVisitorEvents.filter((event) => event.event_json?.source !== "profiles");
   const rangedModuleEvents = rangedAnalyticsEvents.filter((event) => !isSiteVisitEvent(event));
   const moduleDailyTrend = buildModuleDailyTrend(rangedModuleEvents);
 
@@ -68,7 +69,7 @@ async function buildAdminReport(options = {}) {
 
   return {
     totalUsers: knownUserCount,
-    totalVisits: rangedAnalyticsEvents.length,
+    totalVisits: rangedTrackedEvents.length,
     uniqueVisitors: countUniqueVisitors(rangedVisitorEvents),
     visitorBreakdown,
     visitorDetails,
@@ -139,6 +140,50 @@ function buildVisitorEvents(analyticsEvents, profiles) {
     }));
 
   return [...analyticsEvents, ...profileEvents];
+}
+
+function coalesceVisitorSessions(events) {
+  const sessionMap = new Map();
+  const passthroughEvents = [];
+
+  events.forEach((event) => {
+    const sessionId = event.event_json?.siteSessionId || event.event_json?.site_session_id || "";
+    if (!sessionId || !isSiteVisitEvent(event)) {
+      passthroughEvents.push(event);
+      return;
+    }
+
+    const visitorKey = getVisitorKey(event) || normalizeEmail(event.email) || "unknown";
+    const key = `${visitorKey}:${sessionId}`;
+    const current = sessionMap.get(key);
+    if (!current) {
+      sessionMap.set(key, { ...event, event_json: { ...(event.event_json || {}) } });
+      return;
+    }
+
+    const nextDuration = Math.max(Number(current.duration_ms || 0), Number(event.duration_ms || 0));
+    const nextActiveDuration = Math.max(getActiveDuration(current), getActiveDuration(event));
+    const currentRecordedAt = current.recorded_at || current.started_at || "";
+    const eventRecordedAt = event.recorded_at || event.started_at || "";
+    const eventLocation = getEventLocation(event);
+
+    current.duration_ms = nextDuration;
+    current.active_duration_ms = nextActiveDuration;
+    current.recorded_at = eventRecordedAt > currentRecordedAt ? eventRecordedAt : currentRecordedAt;
+    current.started_at = current.started_at && event.started_at
+      ? current.started_at < event.started_at ? current.started_at : event.started_at
+      : current.started_at || event.started_at;
+    current.event_json = {
+      ...(current.event_json || {}),
+      ...(event.event_json || {}),
+      currentCity: current.event_json?.currentCity || eventLocation.currentCity,
+      currentState: current.event_json?.currentState || eventLocation.currentState,
+      currentCountry: current.event_json?.currentCountry || eventLocation.currentCountry
+    };
+    sessionMap.set(key, current);
+  });
+
+  return [...passthroughEvents, ...sessionMap.values()];
 }
 
 async function buildUserInsightsCsv(options = {}) {

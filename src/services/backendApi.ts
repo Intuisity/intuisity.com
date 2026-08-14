@@ -234,6 +234,7 @@ export function syncModuleTime(event: {
   date: string;
   clientChannel?: string;
   deviceCategory?: string;
+  siteSessionId?: string;
 }) {
   postToBackend("/api/analytics/module-time", {
     ...getClientPlatformDetails(),
@@ -241,23 +242,25 @@ export function syncModuleTime(event: {
   });
 }
 
-export function syncSiteVisit() {
+export function syncSiteVisit(event: {
+  activeDurationMs?: number;
+  durationMs?: number;
+  siteSessionId?: string;
+  startedAt?: string;
+} = {}) {
   try {
-    const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
-    const sessionStorage = browserWindow?.sessionStorage || globalThis.sessionStorage;
-    const visitKey = "intuisity-site-visit-recorded";
-    if (sessionStorage?.getItem(visitKey)) return;
-
     const visitorEmail = getAnonymousVisitorEmail();
-    const visitedAt = new Date();
-    sessionStorage?.setItem(visitKey, "true");
+    const visitedAt = event.startedAt ? new Date(event.startedAt) : new Date();
+    const durationMs = Math.max(1, Math.round(Number(event.durationMs || 1)));
+    const activeDurationMs = Math.max(1, Math.round(Number(event.activeDurationMs || durationMs)));
     syncModuleTime({
-      activeDurationMs: 1,
+      activeDurationMs,
       date: getDateKey(),
-      durationMs: 1,
+      durationMs,
       email: visitorEmail,
       moduleId: "site-visit",
       moduleLabel: "Website Visit",
+      siteSessionId: event.siteSessionId,
       startedAt: visitedAt.toISOString()
     });
   } catch {

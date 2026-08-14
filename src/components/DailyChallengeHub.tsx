@@ -41,21 +41,39 @@ function isMobileWebBrowser() {
   return Boolean(coarsePointer && /Android|iPhone|iPad|iPod/i.test(navigatorRef.userAgent || ""));
 }
 
-let lastDirectMobileTapAt = 0;
-
 function Pressable(props: React.ComponentProps<typeof NativePressable>) {
   const { onPress, ...rest } = props;
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressClickUntilRef = useRef(0);
+
   if (isMobileWebBrowser() && onPress && !(props as any).disabled) {
+    const getTouchPoint = (event: any) => {
+      const touch = event?.nativeEvent?.changedTouches?.[0] || event?.nativeEvent?.touches?.[0] || event?.changedTouches?.[0] || event?.touches?.[0];
+      return touch ? { x: Number(touch.clientX ?? touch.pageX ?? 0), y: Number(touch.clientY ?? touch.pageY ?? 0) } : null;
+    };
+
     const directTapHandlers = {
       delayPressIn: 0,
       onClick: (event: any) => {
-        if (Date.now() - lastDirectMobileTapAt < 650) return;
-        lastDirectMobileTapAt = Date.now();
+        if (Date.now() < suppressClickUntilRef.current) return;
         onPress(event);
       },
       onPress: undefined,
+      onTouchStart: (event: any) => {
+        touchStartRef.current = getTouchPoint(event);
+      },
       onTouchEnd: (event: any) => {
-        lastDirectMobileTapAt = Date.now();
+        const start = touchStartRef.current;
+        const end = getTouchPoint(event);
+        touchStartRef.current = null;
+        if (start && end) {
+          const moved = Math.hypot(end.x - start.x, end.y - start.y);
+          if (moved > 12) {
+            suppressClickUntilRef.current = Date.now() + 700;
+            return;
+          }
+        }
+        suppressClickUntilRef.current = Date.now() + 700;
         onPress(event);
       }
     } as any;
@@ -3308,6 +3326,16 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 Imagine which image is showing on the next page. Draw your ideas before you see the choices. It is great to start with basic shapes, lines, colors, textures, or the first feeling that comes to mind.
               </Text>
             </View>
+            <View style={[styles.drawingActions, styles.drawingActionsTop]}>
+              <Pressable onPress={() => setDrawingPoints([])} style={[styles.secondaryButton, styles.drawingActionButton]}>
+                <Ionicons color="#FFFFFF" name="trash-outline" size={17} />
+                <Text style={styles.secondaryButtonText}>Clear drawing</Text>
+              </Pressable>
+              <Pressable onPress={() => setRemotePhase("choose")} style={[styles.primaryButton, styles.drawingActionButton]}>
+                <Text style={styles.primaryButtonText}>Reveal two choices</Text>
+                <Ionicons color="#FFFFFF" name="arrow-forward-outline" size={18} />
+              </Pressable>
+            </View>
             <View style={styles.remoteDrawingPadWrap}>
               <DrawingPad points={drawingPoints} setPoints={setDrawingPoints} />
             </View>
@@ -4891,6 +4919,45 @@ function PageHeader({
     label: string,
     onPress: () => void
   ) => {
+    if (typeof (globalThis as any).document !== "undefined") {
+      return React.createElement(
+        "button",
+        {
+          "aria-label": direction === "back" ? "Go back" : "Go to next module",
+          key: direction,
+          onClick: (event: any) => {
+            event.preventDefault?.();
+            event.stopPropagation?.();
+            onPress();
+          },
+          style: {
+            alignItems: "center",
+            background: "#6537c7",
+            border: "1px solid #f3c64d",
+            borderRadius: 14,
+            boxShadow: "0 2px 7px rgba(81, 38, 173, 0.2)",
+            color: "#fff4cf",
+            cursor: "pointer",
+            display: "inline-flex",
+            fontFamily: "inherit",
+            fontSize: 14,
+            fontWeight: 800,
+            gap: 6,
+            justifyContent: "center",
+            minHeight: 46,
+            minWidth: 78,
+            padding: "0 12px",
+            pointerEvents: "auto",
+            position: "relative",
+            touchAction: "manipulation",
+            zIndex: 50
+          } as any,
+          type: "button"
+        },
+        direction === "back" ? "\u2190 Back" : "Next \u2192"
+      );
+    }
+
     return (
       <Pressable
         accessibilityLabel={direction === "back" ? "Go back" : "Go to next module"}
@@ -5139,6 +5206,7 @@ function DrawingPad({
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const strokePointsRef = useRef<Array<{ x: number; y: number; start?: boolean }>>([]);
   const [hasInk, setHasInk] = useState(points.length > 0);
+  const mobileWeb = isMobileWebBrowser();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -5156,7 +5224,7 @@ function DrawingPad({
   }, [points.length]);
 
   const beginStroke = (event: any) => {
-    event.preventDefault?.();
+    if (!mobileWeb) event.preventDefault?.();
     const point = getCanvasPoint(event, canvasRef.current);
     if (!point) return;
     drawingRef.current = true;
@@ -5169,7 +5237,7 @@ function DrawingPad({
 
   const continueStroke = (event: any) => {
     if (!drawingRef.current) return;
-    event.preventDefault?.();
+    if (!mobileWeb) event.preventDefault?.();
     const events = typeof event.getCoalescedEvents === "function" ? event.getCoalescedEvents() : [event];
 
     events.forEach((moveEvent: any) => {
@@ -5194,7 +5262,7 @@ function DrawingPad({
   };
 
   return (
-    <View style={styles.drawingPad}>
+    <View style={[styles.drawingPad, mobileWeb && styles.drawingPadMobile]}>
       {!hasInk && (
         <View pointerEvents="none" style={styles.drawingPrompt}>
           <Ionicons color="#B2ACC0" name="pencil-outline" size={24} />
@@ -5205,8 +5273,8 @@ function DrawingPad({
         ref: canvasRef,
         onPointerDown: beginStroke,
         onPointerMove: continueStroke,
-        onPointerOut: continueStroke,
-        onPointerOver: continueStroke,
+        onPointerLeave: endStroke,
+        onPointerOut: endStroke,
         onPointerUp: endStroke,
         onPointerCancel: endStroke,
         style: {
@@ -5214,7 +5282,7 @@ function DrawingPad({
           height: "100%",
           inset: 0,
           position: "absolute",
-          touchAction: "none",
+          touchAction: mobileWeb ? "pan-y" : "none",
           userSelect: "none",
           width: "100%"
         }
@@ -5747,11 +5815,13 @@ const styles = StyleSheet.create({
   remoteInstructionText: { color: "#5D536A", flex: 1, fontSize: 12, fontWeight: "800", lineHeight: 17 },
   remoteDrawingPadWrap: { marginBottom: 8 },
   drawingPad: { backgroundColor: "#FFFFFF", borderColor: "#C5E1F3", borderRadius: 8, borderWidth: 2, height: 190, marginBottom: 0, overflow: "hidden", position: "relative" },
+  drawingPadMobile: { height: 145 },
   drawingPrompt: { alignItems: "center", bottom: 0, justifyContent: "center", left: 0, opacity: 0.6, position: "absolute", right: 0, top: 0 },
   drawingPromptText: { color: "#8A8299", fontSize: 13, fontWeight: "700", marginTop: 7 },
   drawingPoint: { backgroundColor: "#30264C", borderRadius: 3, height: 6, position: "absolute", width: 6 },
   drawingSegment: { backgroundColor: "#30264C", borderRadius: 3, height: 6, position: "absolute" },
   drawingActions: { flexDirection: "row", gap: 8, marginBottom: 26 },
+  drawingActionsTop: { marginBottom: 10 },
   drawingActionButton: { flex: 1, marginBottom: 0, minHeight: 40, padding: 8 },
   remoteSuccess: { backgroundColor: "#D9FFEA", borderColor: "#18B86A", borderWidth: 3, shadowColor: "#18B86A", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 12 }
 });

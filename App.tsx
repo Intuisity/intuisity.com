@@ -105,21 +105,39 @@ function isMobileWebBrowser() {
   return Boolean(coarsePointer && /Android|iPhone|iPad|iPod/i.test(navigatorRef.userAgent || ""));
 }
 
-let lastDirectMobileTapAt = 0;
-
 function Pressable(props: React.ComponentProps<typeof NativePressable>) {
   const { onPress, ...rest } = props;
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressClickUntilRef = useRef(0);
+
   if (isMobileWebBrowser() && onPress && !(props as any).disabled) {
+    const getTouchPoint = (event: any) => {
+      const touch = event?.nativeEvent?.changedTouches?.[0] || event?.nativeEvent?.touches?.[0] || event?.changedTouches?.[0] || event?.touches?.[0];
+      return touch ? { x: Number(touch.clientX ?? touch.pageX ?? 0), y: Number(touch.clientY ?? touch.pageY ?? 0) } : null;
+    };
+
     const directTapHandlers = {
       delayPressIn: 0,
       onClick: (event: any) => {
-        if (Date.now() - lastDirectMobileTapAt < 650) return;
-        lastDirectMobileTapAt = Date.now();
+        if (Date.now() < suppressClickUntilRef.current) return;
         onPress(event);
       },
       onPress: undefined,
+      onTouchStart: (event: any) => {
+        touchStartRef.current = getTouchPoint(event);
+      },
       onTouchEnd: (event: any) => {
-        lastDirectMobileTapAt = Date.now();
+        const start = touchStartRef.current;
+        const end = getTouchPoint(event);
+        touchStartRef.current = null;
+        if (start && end) {
+          const moved = Math.hypot(end.x - start.x, end.y - start.y);
+          if (moved > 12) {
+            suppressClickUntilRef.current = Date.now() + 700;
+            return;
+          }
+        }
+        suppressClickUntilRef.current = Date.now() + 700;
         onPress(event);
       }
     } as any;
@@ -196,7 +214,77 @@ export default function App() {
 
   useEffect(() => {
     updateWebMetadata();
-    syncSiteVisit();
+    const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+    const documentRef = typeof globalThis !== "undefined" ? (globalThis as any).document : undefined;
+    const now = Date.now();
+    const siteSessionId = `site-${now}-${Math.random().toString(36).slice(2, 10)}`;
+    const startedAt = new Date(now).toISOString();
+    const idleStopMs = 180000;
+    let lastTickAt = now;
+    let lastActivityAt = now;
+    let activeDurationMs = 1000;
+    let lastSentActiveMs = 0;
+
+    const updateActiveDuration = () => {
+      const currentTime = Date.now();
+      const delta = Math.max(0, currentTime - lastTickAt);
+      if (currentTime - lastActivityAt <= idleStopMs) {
+        activeDurationMs += delta;
+      }
+      lastTickAt = currentTime;
+    };
+
+    const markActivity = () => {
+      updateActiveDuration();
+      lastActivityAt = Date.now();
+    };
+
+    const sendVisitUpdate = (force = false) => {
+      updateActiveDuration();
+      const durationMs = Math.max(1000, Date.now() - now);
+      const safeActiveMs = Math.max(1000, Math.min(durationMs, Math.round(activeDurationMs)));
+      if (!force && safeActiveMs - lastSentActiveMs < 15000) return;
+      lastSentActiveMs = safeActiveMs;
+      syncSiteVisit({
+        activeDurationMs: safeActiveMs,
+        durationMs,
+        siteSessionId,
+        startedAt
+      });
+    };
+
+    syncSiteVisit({
+      activeDurationMs: 1000,
+      durationMs: 1000,
+      siteSessionId,
+      startedAt
+    });
+    lastSentActiveMs = 1000;
+
+    const activityEvents = ["click", "keydown", "mousemove", "pointerdown", "scroll", "touchstart"];
+    activityEvents.forEach((eventName) => {
+      browserWindow?.addEventListener?.(eventName, markActivity, { passive: true });
+      documentRef?.addEventListener?.(eventName, markActivity, { passive: true });
+    });
+
+    const handleVisibilityChange = () => {
+      if (documentRef?.hidden) sendVisitUpdate(true);
+      else markActivity();
+    };
+
+    const interval = browserWindow?.setInterval?.(() => sendVisitUpdate(false), 30000);
+    browserWindow?.addEventListener?.("pagehide", () => sendVisitUpdate(true));
+    documentRef?.addEventListener?.("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      sendVisitUpdate(true);
+      if (interval) browserWindow?.clearInterval?.(interval);
+      activityEvents.forEach((eventName) => {
+        browserWindow?.removeEventListener?.(eventName, markActivity);
+        documentRef?.removeEventListener?.(eventName, markActivity);
+      });
+      documentRef?.removeEventListener?.("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
