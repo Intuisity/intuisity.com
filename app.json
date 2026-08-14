@@ -31,7 +31,7 @@
       "**/*"
     ],
     "ios": {
-      "buildNumber": "21",
+      "buildNumber": "22",
       "bundleIdentifier": "com.intuisity.app",
       "jsEngine": "jsc",
       "supportsTablet": true,
