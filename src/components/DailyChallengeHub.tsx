@@ -3339,16 +3339,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             <View style={styles.remoteDrawingPadWrap}>
               <DrawingPad points={drawingPoints} setPoints={setDrawingPoints} />
             </View>
-            <View style={styles.drawingActions}>
-              <Pressable onPress={() => setDrawingPoints([])} style={[styles.secondaryButton, styles.drawingActionButton]}>
-                <Ionicons color="#FFFFFF" name="trash-outline" size={17} />
-                <Text style={styles.secondaryButtonText}>Clear drawing</Text>
-              </Pressable>
-              <Pressable onPress={() => setRemotePhase("choose")} style={[styles.primaryButton, styles.drawingActionButton]}>
-                <Text style={styles.primaryButtonText}>Reveal two choices</Text>
-                <Ionicons color="#FFFFFF" name="arrow-forward-outline" size={18} />
-              </Pressable>
-            </View>
           </View>
         ) : (
           <View style={styles.remoteAnswerStage}>
@@ -4914,22 +4904,30 @@ function PageHeader({
   onNext?: () => void;
 }) {
   const theme = getHeaderTheme(eyebrow, title);
+  const headerPressGuardRef = useRef(0);
   const renderHeaderDirectionButton = (
     direction: "back" | "next",
     label: string,
     onPress: () => void
   ) => {
+    const activateHeaderButton = (event: any) => {
+      event.preventDefault?.();
+      event.stopPropagation?.();
+      const now = Date.now();
+      if (now - headerPressGuardRef.current < 300) return;
+      headerPressGuardRef.current = now;
+      onPress();
+    };
+
     if (typeof (globalThis as any).document !== "undefined") {
       return React.createElement(
         "button",
         {
           "aria-label": direction === "back" ? "Go back" : "Go to next module",
           key: direction,
-          onClick: (event: any) => {
-            event.preventDefault?.();
-            event.stopPropagation?.();
-            onPress();
-          },
+          onClick: activateHeaderButton,
+          onPointerUp: activateHeaderButton,
+          onTouchEnd: activateHeaderButton,
           style: {
             alignItems: "center",
             background: "#6537c7",

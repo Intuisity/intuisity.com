@@ -781,7 +781,7 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
         <Image
           accessibilityLabel="Intuisity banner showing the awakening intuition theme"
           resizeMode="cover"
-          source={require("./assets/intuisity-front-banner-v5.png")}
+          source={require("./assets/intuisity-home-banner-clean.png")}
           style={styles.signupBanner}
         />
         <Text style={styles.accountTitle}>Create your Intuisity profile</Text>
@@ -1188,10 +1188,11 @@ function getPasswordRules(password: string) {
     /\d/.test(password),
     /[^A-Za-z0-9]/.test(password)
   ].filter(Boolean).length;
+  const generatedPasswordLooksStrong = password.length >= 16 && categoryCount >= 2;
 
   return [
     { label: "At least 8 characters", passed: password.length >= 8 },
-    { label: "At least 3 of the following", passed: categoryCount >= 3 },
+    { label: "At least 3 of the following, or a long generated password", passed: categoryCount >= 3 || generatedPasswordLooksStrong },
     { label: "Lower case letters (a-z)", passed: /[a-z]/.test(password) },
     { label: "Upper case letters (A-Z)", passed: /[A-Z]/.test(password) },
     { label: "Numbers (0-9)", passed: /\d/.test(password) },
@@ -1205,7 +1206,14 @@ function passwordMeetsCriteria(password: string) {
   const minimumLength = rules[0]?.passed;
   const enoughCharacterTypes = rules[1]?.passed;
   const noLongRepeats = rules[rules.length - 1]?.passed;
-  return Boolean(minimumLength && enoughCharacterTypes && noLongRepeats);
+  const categoryCount = [
+    /[a-z]/.test(password),
+    /[A-Z]/.test(password),
+    /\d/.test(password),
+    /[^A-Za-z0-9]/.test(password)
+  ].filter(Boolean).length;
+  const generatedPasswordLooksStrong = password.length >= 16 && categoryCount >= 2;
+  return Boolean(minimumLength && noLongRepeats && (enoughCharacterTypes || generatedPasswordLooksStrong));
 }
 
 function detectTimeZone() {
