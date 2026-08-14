@@ -603,6 +603,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
   const [round, setRound] = useState(0);
   const [correct, setCorrect] = useState(0);
   const [choice, setChoice] = useState<string | null>(null);
+  const knowingAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [targets, setTargets] = useState(makeTargets);
   const [colorOrders, setColorOrders] = useState(() => makeColorOrders(targets));
   const [knowingRewardPictures, setKnowingRewardPictures] = useState(makeKnowingRewardPictures);
@@ -793,6 +794,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
   };
   const birthLocationQuery = [birthDetails.birthCity, birthDetails.birthState, birthDetails.birthCountry].filter(Boolean).join(", ");
   const birthLocationSuggestions = getBirthLocationSuggestions(birthLocationQuery || birthDetails.birthCity);
+  const visibleBirthLocationSuggestions = birthLocationSuggestions.slice(0, 4);
   const applyBirthLocationSuggestion = (label: string) => {
     const [city = "", state = "", country = ""] = label.split(",").map((part) => part.trim());
     setBirthDetails((current) => ({
@@ -806,67 +808,85 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
   };
 
   const saveBirthDetails = async () => {
-    const nextBirthDetailsComplete = Boolean(
-      birthDetails.birthdate.trim() &&
-      birthDetails.birthTime.trim() &&
-      birthDetails.birthCity.trim() &&
-      birthDetails.birthState.trim() &&
-      birthDetails.birthCountry.trim()
-    );
-    const nextBirthLocation = [birthDetails.birthCity, birthDetails.birthState, birthDetails.birthCountry].filter(Boolean).join(", ");
-    const builtInLocation = getKnownBirthLocation(nextBirthLocation);
-    const lookedUpLocation = !builtInLocation && birthDetails.birthCity.trim() && birthDetails.birthCountry.trim()
-      ? await lookupBirthLocation(nextBirthLocation)
-      : null;
-    const resolvedLocation = builtInLocation || lookedUpLocation;
-    if (builtInLocation) {
-      setBirthLocationStatus(`Birthplace matched: ${builtInLocation.label}`);
-    } else if (lookedUpLocation) {
-      setBirthLocationStatus(`Birthplace found and saved: ${lookedUpLocation.label}`);
-    } else if (birthDetails.birthCity.trim()) {
-      setBirthLocationStatus("Birth details saved. Today's reading will use the strongest guidance available from what you entered, and you can refine the birthplace later if needed.");
+    try {
+      const nextBirthDetailsComplete = Boolean(
+        birthDetails.birthdate.trim() &&
+        birthDetails.birthTime.trim() &&
+        birthDetails.birthCity.trim() &&
+        birthDetails.birthState.trim() &&
+        birthDetails.birthCountry.trim()
+      );
+      const nextBirthLocation = [birthDetails.birthCity, birthDetails.birthState, birthDetails.birthCountry].filter(Boolean).join(", ");
+      const builtInLocation = getKnownBirthLocation(nextBirthLocation);
+      const lookedUpLocation = !builtInLocation && birthDetails.birthCity.trim() && birthDetails.birthCountry.trim()
+        ? await lookupBirthLocation(nextBirthLocation)
+        : null;
+      const resolvedLocation = builtInLocation || lookedUpLocation;
+      if (builtInLocation) {
+        setBirthLocationStatus(`Birthplace matched: ${builtInLocation.label}`);
+      } else if (lookedUpLocation) {
+        setBirthLocationStatus(`Birthplace found and saved: ${lookedUpLocation.label}`);
+      } else if (birthDetails.birthCity.trim()) {
+        setBirthLocationStatus("Birth details saved. Today's reading will use the strongest guidance available from what you entered, and you can refine the birthplace later if needed.");
+      }
+      const nextAstrologyReading = getAstrologyReading(
+        birthDetails.birthdate.trim(),
+        new Date(),
+        birthDetails.birthTime.trim(),
+        nextBirthLocation,
+        resolvedLocation
+      );
+      const nextBirthChart: BirthChartProfile | undefined = nextAstrologyReading
+        ? {
+            calculationType: nextAstrologyReading.chartCalculation as BirthChartProfile["calculationType"],
+            source: nextAstrologyReading.fullChart?.source || "Intuisity Sun Sign Daily",
+            houseSystem: nextAstrologyReading.fullChart?.houseSystem || "",
+            zodiac: nextAstrologyReading.fullChart?.zodiac || "Tropical",
+            locationLabel: nextAstrologyReading.fullChart?.locationLabel || resolvedLocation?.label || nextBirthLocation,
+            sunSign: nextAstrologyReading.fullChart?.sunSign || nextAstrologyReading.sign.name,
+            moonSign: nextAstrologyReading.fullChart?.moonSign || "",
+            risingSign: nextAstrologyReading.fullChart?.risingSign || "",
+            midheavenSign: nextAstrologyReading.fullChart?.midheavenSign || "",
+            strongestAspect: nextAstrologyReading.fullChart?.strongestAspect || null,
+            updatedAt: new Date().toISOString()
+          }
+        : undefined;
+      onUpdateProfile({
+        ...userProfile,
+        birthdate: birthDetails.birthdate.trim(),
+        birthTime: birthDetails.birthTime.trim(),
+        birthCity: birthDetails.birthCity.trim(),
+        birthState: birthDetails.birthState.trim(),
+        birthCountry: birthDetails.birthCountry.trim(),
+        birthLatitude: resolvedLocation?.latitude,
+        birthLongitude: resolvedLocation?.longitude,
+        birthLocationLabel: resolvedLocation?.label,
+        birthChart: nextBirthChart
+      });
+      setBirthDetailsSaved(true);
+      setBirthDetailsOpen(!nextBirthDetailsComplete);
+    } catch (error) {
+      onUpdateProfile({
+        ...userProfile,
+        birthdate: birthDetails.birthdate.trim(),
+        birthTime: birthDetails.birthTime.trim(),
+        birthCity: birthDetails.birthCity.trim(),
+        birthState: birthDetails.birthState.trim(),
+        birthCountry: birthDetails.birthCountry.trim()
+      });
+      setBirthDetailsSaved(true);
+      setBirthDetailsOpen(true);
+      setBirthLocationStatus("Birth details were saved. The app could not complete the birthplace lookup this time, but today's reading will still use your birthdate and any details you entered.");
     }
-    const nextAstrologyReading = getAstrologyReading(
-      birthDetails.birthdate.trim(),
-      new Date(),
-      birthDetails.birthTime.trim(),
-      nextBirthLocation,
-      resolvedLocation
-    );
-    const nextBirthChart: BirthChartProfile | undefined = nextAstrologyReading
-      ? {
-          calculationType: nextAstrologyReading.chartCalculation as BirthChartProfile["calculationType"],
-          source: nextAstrologyReading.fullChart?.source || "Intuisity Sun Sign Daily",
-          houseSystem: nextAstrologyReading.fullChart?.houseSystem || "",
-          zodiac: nextAstrologyReading.fullChart?.zodiac || "Tropical",
-          locationLabel: nextAstrologyReading.fullChart?.locationLabel || resolvedLocation?.label || nextBirthLocation,
-          sunSign: nextAstrologyReading.fullChart?.sunSign || nextAstrologyReading.sign.name,
-          moonSign: nextAstrologyReading.fullChart?.moonSign || "",
-          risingSign: nextAstrologyReading.fullChart?.risingSign || "",
-          midheavenSign: nextAstrologyReading.fullChart?.midheavenSign || "",
-          strongestAspect: nextAstrologyReading.fullChart?.strongestAspect || null,
-          updatedAt: new Date().toISOString()
-        }
-      : undefined;
-    onUpdateProfile({
-      ...userProfile,
-      birthdate: birthDetails.birthdate.trim(),
-      birthTime: birthDetails.birthTime.trim(),
-      birthCity: birthDetails.birthCity.trim(),
-      birthState: birthDetails.birthState.trim(),
-      birthCountry: birthDetails.birthCountry.trim(),
-      birthLatitude: resolvedLocation?.latitude,
-      birthLongitude: resolvedLocation?.longitude,
-      birthLocationLabel: resolvedLocation?.label,
-      birthChart: nextBirthChart
-    });
-    setBirthDetailsSaved(true);
-    setBirthDetailsOpen(!nextBirthDetailsComplete);
   };
   const birthdateReady = validBirthdate(birthDetails.birthdate);
   const birthdateHasFullLength = birthDetails.birthdate.replace(/\D/g, "").length === 8;
 
   const resetKnowing = () => {
+    if (knowingAdvanceTimerRef.current) {
+      clearTimeout(knowingAdvanceTimerRef.current);
+      knowingAdvanceTimerRef.current = null;
+    }
     setRound(0);
     setCorrect(0);
     setChoice(null);
@@ -875,6 +895,29 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
     setColorOrders(makeColorOrders(nextTargets));
     setKnowingRewardPictures(makeKnowingRewardPictures());
     setPage("knowing");
+  };
+
+  const handleKnowingChoice = (color: string) => {
+    if (choice !== null || knowingAdvanceTimerRef.current) return;
+    const wasCorrect = color === targets[round];
+    const nextCorrect = correct + (wasCorrect ? 1 : 0);
+    setChoice(color);
+    if (wasCorrect) setCorrect(nextCorrect);
+
+    knowingAdvanceTimerRef.current = setTimeout(() => {
+      knowingAdvanceTimerRef.current = null;
+      if (round === 4) {
+        setAnswers((current) => ({
+          ...current,
+          "daily-intuition": "Completed",
+          "knowing-score": String(nextCorrect)
+        }));
+        setPage("knowing-results");
+      } else {
+        setRound(round + 1);
+        setChoice(null);
+      }
+    }, 1100);
   };
 
   const resetRemoteViewing = () => {
@@ -1102,25 +1145,12 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
     };
   }, [person.id, person.portraitUri, personAttributeChoices, personPortraitUri, personPracticeMode, personSelections, showPersonResults, userProfile.email]);
 
-  useEffect(() => {
-    if (page !== "knowing" || !choice) return;
-
-    const timer = setTimeout(() => {
-      if (round === 4) {
-        setAnswers((current) => ({
-          ...current,
-          "daily-intuition": "Completed",
-          "knowing-score": String(correct)
-        }));
-        setPage("knowing-results");
-      } else {
-        setRound((current) => current + 1);
-        setChoice(null);
-      }
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [choice, page, round, setAnswers]);
+  useEffect(() => () => {
+    if (knowingAdvanceTimerRef.current) {
+      clearTimeout(knowingAdvanceTimerRef.current);
+      knowingAdvanceTimerRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     const entries = loadAstrologyJournal();
@@ -1218,10 +1248,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               <Pressable
                 disabled={choice !== null}
                 key={color}
-                onPress={() => {
-                  setChoice(color);
-                  if (color === target) setCorrect((current) => current + 1);
-                }}
+                onPress={() => handleKnowingChoice(color)}
                 style={[
                   styles.colorBox,
                   choice === color && styles.selectedColorBox,
@@ -1749,6 +1776,24 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 style={styles.birthdateInput}
                 value={birthDetails.birthCity}
               />
+              {visibleBirthLocationSuggestions.length > 0 && (
+                <View style={styles.birthLocationSuggestions}>
+                  <Text style={styles.birthLocationSuggestionLabel}>Tap a matching birthplace:</Text>
+                  <View style={styles.birthLocationSuggestionList}>
+                    {visibleBirthLocationSuggestions.map((location) => (
+                      <Pressable
+                        accessibilityLabel={`Use birthplace ${location.label}`}
+                        key={location.label}
+                        onPress={() => applyBirthLocationSuggestion(location.label)}
+                        style={styles.birthLocationSuggestionChip}
+                      >
+                        <Ionicons color="#B87908" name="location-outline" size={16} />
+                        <Text style={styles.birthLocationSuggestionText}>{location.label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              )}
               <TextInput
                 accessibilityLabel="Birth state or region for astrology"
                 onChangeText={(birthState) => updateBirthDetail("birthState", birthState)}
@@ -1765,24 +1810,6 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 style={styles.birthdateInput}
                 value={birthDetails.birthCountry}
               />
-              {birthLocationSuggestions.length > 0 && (
-                <View style={styles.birthLocationSuggestions}>
-                  <Text style={styles.birthLocationSuggestionLabel}>Tap a matching birthplace to fill city, state, and country:</Text>
-                  <View style={styles.birthLocationSuggestionList}>
-                    {birthLocationSuggestions.map((location) => (
-                      <Pressable
-                        accessibilityLabel={`Use birthplace ${location.label}`}
-                        key={location.label}
-                        onPress={() => applyBirthLocationSuggestion(location.label)}
-                        style={styles.birthLocationSuggestionChip}
-                      >
-                        <Ionicons color="#B87908" name="location-outline" size={16} />
-                        <Text style={styles.birthLocationSuggestionText}>{location.label}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-              )}
               <BirthTimePicker
                 onChange={(birthTime) => updateBirthDetail("birthTime", birthTime)}
                 value={birthDetails.birthTime}
@@ -4962,7 +4989,8 @@ function PageHeader({
         accessibilityRole="button"
         hitSlop={14}
         key={direction}
-        onPress={onPress}
+        onPress={activateHeaderButton}
+        onPressIn={activateHeaderButton as any}
         style={styles.headerDirectionButton}
       >
         <View pointerEvents="none" style={styles.headerButtonInner}>
