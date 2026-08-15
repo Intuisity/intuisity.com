@@ -674,6 +674,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
   const [friendName, setFriendName] = useState("");
   const [friendPhone, setFriendPhone] = useState("");
   const [friendEmail, setFriendEmail] = useState("");
+  const treasureFriendDraftRef = useRef<FriendContact>({ email: "", name: "", phone: "" });
   const [friendPhoneError, setFriendPhoneError] = useState("");
   const [friendInviteStatus, setFriendInviteStatus] = useState("");
   const [savedFriends, setSavedFriends] = useState<FriendContact[]>(() => loadFriends(userProfile.email));
@@ -977,9 +978,17 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
   };
 
   const addFriendPhone = () => {
-    const name = friendName.trim();
-    const phone = formatFriendPhone(friendPhone);
-    const email = friendEmail.trim().toLowerCase();
+    return addFriendContact({
+      email: friendEmail,
+      name: friendName,
+      phone: friendPhone
+    });
+  };
+
+  const addFriendContact = (contactInput: FriendContact) => {
+    const name = contactInput.name.trim();
+    const phone = formatFriendPhone(contactInput.phone || "");
+    const email = (contactInput.email || "").trim().toLowerCase();
     const phoneDigits = phone.replace(/\D/g, "");
     if (!name) {
       setFriendPhoneError("Please enter your friend's name.");
@@ -1010,6 +1019,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
     setFriendName("");
     setFriendPhone("");
     setFriendEmail("");
+    treasureFriendDraftRef.current = { email: "", name: "", phone: "" };
     setFriendPhoneError("");
     return { contactKey, nextSaved, nextSelected };
   };
@@ -2121,16 +2131,16 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
       }
       startTreasureChallenge("computer");
     };
-    const addTreasureFriend = () => {
-      if (!friendName.trim()) {
+    const addTreasureFriend = (contactInput: FriendContact) => {
+      if (!contactInput.name.trim()) {
         setFriendPhoneError("Please enter your friend's name.");
         return null;
       }
-      if (!friendEmail.trim()) {
+      if (!contactInput.email?.trim()) {
         setFriendPhoneError("Please enter your friend's email address.");
         return null;
       }
-      return addFriendPhone();
+      return addFriendContact(contactInput);
     };
     const startTreasureChallenge = (
       mode: "friend" | "computer",
@@ -2181,8 +2191,8 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
         return next;
       });
     };
-    const saveTreasureFriendAndContinue = () => {
-      const saved = addTreasureFriend();
+    const saveTreasureFriendAndContinue = (contactInput: FriendContact) => {
+      const saved = addTreasureFriend(contactInput);
       if (!saved) return;
       startTreasureChallenge("friend", saved.nextSelected, saved.nextSaved);
     };
@@ -2834,29 +2844,32 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               autoCapitalize="words"
               autoCorrect={false}
               onChangeText={(value) => {
-                setFriendName(value);
+                treasureFriendDraftRef.current = { ...treasureFriendDraftRef.current, name: value };
                 setFriendPhoneError("");
               }}
               returnKeyType="next"
               placeholder="Friend's name"
               placeholderTextColor="#9A93AA"
               style={[styles.birthdateInput, styles.treasureFriendInput]}
-              value={friendName}
+              defaultValue={friendName}
             />
             <TextInput
               accessibilityLabel="Friend phone number"
               autoCorrect={false}
               keyboardType="phone-pad"
               onChangeText={(value) => {
-                setFriendPhone(value);
+                treasureFriendDraftRef.current = { ...treasureFriendDraftRef.current, phone: value };
                 setFriendPhoneError("");
               }}
-              onBlur={() => setFriendPhone((value) => value.trim() ? formatFriendPhone(value) : "")}
+              onBlur={() => {
+                const phone = treasureFriendDraftRef.current.phone || "";
+                treasureFriendDraftRef.current = { ...treasureFriendDraftRef.current, phone: phone.trim() ? formatFriendPhone(phone) : "" };
+              }}
               returnKeyType="next"
               placeholder="Phone number optional"
               placeholderTextColor="#9A93AA"
               style={[styles.birthdateInput, styles.treasureFriendInput]}
-              value={friendPhone}
+              defaultValue={friendPhone}
             />
             <TextInput
               accessibilityLabel="Friend email address"
@@ -2864,22 +2877,21 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               autoCorrect={false}
               keyboardType="email-address"
               onChangeText={(value) => {
-                setFriendEmail(value);
+                treasureFriendDraftRef.current = { ...treasureFriendDraftRef.current, email: value };
                 setFriendPhoneError("");
               }}
               returnKeyType="done"
               placeholder="Friend email for invite (required)"
               placeholderTextColor="#9A93AA"
               style={[styles.birthdateInput, styles.treasureFriendInput]}
-              value={friendEmail}
+              defaultValue={friendEmail}
             />
             <Text style={styles.savedFriendsLabel}>Email is required so they can receive the challenge. Phone number is optional.</Text>
             {friendPhoneError ? <Text style={styles.inputError}>{friendPhoneError}</Text> : null}
             <Pressable
               accessibilityLabel="Save friend and continue to treasure tiles"
-              disabled={!friendName.trim() || !friendEmail.trim()}
-              onPress={saveTreasureFriendAndContinue}
-              style={[styles.primaryButton, (!friendName.trim() || !friendEmail.trim()) && styles.disabledButton]}
+              onPress={() => saveTreasureFriendAndContinue(treasureFriendDraftRef.current)}
+              style={styles.primaryButton}
             >
               <Ionicons color="#FFFFFF" name="arrow-forward-outline" size={18} />
               <Text style={styles.primaryButtonText}>Next: save friend and choose my tiles</Text>
@@ -5360,14 +5372,19 @@ function DrawingPad({
       )}
       {React.createElement("canvas", {
         ref: canvasRef,
-        onPointerDown: beginStroke,
-        onPointerMove: continueStroke,
-        onPointerUp: endStroke,
-        onPointerCancel: endStroke,
+        onPointerDown: mobileWeb ? undefined : beginStroke,
+        onPointerMove: mobileWeb ? undefined : continueStroke,
+        onPointerUp: mobileWeb ? undefined : endStroke,
+        onPointerCancel: mobileWeb ? undefined : endStroke,
+        onTouchStart: mobileWeb ? beginStroke : undefined,
+        onTouchMove: mobileWeb ? continueStroke : undefined,
+        onTouchEnd: mobileWeb ? endStroke : undefined,
+        onTouchCancel: mobileWeb ? endStroke : undefined,
         style: {
           cursor: "crosshair",
           height: "100%",
           inset: 0,
+          overscrollBehavior: "contain",
           position: "absolute",
           touchAction: "none",
           userSelect: "none",
@@ -5405,9 +5422,14 @@ function getCanvasContext(canvas: any) {
 function getCanvasPoint(event: any, canvas: any) {
   const rect = canvas?.getBoundingClientRect?.();
   if (!rect) return null;
+  const sourceEvent = event?.nativeEvent || event;
+  const touch = sourceEvent?.changedTouches?.[0] || sourceEvent?.touches?.[0];
+  const clientX = touch ? touch.clientX : sourceEvent?.clientX;
+  const clientY = touch ? touch.clientY : sourceEvent?.clientY;
+  if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return null;
   return {
-    x: event.clientX - rect.left,
-    y: event.clientY - rect.top
+    x: clientX - rect.left,
+    y: clientY - rect.top
   };
 }
 

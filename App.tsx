@@ -2518,6 +2518,7 @@ function updateWebMetadata() {
   setMetaTag("og:image", "https://www.intuisity.com/intuisity-preview.png", "property");
   setMetaTag("twitter:card", "summary_large_image");
   setMetaTag("twitter:image", "https://www.intuisity.com/intuisity-preview.png");
+  ensureSeoHeading();
   ensureMobileTapStyles();
 }
 
@@ -2531,6 +2532,22 @@ function setMetaTag(name: string, content: string, attribute = "name") {
     documentRef.head.appendChild(tag);
   }
   tag.setAttribute("content", content);
+}
+
+function ensureSeoHeading() {
+  const documentRef = (globalThis as any).document;
+  if (!documentRef || documentRef.getElementById("intuisity-seo-h1")) return;
+  const heading = documentRef.createElement("h1");
+  heading.id = "intuisity-seo-h1";
+  heading.textContent = "Intuisity Daily Intuition Training, Remote Viewing Practice, and Astrology Guidance";
+  heading.setAttribute("aria-hidden", "true");
+  heading.style.position = "absolute";
+  heading.style.left = "-10000px";
+  heading.style.top = "auto";
+  heading.style.width = "1px";
+  heading.style.height = "1px";
+  heading.style.overflow = "hidden";
+  documentRef.body.insertBefore(heading, documentRef.body.firstChild);
 }
 
 function ensureMobileTapStyles() {
