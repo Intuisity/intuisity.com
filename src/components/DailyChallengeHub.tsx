@@ -31,6 +31,9 @@ const intuTheme = {
 
 const purpleGoldHeaderBanner = require("../../assets/intuisity-purple-gold-banner.png");
 
+const remoteViewingPictureHeight = 238;
+const remoteViewingPictureHeightMobile = 181;
+
 type Answers = Record<string, string>;
 
 function isMobileWebBrowser() {
@@ -5243,6 +5246,7 @@ function PictureGrid({
   showResult?: boolean;
 }) {
   const [failedPictureIds, setFailedPictureIds] = useState<string[]>([]);
+  const mobileWeb = isMobileWebBrowser();
   return (
     <View style={[styles.pictureGrid, columns === 3 && styles.pictureGridCompact, compact && styles.remotePictureGridCompact]}>
       {pictures.map((picture) => (
@@ -5254,6 +5258,7 @@ function PictureGrid({
             styles.pictureChoice,
             columns === 3 && styles.pictureChoiceThreeColumn,
             compact && styles.remotePictureChoiceCompact,
+            compact && { height: mobileWeb ? remoteViewingPictureHeightMobile : remoteViewingPictureHeight },
             selectedId === picture.id && styles.pictureChoiceSelected,
             columns === 3 && selectedId === picture.id && styles.pictureChoiceSelectedCompact,
             showResult && correctId === picture.id && styles.pictureChoiceCorrect
@@ -5924,8 +5929,8 @@ const styles = StyleSheet.create({
   remoteInstructionCard: { alignItems: "flex-start", backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, marginBottom: 8, padding: 9 },
   remoteInstructionText: { color: "#5D536A", flex: 1, fontSize: 12, fontWeight: "800", lineHeight: 17 },
   remoteDrawingPadWrap: { marginBottom: 8 },
-  drawingPad: { backgroundColor: "#FFFFFF", borderColor: "#C5E1F3", borderRadius: 8, borderWidth: 2, height: 238, marginBottom: 0, overflow: "hidden", position: "relative" },
-  drawingPadMobile: { height: 181 },
+  drawingPad: { backgroundColor: "#FFFFFF", borderColor: "#C5E1F3", borderRadius: 8, borderWidth: 2, height: remoteViewingPictureHeight, marginBottom: 0, overflow: "hidden", position: "relative" },
+  drawingPadMobile: { height: remoteViewingPictureHeightMobile },
   drawingPrompt: { alignItems: "center", bottom: 0, justifyContent: "center", left: 0, opacity: 0.6, position: "absolute", right: 0, top: 0 },
   drawingPromptText: { color: "#8A8299", fontSize: 13, fontWeight: "700", marginTop: 7 },
   drawingPoint: { backgroundColor: "#30264C", borderRadius: 3, height: 6, position: "absolute", width: 6 },
