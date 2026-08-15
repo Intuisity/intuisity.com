@@ -245,11 +245,12 @@ export function syncModuleTime(event: {
 export function syncSiteVisit(event: {
   activeDurationMs?: number;
   durationMs?: number;
+  email?: string;
   siteSessionId?: string;
   startedAt?: string;
 } = {}) {
   try {
-    const visitorEmail = getAnonymousVisitorEmail();
+    const visitorEmail = String(event.email || "").trim().toLowerCase() || getAnonymousVisitorEmail();
     const visitedAt = event.startedAt ? new Date(event.startedAt) : new Date();
     const durationMs = Math.max(1, Math.round(Number(event.durationMs || 1)));
     const activeDurationMs = Math.max(1, Math.round(Number(event.activeDurationMs || durationMs)));
@@ -396,12 +397,20 @@ function rememberBackendSync(entry: Omit<BackendSyncLogEntry, "savedAt">) {
 }
 
 function getDateKey() {
-  const now = new Date();
-  return [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, "0"),
-    String(now.getDate()).padStart(2, "0")
-  ].join("-");
+  return getPacificDateKey(new Date());
+}
+
+function getPacificDateKey(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Los_Angeles",
+    year: "numeric"
+  }).formatToParts(date).reduce<Record<string, string>>((next, part) => {
+    if (part.type !== "literal") next[part.type] = part.value;
+    return next;
+  }, {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 function getAnonymousVisitorEmail() {

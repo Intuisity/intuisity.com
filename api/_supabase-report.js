@@ -2,6 +2,7 @@ const { supabaseRequest } = require("./_supabase");
 
 const excludedReportEmails = new Set(["admin@intuisity.com", "kathy@intuisity.com"]);
 const idleStopMs = 180000;
+const reportTimeZone = "America/Los_Angeles";
 const moduleOrder = [
   "Challenge 1: Treasure Chest",
   "Challenge 2: Train Your Knowing",
@@ -385,12 +386,9 @@ function collectKnownEmails({ analyticsEvents = [], dailyResults = [], friends =
 }
 
 function buildVisitorVolume(events, dateRange) {
-  const today = getLocalDateKey(new Date());
-  const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - 6);
-  const monthStart = new Date(now);
-  monthStart.setDate(now.getDate() - 29);
+  const today = getPacificDateKey(new Date());
+  const weekStart = addDaysToDateKey(today, -6);
+  const monthStart = addDaysToDateKey(today, -29);
 
   return {
     today: countUniqueVisitors(filterEventsSince(events, today)),
@@ -551,8 +549,7 @@ function filterEventsSince(events, dateKey) {
 }
 
 function filterEventsFromDate(events, startDate) {
-  const startKey = getLocalDateKey(startDate);
-  return events.filter((event) => getEventDateKey(event) >= startKey);
+  return events.filter((event) => getEventDateKey(event) >= startDate);
 }
 
 function filterEventsByDateRange(events, dateRange) {
@@ -577,15 +574,33 @@ function normalizeDateKey(value) {
 }
 
 function getEventDateKey(event) {
-  if (event.date) return String(event.date).slice(0, 10);
-  return getLocalDateKey(new Date(event.recorded_at || event.started_at || Date.now()));
+  return getPacificDateKey(new Date(event.recorded_at || event.started_at || event.date || Date.now()));
 }
 
 function getLocalDateKey(date) {
+  return getPacificDateKey(date);
+}
+
+function getPacificDateKey(date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: reportTimeZone,
+    year: "numeric"
+  }).formatToParts(date).reduce((next, part) => {
+    if (part.type !== "literal") next[part.type] = part.value;
+    return next;
+  }, {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function addDaysToDateKey(dateKey, days) {
+  const date = new Date(`${dateKey}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
   return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0")
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0")
   ].join("-");
 }
 
@@ -606,7 +621,7 @@ function isAnonymousVisitorEmail(email) {
 }
 
 function isSiteVisitEvent(event) {
-  return event.module_id === "site-visit" || event.module_id === "profile-signup" || event.module_label === "Website Visit" || event.module_label === "Profile Signup";
+  return event.module_id === "site-visit" || event.module_id === "profile-signup" || event.module_id === "login" || event.module_label === "Website Visit" || event.module_label === "Profile Signup" || event.module_label === "Login";
 }
 
 function getVisitorKey(event) {

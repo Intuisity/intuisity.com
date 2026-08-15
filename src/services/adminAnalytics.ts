@@ -689,5 +689,14 @@ function loadFeedbackReport() {
 }
 
 function getDateKey(timestamp: number) {
-  return new Date(timestamp).toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Los_Angeles",
+    year: "numeric"
+  }).formatToParts(new Date(timestamp)).reduce<Record<string, string>>((next, part) => {
+    if (part.type !== "literal") next[part.type] = part.value;
+    return next;
+  }, {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }

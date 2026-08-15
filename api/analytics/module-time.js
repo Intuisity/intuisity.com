@@ -23,7 +23,7 @@ module.exports = async function handler(request, response) {
       started_at: body.startedAt || new Date().toISOString(),
       duration_ms: durationMs,
       active_duration_ms: activeDurationMs,
-      date: body.date || new Date().toISOString().slice(0, 10),
+      date: body.date || getPacificDateKey(new Date()),
       event_json: {
         ...(body || {}),
         currentCity: body.currentCity || requestLocation.currentCity || "",
@@ -74,6 +74,19 @@ function getRequestLocation(request) {
     currentState: state,
     currentCountry: country
   };
+}
+
+function getPacificDateKey(date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Los_Angeles",
+    year: "numeric"
+  }).formatToParts(date).reduce((next, part) => {
+    if (part.type !== "literal") next[part.type] = part.value;
+    return next;
+  }, {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 function decodeHeaderValue(value) {

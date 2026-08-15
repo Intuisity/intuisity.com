@@ -256,6 +256,7 @@ export default function App() {
       syncSiteVisit({
         activeDurationMs: safeActiveMs,
         durationMs,
+        email: userProfile?.email,
         siteSessionId,
         startedAt
       });
@@ -264,6 +265,7 @@ export default function App() {
     syncSiteVisit({
       activeDurationMs: 1000,
       durationMs: 1000,
+      email: userProfile?.email,
       siteSessionId,
       startedAt
     });
@@ -293,7 +295,7 @@ export default function App() {
       });
       documentRef?.removeEventListener?.("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [userProfile?.email]);
 
   useEffect(() => {
     if (activeTab === "admin" && !userIsAdmin) {
@@ -335,7 +337,7 @@ export default function App() {
       const clickedAt = new Date();
       syncModuleTime({
         activeDurationMs: 1,
-        date: clickedAt.toISOString().slice(0, 10),
+        date: getPacificDateKey(clickedAt),
         durationMs: 1,
         email: userProfile.email,
         moduleId: "premium-interest",
@@ -536,7 +538,7 @@ function AccountAccess({ onAuthenticated }: { onAuthenticated: (profile: UserPro
       const signedInAt = new Date();
       syncModuleTime({
         activeDurationMs: 1,
-        date: signedInAt.toISOString().slice(0, 10),
+        date: getPacificDateKey(signedInAt),
         durationMs: 1,
         email: nextProfile.email,
         moduleId: "login",
@@ -1284,13 +1286,21 @@ function detectCurrentLocation(timeZone = detectTimeZone()) {
 }
 
 function getDailyAnswersKey(email: string) {
-  const now = new Date();
-  const today = [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, "0"),
-    String(now.getDate()).padStart(2, "0")
-  ].join("-");
+  const today = getPacificDateKey(new Date());
   return `${dailyAnswersKeyPrefix}-${email.toLowerCase()}-${today}`;
+}
+
+function getPacificDateKey(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Los_Angeles",
+    year: "numeric"
+  }).formatToParts(date).reduce<Record<string, string>>((next, part) => {
+    if (part.type !== "literal") next[part.type] = part.value;
+    return next;
+  }, {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 function loadDailyAnswers(email: string): Answers {
