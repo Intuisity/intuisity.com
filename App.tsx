@@ -96,8 +96,6 @@ const tabs: Array<{ key: TabKey; label: string; icon: keyof typeof Ionicons.glyp
   { key: "premium", label: "Premium", icon: "card-outline" },
   { key: "admin", label: "Admin", icon: "shield-checkmark-outline" }
 ];
-const mobileTapSuppressMs = 220;
-
 function isMobileWebBrowser() {
   const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
   const navigatorRef = typeof globalThis !== "undefined" ? (globalThis as any).navigator : undefined;
@@ -107,51 +105,6 @@ function isMobileWebBrowser() {
 }
 
 function Pressable(props: React.ComponentProps<typeof NativePressable>) {
-  const { onPress, ...rest } = props;
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
-  const suppressClickUntilRef = useRef(0);
-
-  if (isMobileWebBrowser() && onPress && !(props as any).disabled) {
-    const getTouchPoint = (event: any) => {
-      const touch = event?.nativeEvent?.changedTouches?.[0] || event?.nativeEvent?.touches?.[0] || event?.changedTouches?.[0] || event?.touches?.[0];
-      return touch ? { x: Number(touch.clientX ?? touch.pageX ?? 0), y: Number(touch.clientY ?? touch.pageY ?? 0) } : null;
-    };
-    const isTextEntryTarget = (event: any) => {
-      const target = event?.nativeEvent?.target || event?.target;
-      const tagName = String(target?.tagName || "").toLowerCase();
-      return tagName === "input" || tagName === "textarea" || tagName === "select" || Boolean(target?.isContentEditable);
-    };
-
-    const directTapHandlers = {
-      delayPressIn: 0,
-      onClick: (event: any) => {
-        if (isTextEntryTarget(event)) return;
-        if (Date.now() < suppressClickUntilRef.current) return;
-        onPress(event);
-      },
-      onPress: undefined,
-      onTouchStart: (event: any) => {
-        if (isTextEntryTarget(event)) return;
-        touchStartRef.current = getTouchPoint(event);
-      },
-      onTouchEnd: (event: any) => {
-        if (isTextEntryTarget(event)) return;
-        const start = touchStartRef.current;
-        const end = getTouchPoint(event);
-        touchStartRef.current = null;
-        if (start && end) {
-          const moved = Math.hypot(end.x - start.x, end.y - start.y);
-          if (moved > 12) {
-            suppressClickUntilRef.current = Date.now() + mobileTapSuppressMs;
-            return;
-          }
-        }
-        suppressClickUntilRef.current = Date.now() + mobileTapSuppressMs;
-        onPress(event);
-      }
-    } as any;
-    return <NativePressable {...rest} {...directTapHandlers} />;
-  }
   return <NativePressable {...props} />;
 }
 
@@ -233,6 +186,7 @@ export default function App() {
     let lastActivityAt = now;
     let activeDurationMs = 1000;
     let lastSentActiveMs = 0;
+    const visitUpdateIntervalMs = 10000;
 
     const updateActiveDuration = () => {
       const currentTime = Date.now();
@@ -252,7 +206,7 @@ export default function App() {
       updateActiveDuration();
       const durationMs = Math.max(1000, Date.now() - now);
       const safeActiveMs = Math.max(1000, Math.min(durationMs, Math.round(activeDurationMs)));
-      if (!force && safeActiveMs - lastSentActiveMs < 15000) return;
+      if (!force && safeActiveMs - lastSentActiveMs < visitUpdateIntervalMs) return;
       lastSentActiveMs = safeActiveMs;
       syncSiteVisit({
         activeDurationMs: safeActiveMs,
@@ -272,7 +226,7 @@ export default function App() {
     });
     lastSentActiveMs = 1000;
 
-    const activityEvents = ["click", "keydown", "mousemove", "pointerdown", "scroll", "touchstart"];
+    const activityEvents = ["click", "focusin", "input", "keydown", "mousemove", "pointerdown", "scroll", "touchstart"];
     activityEvents.forEach((eventName) => {
       browserWindow?.addEventListener?.(eventName, markActivity, { passive: true });
       documentRef?.addEventListener?.(eventName, markActivity, { passive: true });
@@ -283,7 +237,7 @@ export default function App() {
       else markActivity();
     };
 
-    const interval = browserWindow?.setInterval?.(() => sendVisitUpdate(false), 30000);
+    const interval = browserWindow?.setInterval?.(() => sendVisitUpdate(false), visitUpdateIntervalMs);
     browserWindow?.addEventListener?.("pagehide", () => sendVisitUpdate(true));
     documentRef?.addEventListener?.("visibilitychange", handleVisibilityChange);
 
@@ -918,6 +872,11 @@ function ProfileInput({ autoComplete, label, value, onChangeText, placeholder = 
   const [passwordVisible, setPasswordVisible] = useState(false);
   const isNewPasswordField = secure && textContentType === "newPassword";
   const isCurrentPasswordField = secure && textContentType === "password";
+  const inputKey = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const webAutofillProps = {
+    id: inputKey,
+    name: isNewPasswordField ? "new-password" : isCurrentPasswordField ? "current-password" : label.includes("Email") ? "email" : label.includes("Phone") ? "tel" : inputKey
+  } as any;
   const matchingSuggestions = value.trim().length
     ? suggestions.filter((suggestion) => suggestion.toLowerCase().startsWith(value.trim().toLowerCase())).slice(0, 5)
     : [];
@@ -930,9 +889,11 @@ function ProfileInput({ autoComplete, label, value, onChangeText, placeholder = 
       <Text style={styles.accountFieldLabel}>{label}</Text>
       <View style={styles.accountInputWrap}>
         <TextInput
+          {...webAutofillProps}
           accessibilityLabel={label}
           autoCapitalize={label.includes("Email") || secure ? "none" : "words"}
           autoComplete={autoComplete || (isNewPasswordField ? "new-password" : isCurrentPasswordField ? "current-password" : undefined)}
+          autoCorrect={secure ? false : undefined}
           importantForAutofill={secure ? "yes" : undefined}
           keyboardType={label.includes("Email") ? "email-address" : label.includes("Phone") ? "phone-pad" : label === "Birthdate" ? "number-pad" : "default"}
           maxLength={label.includes("Phone") ? 14 : undefined}
@@ -941,6 +902,7 @@ function ProfileInput({ autoComplete, label, value, onChangeText, placeholder = 
           placeholder={placeholder}
           placeholderTextColor="#9A93AA"
           secureTextEntry={secure && !passwordVisible}
+          spellCheck={secure ? false : undefined}
           style={[styles.accountInput, secure && styles.accountPasswordInput]}
           textContentType={textContentType}
           value={value}

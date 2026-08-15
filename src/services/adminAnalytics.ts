@@ -125,6 +125,7 @@ const analyticsKey = "intuisity-admin-analytics-events";
 const profilesKey = "intuisity-user-profiles";
 const maxStoredEvents = 1200;
 const idleStopMs = 180000;
+const minimumVisibleVisitorMs = 10000;
 const excludedReportEmails = new Set(["admin@intuisity.com", "kathy@intuisity.com"]);
 let lastInteractionAt = Date.now();
 let activityTrackingStarted = false;
@@ -344,7 +345,7 @@ function buildLocalVisitorEvents(events: AnalyticsEvent[], profiles: Array<Recor
 }
 
 function isVisitorOnlyEvent(event: AnalyticsEvent) {
-  return event.moduleId === "site-visit" || event.moduleLabel === "Website Visit" || event.moduleId === "profile-signup";
+  return event.moduleId === "site-visit" || event.moduleLabel === "Website Visit" || event.moduleId === "profile-signup" || event.moduleId === "login" || event.moduleLabel === "Login";
 }
 
 function buildLocalUserInsights(events: AnalyticsEvent[]): UserInsightReport[] {
@@ -586,7 +587,11 @@ function calculateActiveDuration(startedAt: number, endedAt: number) {
 }
 
 function getEventActiveMs(event: AnalyticsEvent) {
-  return Math.min(event.durationMs, event.activeDurationMs ?? idleStopMs);
+  const visibleDurationMs = isVisitorOnlyEvent(event) && !isAnonymousVisitorEmail(event.email)
+    ? Math.max(event.durationMs, minimumVisibleVisitorMs)
+    : event.durationMs;
+  const activeMs = event.activeDurationMs ?? idleStopMs;
+  return Math.min(visibleDurationMs, Math.max(activeMs, isVisitorOnlyEvent(event) && !isAnonymousVisitorEmail(event.email) ? minimumVisibleVisitorMs : 0));
 }
 
 function getClientPlatformDetails() {

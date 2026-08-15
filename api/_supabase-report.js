@@ -2,6 +2,7 @@ const { supabaseRequest } = require("./_supabase");
 
 const excludedReportEmails = new Set(["admin@intuisity.com", "kathy@intuisity.com"]);
 const idleStopMs = 180000;
+const minimumVisibleVisitorMs = 10000;
 const reportTimeZone = "America/Los_Angeles";
 const moduleOrder = [
   "Challenge 1: Treasure Chest",
@@ -611,10 +612,13 @@ function addDaysToDateKey(dateKey, days) {
 
 function getActiveDuration(event) {
   const durationMs = Number(event.duration_ms || 0);
+  const visibleDurationMs = isSiteVisitEvent(event) && !isAnonymousVisitorEmail(event.email)
+    ? Math.max(durationMs, minimumVisibleVisitorMs)
+    : durationMs;
   if (event.active_duration_ms === undefined || event.active_duration_ms === null) {
-    return Math.min(durationMs, idleStopMs);
+    return Math.min(visibleDurationMs, idleStopMs);
   }
-  return Math.min(durationMs, Number(event.active_duration_ms || 0));
+  return Math.min(visibleDurationMs, Math.max(Number(event.active_duration_ms || 0), isSiteVisitEvent(event) && !isAnonymousVisitorEmail(event.email) ? minimumVisibleVisitorMs : 0));
 }
 
 function isExcludedReportEmail(email) {

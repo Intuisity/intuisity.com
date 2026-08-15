@@ -33,7 +33,6 @@ const purpleGoldHeaderBanner = require("../../assets/intuisity-purple-gold-banne
 
 const remoteViewingPictureHeight = 238;
 const remoteViewingPictureHeightMobile = 181;
-const mobileTapSuppressMs = 220;
 
 type Answers = Record<string, string>;
 
@@ -46,51 +45,6 @@ function isMobileWebBrowser() {
 }
 
 function Pressable(props: React.ComponentProps<typeof NativePressable>) {
-  const { onPress, ...rest } = props;
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
-  const suppressClickUntilRef = useRef(0);
-
-  if (isMobileWebBrowser() && onPress && !(props as any).disabled) {
-    const getTouchPoint = (event: any) => {
-      const touch = event?.nativeEvent?.changedTouches?.[0] || event?.nativeEvent?.touches?.[0] || event?.changedTouches?.[0] || event?.touches?.[0];
-      return touch ? { x: Number(touch.clientX ?? touch.pageX ?? 0), y: Number(touch.clientY ?? touch.pageY ?? 0) } : null;
-    };
-    const isTextEntryTarget = (event: any) => {
-      const target = event?.nativeEvent?.target || event?.target;
-      const tagName = String(target?.tagName || "").toLowerCase();
-      return tagName === "input" || tagName === "textarea" || tagName === "select" || Boolean(target?.isContentEditable);
-    };
-
-    const directTapHandlers = {
-      delayPressIn: 0,
-      onClick: (event: any) => {
-        if (isTextEntryTarget(event)) return;
-        if (Date.now() < suppressClickUntilRef.current) return;
-        onPress(event);
-      },
-      onPress: undefined,
-      onTouchStart: (event: any) => {
-        if (isTextEntryTarget(event)) return;
-        touchStartRef.current = getTouchPoint(event);
-      },
-      onTouchEnd: (event: any) => {
-        if (isTextEntryTarget(event)) return;
-        const start = touchStartRef.current;
-        const end = getTouchPoint(event);
-        touchStartRef.current = null;
-        if (start && end) {
-          const moved = Math.hypot(end.x - start.x, end.y - start.y);
-          if (moved > 12) {
-            suppressClickUntilRef.current = Date.now() + mobileTapSuppressMs;
-            return;
-          }
-        }
-        suppressClickUntilRef.current = Date.now() + mobileTapSuppressMs;
-        onPress(event);
-      }
-    } as any;
-    return <NativePressable {...rest} {...directTapHandlers} />;
-  }
   return <NativePressable {...props} />;
 }
 
