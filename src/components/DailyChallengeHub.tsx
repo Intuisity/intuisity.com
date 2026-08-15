@@ -2856,6 +2856,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               autoCapitalize="words"
               autoCorrect={false}
               onChangeText={(value) => {
+                setFriendName(value);
                 treasureFriendDraftRef.current = { ...treasureFriendDraftRef.current, name: value };
                 setFriendPhoneError("");
               }}
@@ -2863,42 +2864,44 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               placeholder="Friend's name"
               placeholderTextColor="#9A93AA"
               style={[styles.birthdateInput, styles.treasureFriendInput]}
-              defaultValue={friendName}
+              value={friendName}
             />
             <TextInput
               accessibilityLabel="Friend phone number"
               autoCorrect={false}
               keyboardType="phone-pad"
+              maxLength={14}
               onChangeText={(value) => {
-                treasureFriendDraftRef.current = { ...treasureFriendDraftRef.current, phone: value };
+                const formattedPhone = formatFriendPhone(value);
+                setFriendPhone(formattedPhone);
+                treasureFriendDraftRef.current = { ...treasureFriendDraftRef.current, phone: formattedPhone };
                 setFriendPhoneError("");
               }}
-              onBlur={() => {
-                const phone = treasureFriendDraftRef.current.phone || "";
-                treasureFriendDraftRef.current = { ...treasureFriendDraftRef.current, phone: phone.trim() ? formatFriendPhone(phone) : "" };
-              }}
               returnKeyType="next"
-              placeholder="Phone number optional"
+              placeholder="Optional U.S. phone"
               placeholderTextColor="#9A93AA"
               style={[styles.birthdateInput, styles.treasureFriendInput]}
-              defaultValue={friendPhone}
+              value={friendPhone}
             />
             <TextInput
               accessibilityLabel="Friend email address"
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
+              maxLength={80}
               onChangeText={(value) => {
-                treasureFriendDraftRef.current = { ...treasureFriendDraftRef.current, email: value };
+                const email = value.trim().toLowerCase();
+                setFriendEmail(email);
+                treasureFriendDraftRef.current = { ...treasureFriendDraftRef.current, email };
                 setFriendPhoneError("");
               }}
               returnKeyType="done"
               placeholder="Friend email for invite (required)"
               placeholderTextColor="#9A93AA"
               style={[styles.birthdateInput, styles.treasureFriendInput]}
-              defaultValue={friendEmail}
+              value={friendEmail}
             />
-            <Text style={styles.savedFriendsLabel}>Email is required so they can receive the challenge. Phone number is optional.</Text>
+            <Text style={styles.savedFriendsLabel}>Email is required so they can receive the challenge. U.S. phone number is optional.</Text>
             {friendPhoneError ? <Text style={styles.inputError}>{friendPhoneError}</Text> : null}
             <Pressable
               accessibilityLabel="Save friend and continue to treasure tiles"
@@ -3265,6 +3268,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               <TextInput
                 accessibilityLabel="Friend phone number"
                 keyboardType="phone-pad"
+                maxLength={14}
                 onChangeText={(value) => {
                   setFriendPhone(formatFriendPhone(value));
                   setFriendPhoneError("");
@@ -3288,6 +3292,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               accessibilityLabel="Friend email address"
               autoCapitalize="none"
               keyboardType="email-address"
+              maxLength={80}
               onChangeText={(value) => {
                 setFriendEmail(value.trim().toLowerCase());
                 setFriendPhoneError("");
@@ -5030,73 +5035,26 @@ function PageHeader({
   onNext?: () => void;
 }) {
   const theme = getHeaderTheme(eyebrow, title);
-  const headerPressGuardRef = useRef(0);
   const renderHeaderDirectionButton = (
     direction: "back" | "next",
     label: string,
     onPress: () => void
-  ) => {
-    const activateHeaderButton = (event?: any) => {
-      event.preventDefault?.();
-      event.stopPropagation?.();
-      const now = Date.now();
-      if (now - headerPressGuardRef.current < 300) return;
-      headerPressGuardRef.current = now;
-      onPress();
-    };
-
-    if (typeof (globalThis as any).document !== "undefined") {
-      return React.createElement(
-        "button",
-        {
-          "aria-label": direction === "back" ? "Go back" : "Go to next module",
-          key: direction,
-          onClick: activateHeaderButton,
-          style: {
-            alignItems: "center",
-            background: "#6537c7",
-            border: "1px solid #f3c64d",
-            borderRadius: 14,
-            boxShadow: "0 2px 7px rgba(81, 38, 173, 0.2)",
-            color: "#fff4cf",
-            cursor: "pointer",
-            display: "inline-flex",
-            fontFamily: "inherit",
-            fontSize: 14,
-            fontWeight: 800,
-            gap: 6,
-            justifyContent: "center",
-            minHeight: 46,
-            minWidth: 78,
-            padding: "0 12px",
-            pointerEvents: "auto",
-            position: "relative",
-            touchAction: "manipulation",
-            zIndex: 50
-          } as any,
-          type: "button"
-        },
-        direction === "back" ? "\u2190 Back" : "Next \u2192"
-      );
-    }
-
-    return (
-      <NativePressable
-        accessibilityLabel={direction === "back" ? "Go back" : "Go to next module"}
-        accessibilityRole="button"
-        hitSlop={14}
-        key={direction}
-        onPress={activateHeaderButton}
-        style={styles.headerDirectionButton}
-      >
-        <View pointerEvents="none" style={styles.headerButtonInner}>
-          {direction === "back" && <Ionicons color="#f3c64d" name="arrow-back-outline" size={17} />}
-          <Text style={styles.headerNextText}>{label}</Text>
-          {direction === "next" && <Ionicons color="#f3c64d" name="arrow-forward-outline" size={17} />}
-        </View>
-      </NativePressable>
-    );
-  };
+  ) => (
+    <NativePressable
+      accessibilityLabel={direction === "back" ? "Go back" : "Go to next module"}
+      accessibilityRole="button"
+      hitSlop={14}
+      key={direction}
+      onPress={onPress}
+      style={styles.headerDirectionButton}
+    >
+      <View pointerEvents="none" style={styles.headerButtonInner}>
+        {direction === "back" && <Ionicons color="#f3c64d" name="arrow-back-outline" size={17} />}
+        <Text style={styles.headerNextText}>{label}</Text>
+        {direction === "next" && <Ionicons color="#f3c64d" name="arrow-forward-outline" size={17} />}
+      </View>
+    </NativePressable>
+  );
 
   return (
     <View style={[styles.header, compact && styles.headerCompact, { backgroundColor: theme.background, borderColor: theme.border }]}>
@@ -5119,7 +5077,7 @@ function PageHeader({
         </View>
       </ImageBackground>
       {(onBack || onNext) && (
-        <View pointerEvents="auto" style={styles.headerNavigation}>
+        <View pointerEvents="box-none" style={styles.headerNavigation}>
           <View style={styles.headerDirectionButtons}>
             {onBack && renderHeaderDirectionButton("back", "Back", onBack)}
             {onNext && renderHeaderDirectionButton("next", "Next", onNext)}

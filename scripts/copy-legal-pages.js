@@ -7,7 +7,7 @@ const legal = path.join(root, "legal");
 const articles = path.join(root, "articles");
 const publicDir = path.join(root, "public");
 const brandingDir = path.join(publicDir, "branding");
-const previewImageSource = path.join(brandingDir, "intuisity-frontpage-forest.jpg");
+const previewImageSource = path.join(publicDir, "intuisity-preview.png");
 const previewImageFile = "intuisity-preview.png";
 const previewImageUrl = `https://www.intuisity.com/${previewImageFile}`;
 
@@ -146,7 +146,11 @@ const seoHead = [
   `<meta property="og:type" content="website" />`,
   `<meta property="og:url" content="https://www.intuisity.com/" />`,
   `<meta property="og:image" content="${previewImageUrl}" />`,
-  `<meta property="og:image:alt" content="Intuisity intuition training preview with a luminous eye and sunlit nature scene" />`,
+  `<meta property="og:image:secure_url" content="${previewImageUrl}" />`,
+  `<meta property="og:image:type" content="image/png" />`,
+  `<meta property="og:image:width" content="1200" />`,
+  `<meta property="og:image:height" content="630" />`,
+  `<meta property="og:image:alt" content="Intuisity intuition training front page with gold logo and sunlit forest stream" />`,
   `<meta name="twitter:card" content="summary_large_image" />`,
   `<meta name="twitter:title" content="Intuisity | Awaken Your Intuition" />`,
   `<meta name="twitter:description" content="${seoDescription}" />`,
@@ -180,6 +184,10 @@ const treasurePreviewHtml = `<!doctype html>
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.intuisity.com/treasure-chest.html" />
     <meta property="og:image" content="${previewImageUrl}" />
+    <meta property="og:image:secure_url" content="${previewImageUrl}" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Intuisity Treasure Chest friend challenge preview" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${treasurePreviewTitle}" />

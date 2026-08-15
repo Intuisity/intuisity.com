@@ -935,8 +935,9 @@ function ProfileInput({ autoComplete, label, value, onChangeText, placeholder = 
           autoComplete={autoComplete || (isNewPasswordField ? "new-password" : isCurrentPasswordField ? "current-password" : undefined)}
           importantForAutofill={secure ? "yes" : undefined}
           keyboardType={label.includes("Email") ? "email-address" : label.includes("Phone") ? "phone-pad" : label === "Birthdate" ? "number-pad" : "default"}
+          maxLength={label.includes("Phone") ? 14 : undefined}
           onChangeText={onChangeText}
-          passwordRules={isNewPasswordField ? "minlength: 8; required: lower; required: upper; required: digit; max-consecutive: 2;" : undefined}
+          passwordRules={isNewPasswordField ? "minlength: 8;" : undefined}
           placeholder={placeholder}
           placeholderTextColor="#9A93AA"
           secureTextEntry={secure && !passwordVisible}
@@ -1220,16 +1221,10 @@ function getPasswordRules(password: string) {
     /\d/.test(password),
     /[^A-Za-z0-9]/.test(password)
   ].filter(Boolean).length;
-  const generatedPasswordLooksStrong = password.length >= 16 && categoryCount >= 2;
 
   return [
     { label: "At least 8 characters", passed: password.length >= 8 },
-    { label: "At least 3 of the following, or a long generated password", passed: categoryCount >= 3 || generatedPasswordLooksStrong },
-    { label: "Lower case letters (a-z)", passed: /[a-z]/.test(password) },
-    { label: "Upper case letters (A-Z)", passed: /[A-Z]/.test(password) },
-    { label: "Numbers (0-9)", passed: /\d/.test(password) },
-    { label: "Special characters (e.g. !@#$%^&*)", passed: /[^A-Za-z0-9]/.test(password) },
-    { label: "No more than 2 identical characters in a row", passed: !/(.)\1\1/.test(password) }
+    { label: "At least 2 types: letters, numbers, or symbols", passed: categoryCount >= 2 }
   ];
 }
 
@@ -1237,15 +1232,7 @@ function passwordMeetsCriteria(password: string) {
   const rules = getPasswordRules(password);
   const minimumLength = rules[0]?.passed;
   const enoughCharacterTypes = rules[1]?.passed;
-  const noLongRepeats = rules[rules.length - 1]?.passed;
-  const categoryCount = [
-    /[a-z]/.test(password),
-    /[A-Z]/.test(password),
-    /\d/.test(password),
-    /[^A-Za-z0-9]/.test(password)
-  ].filter(Boolean).length;
-  const generatedPasswordLooksStrong = password.length >= 16 && categoryCount >= 2;
-  return Boolean(minimumLength && noLongRepeats && (enoughCharacterTypes || generatedPasswordLooksStrong));
+  return Boolean(minimumLength && enoughCharacterTypes);
 }
 
 function detectTimeZone() {
@@ -2557,7 +2544,14 @@ function updateWebMetadata() {
   setMetaTag("og:type", "website", "property");
   setMetaTag("og:url", "https://www.intuisity.com/", "property");
   setMetaTag("og:image", "https://www.intuisity.com/intuisity-preview.png", "property");
+  setMetaTag("og:image:secure_url", "https://www.intuisity.com/intuisity-preview.png", "property");
+  setMetaTag("og:image:type", "image/png", "property");
+  setMetaTag("og:image:width", "1200", "property");
+  setMetaTag("og:image:height", "630", "property");
+  setMetaTag("og:image:alt", "Intuisity intuition training front page with gold logo and sunlit forest stream", "property");
   setMetaTag("twitter:card", "summary_large_image");
+  setMetaTag("twitter:title", "Intuisity | Awaken Your Intuition");
+  setMetaTag("twitter:description", seoDescription);
   setMetaTag("twitter:image", "https://www.intuisity.com/intuisity-preview.png");
   ensureSeoHeading();
   ensureMobileTapStyles();
