@@ -33,6 +33,7 @@ const purpleGoldHeaderBanner = require("../../assets/intuisity-purple-gold-banne
 
 const remoteViewingPictureHeight = 238;
 const remoteViewingPictureHeightMobile = 181;
+const mobileTapSuppressMs = 220;
 
 type Answers = Record<string, string>;
 
@@ -80,11 +81,11 @@ function Pressable(props: React.ComponentProps<typeof NativePressable>) {
         if (start && end) {
           const moved = Math.hypot(end.x - start.x, end.y - start.y);
           if (moved > 12) {
-            suppressClickUntilRef.current = Date.now() + 700;
+            suppressClickUntilRef.current = Date.now() + mobileTapSuppressMs;
             return;
           }
         }
-        suppressClickUntilRef.current = Date.now() + 700;
+        suppressClickUntilRef.current = Date.now() + mobileTapSuppressMs;
         onPress(event);
       }
     } as any;
@@ -716,6 +717,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
   const [predictedPowerWord, setPredictedPowerWord] = useState<string | null>(null);
   const [computerPowerWord, setComputerPowerWord] = useState<string | null>(null);
   const [learningChallenge, setLearningChallenge] = useState("");
+  const [learningTaskDraft, setLearningTaskDraft] = useState("");
   const [learningTaskSaved, setLearningTaskSaved] = useState(false);
   const [priorLearningEntry, setPriorLearningEntry] = useState<LearningJournalEntry | null>(null);
   const [learningResponse, setLearningResponse] = useState("");
@@ -1221,6 +1223,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
       .reverse()
       .find((entry) => entry.date < today && !entry.response);
     setLearningChallenge(todayLearning?.challenge || "");
+    setLearningTaskDraft("");
     setLearningTaskSaved(Boolean(todayLearning));
     setPriorLearningEntry(priorLearning || null);
     setLearningResponse(priorLearning?.response || "");
@@ -1419,7 +1422,10 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 accessibilityLabel={`Choose positivity idea ${index + 1}`}
                 disabled={learningTaskSaved}
                 key={`${lesson.title}-${index}`}
-                onPress={() => setLearningChallenge(lesson.practice)}
+                onPress={() => {
+                  setLearningChallenge(lesson.practice);
+                  setLearningTaskDraft("");
+                }}
                 style={[styles.learningIdeaChoice, selected && styles.learningIdeaChoiceSelected, learningTaskSaved && styles.learningIdeaChoiceLocked]}
               >
                 <View style={styles.learningIdeaHeader}>
@@ -1445,14 +1451,14 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             blurOnSubmit
             editable={!learningTaskSaved}
             multiline
-            onChangeText={setLearningChallenge}
+            onChangeText={setLearningTaskDraft}
             onSubmitEditing={() => Keyboard.dismiss()}
             placeholder="Example: I will guess who calls next, or invite someone to lunch."
             placeholderTextColor="#9A93AA"
             returnKeyType="done"
             style={[styles.journalInput, styles.learningJournalInputCompact, learningTaskSaved && styles.journalInputLocked]}
             textAlignVertical="top"
-            value={learningChallenge}
+            value={learningTaskDraft}
           />
           {selectedLesson && !learningTaskSaved && (
             <Text style={styles.journalHint}>Selected: {selectedLesson.title}</Text>
@@ -1487,9 +1493,12 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
           </View>
         ) : (
           <Pressable
-            disabled={!learningChallenge.trim()}
+            disabled={!(learningTaskDraft.trim() || learningChallenge.trim())}
             onPress={() => {
-              saveLearningChallenge(learningChallenge.trim());
+              const taskToSave = learningTaskDraft.trim() || learningChallenge.trim();
+              saveLearningChallenge(taskToSave);
+              setLearningChallenge(taskToSave);
+              setLearningTaskDraft("");
               setLearningTaskSaved(true);
               setAnswers((current) => ({
                 ...current,
@@ -1497,7 +1506,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 "learning-commitment-score": "1"
               }));
             }}
-            style={[styles.primaryButton, styles.learningSubmitButton, styles.learningKeyboardSafeButton, !learningChallenge.trim() && styles.disabledButton]}
+            style={[styles.primaryButton, styles.learningSubmitButton, styles.learningKeyboardSafeButton, !(learningTaskDraft.trim() || learningChallenge.trim()) && styles.disabledButton]}
           >
             <Ionicons color="#FFFFFF" name="checkmark-circle-outline" size={18} />
             <Text style={styles.primaryButtonText}>Lock in today's task</Text>
@@ -3267,14 +3276,27 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 value={friendPhone}
               />
               <Pressable
-                accessibilityLabel="Add friend phone number"
-                disabled={!friendName.trim() || !friendPhone.trim() || selectedFriendPhones.length >= 5}
+                accessibilityLabel="Add friend"
+                disabled={!friendName.trim() || !(friendPhone.trim() || friendEmail.trim()) || selectedFriendPhones.length >= 5}
                 onPress={addFriendPhone}
-                style={[styles.addFriendButton, (!friendName.trim() || !friendPhone.trim() || selectedFriendPhones.length >= 5) && styles.disabledButton]}
+                style={[styles.addFriendButton, (!friendName.trim() || !(friendPhone.trim() || friendEmail.trim()) || selectedFriendPhones.length >= 5) && styles.disabledButton]}
               >
                 <Ionicons color="#FFFFFF" name="add" size={24} />
               </Pressable>
             </View>
+            <TextInput
+              accessibilityLabel="Friend email address"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              onChangeText={(value) => {
+                setFriendEmail(value.trim().toLowerCase());
+                setFriendPhoneError("");
+              }}
+              placeholder="Friend email"
+              placeholderTextColor="#9A93AA"
+              style={styles.birthdateInput}
+              value={friendEmail}
+            />
             {friendPhoneError ? <Text style={styles.inputError}>{friendPhoneError}</Text> : null}
             {savedFriends.length > 0 && (
               <View>
@@ -5732,10 +5754,10 @@ const styles = StyleSheet.create({
   roomFloor: { backgroundColor: "#fff4cf", borderTopColor: "#f0dca0", borderTopWidth: 1, bottom: 0, height: 48, left: 0, position: "absolute", right: 0 },
   pictureGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 16 },
   pictureGridCompact: { gap: 5, marginBottom: 7 },
-  remotePictureGridCompact: { gap: 6, marginBottom: 5 },
+  remotePictureGridCompact: { alignItems: "center", gap: 6, justifyContent: "center", marginBottom: 5 },
   pictureChoice: { aspectRatio: 1.1, borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 2, minWidth: "47%", overflow: "hidden", position: "relative" },
   pictureChoiceThreeColumn: { aspectRatio: 1.75, minWidth: 0, width: "31.8%" },
-  remotePictureChoiceCompact: { aspectRatio: 1.35 },
+  remotePictureChoiceCompact: { alignSelf: "center", aspectRatio: 1.35 },
   pictureChoiceSelected: { backgroundColor: "#E9DFFF", borderColor: "#6A35D4", borderWidth: 6, elevation: 10, shadowColor: "#6A35D4", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 16 },
   pictureChoiceSelectedCompact: { borderWidth: 4, shadowRadius: 10 },
   pictureChoiceCorrect: { borderColor: "#18B86A", borderWidth: 5, shadowColor: "#18B86A", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.95, shadowRadius: 18 },

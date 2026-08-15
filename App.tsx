@@ -96,6 +96,7 @@ const tabs: Array<{ key: TabKey; label: string; icon: keyof typeof Ionicons.glyp
   { key: "premium", label: "Premium", icon: "card-outline" },
   { key: "admin", label: "Admin", icon: "shield-checkmark-outline" }
 ];
+const mobileTapSuppressMs = 220;
 
 function isMobileWebBrowser() {
   const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
@@ -141,11 +142,11 @@ function Pressable(props: React.ComponentProps<typeof NativePressable>) {
         if (start && end) {
           const moved = Math.hypot(end.x - start.x, end.y - start.y);
           if (moved > 12) {
-            suppressClickUntilRef.current = Date.now() + 700;
+            suppressClickUntilRef.current = Date.now() + mobileTapSuppressMs;
             return;
           }
         }
-        suppressClickUntilRef.current = Date.now() + 700;
+        suppressClickUntilRef.current = Date.now() + mobileTapSuppressMs;
         onPress(event);
       }
     } as any;
