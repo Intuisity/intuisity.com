@@ -913,6 +913,8 @@ function LanguageSelector({ selected, onSelect }: { selected: string; onSelect: 
 
 function ProfileInput({ autoComplete, label, value, onChangeText, placeholder = "", suggestions = [], secure = false, textContentType }: { autoComplete?: TextInputProps["autoComplete"]; label: string; value: string; onChangeText: (value: string) => void; placeholder?: string; suggestions?: string[]; secure?: boolean; textContentType?: TextInputProps["textContentType"] }) {
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const isNewPasswordField = secure && textContentType === "newPassword";
+  const isCurrentPasswordField = secure && textContentType === "password";
   const matchingSuggestions = value.trim().length
     ? suggestions.filter((suggestion) => suggestion.toLowerCase().startsWith(value.trim().toLowerCase())).slice(0, 5)
     : [];
@@ -924,7 +926,21 @@ function ProfileInput({ autoComplete, label, value, onChangeText, placeholder = 
     <View style={styles.accountField}>
       <Text style={styles.accountFieldLabel}>{label}</Text>
       <View style={styles.accountInputWrap}>
-        <TextInput accessibilityLabel={label} autoCapitalize={label.includes("Email") || secure ? "none" : "words"} autoComplete={autoComplete} keyboardType={label.includes("Email") ? "email-address" : label.includes("Phone") ? "phone-pad" : label === "Birthdate" ? "number-pad" : "default"} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor="#9A93AA" secureTextEntry={secure && !passwordVisible} style={[styles.accountInput, secure && styles.accountPasswordInput]} textContentType={textContentType} value={value} />
+        <TextInput
+          accessibilityLabel={label}
+          autoCapitalize={label.includes("Email") || secure ? "none" : "words"}
+          autoComplete={autoComplete || (isNewPasswordField ? "new-password" : isCurrentPasswordField ? "current-password" : undefined)}
+          importantForAutofill={secure ? "yes" : undefined}
+          keyboardType={label.includes("Email") ? "email-address" : label.includes("Phone") ? "phone-pad" : label === "Birthdate" ? "number-pad" : "default"}
+          onChangeText={onChangeText}
+          passwordRules={isNewPasswordField ? "minlength: 8; required: lower; required: upper; required: digit; max-consecutive: 2;" : undefined}
+          placeholder={placeholder}
+          placeholderTextColor="#9A93AA"
+          secureTextEntry={secure && !passwordVisible}
+          style={[styles.accountInput, secure && styles.accountPasswordInput]}
+          textContentType={textContentType}
+          value={value}
+        />
         {secure ? (
           <Pressable
             accessibilityLabel={passwordVisible ? `Hide ${label}` : `Show ${label}`}

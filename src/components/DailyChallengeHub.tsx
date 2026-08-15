@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Image, ImageBackground, Pressable as NativePressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, ImageBackground, Keyboard, Pressable as NativePressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { getAstrologyReading, getBirthLocationSuggestions, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
 import { dailyIntuitionLessons } from "../data/dailyLessons";
@@ -666,7 +666,9 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
   );
   const [astrologyPlan, setAstrologyPlan] = useState("");
   const [planSaved, setPlanSaved] = useState(false);
+  const [astrologyActionStatus, setAstrologyActionStatus] = useState("");
   const [birthLocationStatus, setBirthLocationStatus] = useState("");
+  const [activeBirthLocationField, setActiveBirthLocationField] = useState<"birthCity" | "birthState" | "birthCountry" | null>(null);
   const [priorAstrologyEntry, setPriorAstrologyEntry] = useState<AstrologyJournalEntry | null>(null);
   const [astrologyUpdate, setAstrologyUpdate] = useState("");
   const [friendName, setFriendName] = useState("");
@@ -800,8 +802,14 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
     setBirthDetailsSaved(false);
     setBirthLocationStatus("");
   };
-  const birthLocationQuery = [birthDetails.birthCity, birthDetails.birthState, birthDetails.birthCountry].filter(Boolean).join(", ");
-  const birthLocationSuggestions = getBirthLocationSuggestions(birthLocationQuery || birthDetails.birthCity);
+  const getBirthLocationQuery = (field: "birthCity" | "birthState" | "birthCountry") => {
+    if (field === "birthCity") return birthDetails.birthCity;
+    if (field === "birthState") return [birthDetails.birthCity, birthDetails.birthState].filter(Boolean).join(", ");
+    return [birthDetails.birthCity, birthDetails.birthState, birthDetails.birthCountry].filter(Boolean).join(", ");
+  };
+  const birthLocationSuggestions = activeBirthLocationField
+    ? getBirthLocationSuggestions(getBirthLocationQuery(activeBirthLocationField))
+    : [];
   const visibleBirthLocationSuggestions = birthLocationSuggestions.slice(0, 4);
   const applyBirthLocationSuggestion = (label: string) => {
     const [city = "", state = "", country = ""] = label.split(",").map((part) => part.trim());
@@ -812,7 +820,29 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
       birthCountry: country || current.birthCountry
     }));
     setBirthDetailsSaved(false);
+    setActiveBirthLocationField(null);
     setBirthLocationStatus(`Birthplace selected: ${label}`);
+  };
+  const renderBirthLocationSuggestions = (field: "birthCity" | "birthState" | "birthCountry") => {
+    if (activeBirthLocationField !== field || visibleBirthLocationSuggestions.length === 0) return null;
+    return (
+      <View style={styles.birthLocationSuggestions}>
+        <Text style={styles.birthLocationSuggestionLabel}>Tap a matching birthplace:</Text>
+        <View style={styles.birthLocationSuggestionList}>
+          {visibleBirthLocationSuggestions.map((location) => (
+            <Pressable
+              accessibilityLabel={`Use birthplace ${location.label}`}
+              key={location.label}
+              onPress={() => applyBirthLocationSuggestion(location.label)}
+              style={styles.birthLocationSuggestionChip}
+            >
+              <Ionicons color="#B87908" name="location-outline" size={16} />
+              <Text style={styles.birthLocationSuggestionText}>{location.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    );
   };
 
   const saveBirthDetails = async () => {
@@ -1326,10 +1356,13 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             <Text style={styles.followUpPlan}>{priorLearningEntry.challenge}</Text>
             <TextInput
               accessibilityLabel="Update on previous intuition challenge"
+              blurOnSubmit
               multiline
               onChangeText={setLearningResponse}
+              onSubmitEditing={() => Keyboard.dismiss()}
               placeholder="What happened? How did it affect your day?"
               placeholderTextColor="#9A93AA"
+              returnKeyType="done"
               style={[styles.journalInput, styles.learningJournalInputCompact]}
               textAlignVertical="top"
               value={learningResponse}
@@ -1396,11 +1429,14 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
           </Text>
           <TextInput
             accessibilityLabel="Today's positivity task"
+            blurOnSubmit
             editable={!learningTaskSaved}
             multiline
             onChangeText={setLearningChallenge}
+            onSubmitEditing={() => Keyboard.dismiss()}
             placeholder="Example: I will guess who calls next, or invite someone to lunch."
             placeholderTextColor="#9A93AA"
+            returnKeyType="done"
             style={[styles.journalInput, styles.learningJournalInputCompact, learningTaskSaved && styles.journalInputLocked]}
             textAlignVertical="top"
             value={learningChallenge}
@@ -1448,7 +1484,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 "learning-commitment-score": "1"
               }));
             }}
-            style={[styles.primaryButton, styles.learningSubmitButton, !learningChallenge.trim() && styles.disabledButton]}
+            style={[styles.primaryButton, styles.learningSubmitButton, styles.learningKeyboardSafeButton, !learningChallenge.trim() && styles.disabledButton]}
           >
             <Ionicons color="#FFFFFF" name="checkmark-circle-outline" size={18} />
             <Text style={styles.primaryButtonText}>Lock in today's task</Text>
@@ -1778,46 +1814,43 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               />
               <TextInput
                 accessibilityLabel="Birth city for astrology"
-                onChangeText={(birthCity) => updateBirthDetail("birthCity", birthCity)}
+                onChangeText={(birthCity) => {
+                  setActiveBirthLocationField("birthCity");
+                  updateBirthDetail("birthCity", birthCity);
+                }}
+                onFocus={() => setActiveBirthLocationField("birthCity")}
                 placeholder="Birth city"
                 placeholderTextColor="#9A93AA"
                 style={styles.birthdateInput}
                 value={birthDetails.birthCity}
               />
-              {visibleBirthLocationSuggestions.length > 0 && (
-                <View style={styles.birthLocationSuggestions}>
-                  <Text style={styles.birthLocationSuggestionLabel}>Tap a matching birthplace:</Text>
-                  <View style={styles.birthLocationSuggestionList}>
-                    {visibleBirthLocationSuggestions.map((location) => (
-                      <Pressable
-                        accessibilityLabel={`Use birthplace ${location.label}`}
-                        key={location.label}
-                        onPress={() => applyBirthLocationSuggestion(location.label)}
-                        style={styles.birthLocationSuggestionChip}
-                      >
-                        <Ionicons color="#B87908" name="location-outline" size={16} />
-                        <Text style={styles.birthLocationSuggestionText}>{location.label}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-              )}
+              {renderBirthLocationSuggestions("birthCity")}
               <TextInput
                 accessibilityLabel="Birth state or region for astrology"
-                onChangeText={(birthState) => updateBirthDetail("birthState", birthState)}
+                onChangeText={(birthState) => {
+                  setActiveBirthLocationField("birthState");
+                  updateBirthDetail("birthState", birthState);
+                }}
+                onFocus={() => setActiveBirthLocationField("birthState")}
                 placeholder="Birth state or region"
                 placeholderTextColor="#9A93AA"
                 style={styles.birthdateInput}
                 value={birthDetails.birthState}
               />
+              {renderBirthLocationSuggestions("birthState")}
               <TextInput
                 accessibilityLabel="Birth country for astrology"
-                onChangeText={(birthCountry) => updateBirthDetail("birthCountry", birthCountry)}
+                onChangeText={(birthCountry) => {
+                  setActiveBirthLocationField("birthCountry");
+                  updateBirthDetail("birthCountry", birthCountry);
+                }}
+                onFocus={() => setActiveBirthLocationField("birthCountry")}
                 placeholder="Birth country"
                 placeholderTextColor="#9A93AA"
                 style={styles.birthdateInput}
                 value={birthDetails.birthCountry}
               />
+              {renderBirthLocationSuggestions("birthCountry")}
               <BirthTimePicker
                 onChange={(birthTime) => updateBirthDetail("birthTime", birthTime)}
                 value={birthDetails.birthTime}
@@ -1931,10 +1964,13 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 <Text style={styles.inputLabel}>How did that task go?</Text>
                 <TextInput
                   accessibilityLabel="Update on previous astrology task"
+                  blurOnSubmit
                   multiline
                   onChangeText={setAstrologyUpdate}
+                  onSubmitEditing={() => Keyboard.dismiss()}
                   placeholder="Share what happened, what helped, or what you learned..."
                   placeholderTextColor="#9A93AA"
+                  returnKeyType="done"
                   style={styles.journalInput}
                   textAlignVertical="top"
                   value={astrologyUpdate}
@@ -1942,8 +1978,14 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                 <Pressable
                   disabled={!astrologyUpdate.trim()}
                   onPress={() => {
-                    saveAstrologyUpdate(priorAstrologyEntry.date, astrologyUpdate.trim());
-                    setPriorAstrologyEntry(null);
+                    Keyboard.dismiss();
+                    try {
+                      saveAstrologyUpdate(priorAstrologyEntry.date, astrologyUpdate.trim());
+                      setPriorAstrologyEntry(null);
+                      setAstrologyActionStatus("Your update was saved.");
+                    } catch {
+                      setAstrologyActionStatus("Your update is still on this screen. Please try saving again.");
+                    }
                   }}
                   style={[styles.secondaryButton, !astrologyUpdate.trim() && styles.disabledButton]}
                 >
@@ -1958,11 +2000,14 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               </Text>
               <TextInput
                 accessibilityLabel="Today's astrology self-challenge"
+                blurOnSubmit
                 editable={!planSaved}
                 multiline
                 onChangeText={setAstrologyPlan}
+                onSubmitEditing={() => Keyboard.dismiss()}
                 placeholder="Write your answer or the action this question inspires..."
                 placeholderTextColor="#9A93AA"
+                returnKeyType="done"
                 style={styles.journalInput}
                 textAlignVertical="top"
                 value={astrologyPlan}
@@ -1970,8 +2015,14 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
               <Pressable
                 disabled={!astrologyPlan.trim() || planSaved}
                 onPress={() => {
-                  saveAstrologyPlan(astrologyPlan.trim());
-                  setPlanSaved(true);
+                  Keyboard.dismiss();
+                  try {
+                    saveAstrologyPlan(astrologyPlan.trim());
+                    setPlanSaved(true);
+                    setAstrologyActionStatus("Your answer was saved.");
+                  } catch {
+                    setAstrologyActionStatus("Your answer is still on this screen. Please try saving again.");
+                  }
                 }}
                 style={[
                   styles.secondaryButton,
@@ -1982,6 +2033,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
                   {planSaved ? "Saved for tomorrow's follow-up" : "Save my answer"}
                 </Text>
               </Pressable>
+              {astrologyActionStatus ? <Text style={styles.birthChartNote}>{astrologyActionStatus}</Text> : null}
             </View>
             {planSaved && (
               <View style={styles.chartSynopsisCard}>
@@ -1996,6 +2048,7 @@ export function DailyChallengeHub({ answers, homeRequestId = 0, isPremium, onCre
             )}
             <Pressable
               onPress={() => {
+                Keyboard.dismiss();
                 setAnswers((current) => ({ ...current, "psychic-potential-score": "Completed" }));
                 resetRemoteViewing();
               }}
@@ -4946,7 +4999,7 @@ function PageHeader({
     label: string,
     onPress: () => void
   ) => {
-    const activateHeaderButton = (event: any) => {
+    const activateHeaderButton = (event?: any) => {
       event.preventDefault?.();
       event.stopPropagation?.();
       const now = Date.now();
@@ -4962,8 +5015,6 @@ function PageHeader({
           "aria-label": direction === "back" ? "Go back" : "Go to next module",
           key: direction,
           onClick: activateHeaderButton,
-          onPointerUp: activateHeaderButton,
-          onTouchEnd: activateHeaderButton,
           style: {
             alignItems: "center",
             background: "#6537c7",
@@ -4993,13 +5044,12 @@ function PageHeader({
     }
 
     return (
-      <Pressable
+      <NativePressable
         accessibilityLabel={direction === "back" ? "Go back" : "Go to next module"}
         accessibilityRole="button"
         hitSlop={14}
         key={direction}
         onPress={activateHeaderButton}
-        onPressIn={activateHeaderButton as any}
         style={styles.headerDirectionButton}
       >
         <View pointerEvents="none" style={styles.headerButtonInner}>
@@ -5007,7 +5057,7 @@ function PageHeader({
           <Text style={styles.headerNextText}>{label}</Text>
           {direction === "next" && <Ionicons color="#f3c64d" name="arrow-forward-outline" size={17} />}
         </View>
-      </Pressable>
+      </NativePressable>
     );
   };
 
@@ -5259,7 +5309,8 @@ function DrawingPad({
   }, [points.length]);
 
   const beginStroke = (event: any) => {
-    if (!mobileWeb) event.preventDefault?.();
+    event.preventDefault?.();
+    event.stopPropagation?.();
     const point = getCanvasPoint(event, canvasRef.current);
     if (!point) return;
     drawingRef.current = true;
@@ -5272,7 +5323,8 @@ function DrawingPad({
 
   const continueStroke = (event: any) => {
     if (!drawingRef.current) return;
-    if (!mobileWeb) event.preventDefault?.();
+    event.preventDefault?.();
+    event.stopPropagation?.();
     const events = typeof event.getCoalescedEvents === "function" ? event.getCoalescedEvents() : [event];
 
     events.forEach((moveEvent: any) => {
@@ -5286,6 +5338,8 @@ function DrawingPad({
   };
 
   const endStroke = (event: any) => {
+    event.preventDefault?.();
+    event.stopPropagation?.();
     if (strokePointsRef.current.length > 0) {
       const finishedStroke = strokePointsRef.current;
       setPoints((current) => [...current, ...finishedStroke]);
@@ -5308,8 +5362,6 @@ function DrawingPad({
         ref: canvasRef,
         onPointerDown: beginStroke,
         onPointerMove: continueStroke,
-        onPointerLeave: endStroke,
-        onPointerOut: endStroke,
         onPointerUp: endStroke,
         onPointerCancel: endStroke,
         style: {
@@ -5317,7 +5369,7 @@ function DrawingPad({
           height: "100%",
           inset: 0,
           position: "absolute",
-          touchAction: mobileWeb ? "pan-y" : "none",
+          touchAction: "none",
           userSelect: "none",
           width: "100%"
         }
@@ -5510,6 +5562,7 @@ const styles = StyleSheet.create({
   learningChallengeCard: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 12, borderWidth: 1, marginBottom: 16, padding: 16 },
   learningChallengeCardCompact: { marginBottom: 8, padding: 12 },
   learningJournalInputCompact: { marginBottom: 7, marginTop: 7, minHeight: 62, padding: 10 },
+  learningKeyboardSafeButton: { marginBottom: 96 },
   learningSubmitButton: { marginBottom: 4, minHeight: 44, padding: 10 },
   journalHint: { color: "#b87908", fontSize: 12, fontWeight: "800", lineHeight: 18 },
   savedTaskBanner: { alignItems: "center", backgroundColor: "#fff4cf", borderColor: "#d79b16", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, marginBottom: 10, padding: 10 },
@@ -5554,7 +5607,7 @@ const styles = StyleSheet.create({
   inputLabel: { color: "#30264C", fontSize: 14, fontWeight: "900", marginBottom: 7 },
   optionalLabel: { color: "#8A8299", fontSize: 12, fontWeight: "700" },
   birthdateInput: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 17, marginBottom: 7, paddingHorizontal: 14, paddingVertical: 12 },
-  birthLocationSuggestions: { backgroundColor: "#FFFBF0", borderColor: "#F3C64D", borderRadius: 14, borderWidth: 1, marginBottom: 10, marginTop: 1, padding: 10 },
+  birthLocationSuggestions: { backgroundColor: "#FFFBF0", borderColor: "#F3C64D", borderRadius: 12, borderWidth: 1, marginBottom: 8, marginTop: -4, padding: 8 },
   birthLocationSuggestionLabel: { color: "#6F4A08", fontSize: 12, fontWeight: "900", lineHeight: 17, marginBottom: 8 },
   birthLocationSuggestionList: { gap: 7 },
   birthLocationSuggestionChip: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#F3C64D", borderRadius: 999, borderWidth: 1, flexDirection: "row", gap: 6, paddingHorizontal: 10, paddingVertical: 8 },
@@ -5849,8 +5902,8 @@ const styles = StyleSheet.create({
   remoteInstructionCard: { alignItems: "flex-start", backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, marginBottom: 8, padding: 9 },
   remoteInstructionText: { color: "#5D536A", flex: 1, fontSize: 12, fontWeight: "800", lineHeight: 17 },
   remoteDrawingPadWrap: { marginBottom: 8 },
-  drawingPad: { backgroundColor: "#FFFFFF", borderColor: "#C5E1F3", borderRadius: 8, borderWidth: 2, height: 190, marginBottom: 0, overflow: "hidden", position: "relative" },
-  drawingPadMobile: { height: 145 },
+  drawingPad: { backgroundColor: "#FFFFFF", borderColor: "#C5E1F3", borderRadius: 8, borderWidth: 2, height: 238, marginBottom: 0, overflow: "hidden", position: "relative" },
+  drawingPadMobile: { height: 181 },
   drawingPrompt: { alignItems: "center", bottom: 0, justifyContent: "center", left: 0, opacity: 0.6, position: "absolute", right: 0, top: 0 },
   drawingPromptText: { color: "#8A8299", fontSize: 13, fontWeight: "700", marginTop: 7 },
   drawingPoint: { backgroundColor: "#30264C", borderRadius: 3, height: 6, position: "absolute", width: 6 },
