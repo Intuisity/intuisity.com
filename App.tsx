@@ -9,7 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
+  TextInput as NativeTextInput,
   View,
   type TextInputProps
 } from "react-native";
@@ -114,18 +114,26 @@ function Pressable(props: React.ComponentProps<typeof NativePressable>) {
       const touch = event?.nativeEvent?.changedTouches?.[0] || event?.nativeEvent?.touches?.[0] || event?.changedTouches?.[0] || event?.touches?.[0];
       return touch ? { x: Number(touch.clientX ?? touch.pageX ?? 0), y: Number(touch.clientY ?? touch.pageY ?? 0) } : null;
     };
+    const isTextEntryTarget = (event: any) => {
+      const target = event?.nativeEvent?.target || event?.target;
+      const tagName = String(target?.tagName || "").toLowerCase();
+      return tagName === "input" || tagName === "textarea" || tagName === "select" || Boolean(target?.isContentEditable);
+    };
 
     const directTapHandlers = {
       delayPressIn: 0,
       onClick: (event: any) => {
+        if (isTextEntryTarget(event)) return;
         if (Date.now() < suppressClickUntilRef.current) return;
         onPress(event);
       },
       onPress: undefined,
       onTouchStart: (event: any) => {
+        if (isTextEntryTarget(event)) return;
         touchStartRef.current = getTouchPoint(event);
       },
       onTouchEnd: (event: any) => {
+        if (isTextEntryTarget(event)) return;
         const start = touchStartRef.current;
         const end = getTouchPoint(event);
         touchStartRef.current = null;
@@ -143,6 +151,34 @@ function Pressable(props: React.ComponentProps<typeof NativePressable>) {
     return <NativePressable {...rest} {...directTapHandlers} />;
   }
   return <NativePressable {...props} />;
+}
+
+function TextInput(props: React.ComponentProps<typeof NativeTextInput>) {
+  if (!isMobileWebBrowser()) return <NativeTextInput {...props} />;
+
+  const stopTextInputBubble = (event: any) => {
+    event?.stopPropagation?.();
+  };
+
+  return (
+    <NativeTextInput
+      {...props}
+      {...({
+        onClick: (event: any) => {
+          stopTextInputBubble(event);
+          (props as any).onClick?.(event);
+        },
+        onTouchEnd: (event: any) => {
+          stopTextInputBubble(event);
+          (props as any).onTouchEnd?.(event);
+        },
+        onTouchStart: (event: any) => {
+          stopTextInputBubble(event);
+          (props as any).onTouchStart?.(event);
+        }
+      } as any)}
+    />
+  );
 }
 
 const tabTranslations: Record<string, Record<TabKey | "score", string>> = {
@@ -263,7 +299,7 @@ export default function App() {
     });
     lastSentActiveMs = 1000;
 
-    const activityEvents = ["click", "focusin", "input", "keydown", "mousemove", "pointerdown", "scroll", "touchstart"];
+    const activityEvents = ["click", "keydown", "pointerdown", "scroll"];
     activityEvents.forEach((eventName) => {
       browserWindow?.addEventListener?.(eventName, markActivity, { passive: true });
       documentRef?.addEventListener?.(eventName, markActivity, { passive: true });
@@ -2597,6 +2633,7 @@ function ensureMobileTapStyles() {
     }
     input, textarea, select {
       -webkit-user-select: text;
+      touch-action: auto;
       user-select: text;
     }
     canvas {

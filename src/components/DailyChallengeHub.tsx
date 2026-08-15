@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Image, ImageBackground, Keyboard, Pressable as NativePressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, ImageBackground, Keyboard, Pressable as NativePressable, ScrollView, StyleSheet, Text, TextInput as NativeTextInput, View } from "react-native";
 import { getAstrologyReading, getBirthLocationSuggestions, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
 import { dailyIntuitionLessons } from "../data/dailyLessons";
@@ -54,18 +54,26 @@ function Pressable(props: React.ComponentProps<typeof NativePressable>) {
       const touch = event?.nativeEvent?.changedTouches?.[0] || event?.nativeEvent?.touches?.[0] || event?.changedTouches?.[0] || event?.touches?.[0];
       return touch ? { x: Number(touch.clientX ?? touch.pageX ?? 0), y: Number(touch.clientY ?? touch.pageY ?? 0) } : null;
     };
+    const isTextEntryTarget = (event: any) => {
+      const target = event?.nativeEvent?.target || event?.target;
+      const tagName = String(target?.tagName || "").toLowerCase();
+      return tagName === "input" || tagName === "textarea" || tagName === "select" || Boolean(target?.isContentEditable);
+    };
 
     const directTapHandlers = {
       delayPressIn: 0,
       onClick: (event: any) => {
+        if (isTextEntryTarget(event)) return;
         if (Date.now() < suppressClickUntilRef.current) return;
         onPress(event);
       },
       onPress: undefined,
       onTouchStart: (event: any) => {
+        if (isTextEntryTarget(event)) return;
         touchStartRef.current = getTouchPoint(event);
       },
       onTouchEnd: (event: any) => {
+        if (isTextEntryTarget(event)) return;
         const start = touchStartRef.current;
         const end = getTouchPoint(event);
         touchStartRef.current = null;
@@ -83,6 +91,34 @@ function Pressable(props: React.ComponentProps<typeof NativePressable>) {
     return <NativePressable {...rest} {...directTapHandlers} />;
   }
   return <NativePressable {...props} />;
+}
+
+function TextInput(props: React.ComponentProps<typeof NativeTextInput>) {
+  if (!isMobileWebBrowser()) return <NativeTextInput {...props} />;
+
+  const stopTextInputBubble = (event: any) => {
+    event?.stopPropagation?.();
+  };
+
+  return (
+    <NativeTextInput
+      {...props}
+      {...({
+        onClick: (event: any) => {
+          stopTextInputBubble(event);
+          (props as any).onClick?.(event);
+        },
+        onTouchEnd: (event: any) => {
+          stopTextInputBubble(event);
+          (props as any).onTouchEnd?.(event);
+        },
+        onTouchStart: (event: any) => {
+          stopTextInputBubble(event);
+          (props as any).onTouchStart?.(event);
+        }
+      } as any)}
+    />
+  );
 }
 
 type AstrologyJournalEntry = {
@@ -5070,7 +5106,8 @@ function PageHeader({
             pointerEvents: "auto",
             position: "relative",
             touchAction: "manipulation",
-            zIndex: 50
+            WebkitTapHighlightColor: "rgba(243, 198, 77, 0.2)",
+            zIndex: 1000
           } as any,
           type: "button"
         },
@@ -5119,7 +5156,7 @@ function PageHeader({
       </ImageBackground>
       {(onBack || onNext) && (
         <View pointerEvents="auto" style={styles.headerNavigation}>
-          <View style={styles.headerDirectionButtons}>
+          <View pointerEvents="auto" style={styles.headerDirectionButtons}>
             {onBack && renderHeaderDirectionButton("back", "Back", onBack)}
             {onNext && renderHeaderDirectionButton("next", "Next", onNext)}
           </View>
@@ -5484,10 +5521,10 @@ const styles = StyleSheet.create({
   homeHeaderShade: { justifyContent: "flex-start", minHeight: 138, paddingTop: 18 },
   headerBannerImage: { opacity: 1 },
   headerContent: {},
-  headerNavigation: { alignItems: "center", elevation: 20, flexDirection: "row", justifyContent: "flex-end", left: 12, position: "absolute", right: 12, top: 12, zIndex: 20 },
+  headerNavigation: { alignItems: "center", elevation: 100, flexDirection: "row", justifyContent: "flex-end", left: 12, position: "absolute", right: 12, top: 12, zIndex: 1000 },
   headerNavButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, height: 42, justifyContent: "center", minWidth: 82, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 7 },
-  headerDirectionButtons: { flexDirection: "row", gap: 6 },
-  headerDirectionButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, cursor: "pointer" as any, justifyContent: "center", minHeight: 46, minWidth: 78, paddingHorizontal: 12, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 7, zIndex: 21 },
+  headerDirectionButtons: { flexDirection: "row", gap: 6, zIndex: 1001 },
+  headerDirectionButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 14, borderWidth: 1, cursor: "pointer" as any, elevation: 100, justifyContent: "center", minHeight: 46, minWidth: 78, paddingHorizontal: 12, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 7, zIndex: 1002 },
   headerButtonInner: { alignItems: "center", flexDirection: "row", gap: 4, justifyContent: "center" },
   headerHomeText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
   headerNextText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
