@@ -96,25 +96,26 @@ function Pressable(props: React.ComponentProps<typeof NativePressable>) {
 function TextInput(props: React.ComponentProps<typeof NativeTextInput>) {
   if (!isMobileWebBrowser()) return <NativeTextInput {...props} />;
 
-  const stopTextInputBubble = (event: any) => {
-    event?.stopPropagation?.();
+  const focusTextInput = (event: any) => {
+    const target = event?.nativeEvent?.target || event?.target;
+    target?.focus?.();
   };
 
   return (
     <NativeTextInput
       {...props}
       {...({
+        onTouchStart: (event: any) => {
+          focusTextInput(event);
+          (props as any).onTouchStart?.(event);
+        },
         onClick: (event: any) => {
-          stopTextInputBubble(event);
+          focusTextInput(event);
           (props as any).onClick?.(event);
         },
         onTouchEnd: (event: any) => {
-          stopTextInputBubble(event);
+          focusTextInput(event);
           (props as any).onTouchEnd?.(event);
-        },
-        onTouchStart: (event: any) => {
-          stopTextInputBubble(event);
-          (props as any).onTouchStart?.(event);
         }
       } as any)}
     />
