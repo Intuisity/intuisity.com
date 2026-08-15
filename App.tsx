@@ -115,18 +115,26 @@ function Pressable(props: React.ComponentProps<typeof NativePressable>) {
       const touch = event?.nativeEvent?.changedTouches?.[0] || event?.nativeEvent?.touches?.[0] || event?.changedTouches?.[0] || event?.touches?.[0];
       return touch ? { x: Number(touch.clientX ?? touch.pageX ?? 0), y: Number(touch.clientY ?? touch.pageY ?? 0) } : null;
     };
+    const isTextEntryTarget = (event: any) => {
+      const target = event?.nativeEvent?.target || event?.target;
+      const tagName = String(target?.tagName || "").toLowerCase();
+      return tagName === "input" || tagName === "textarea" || tagName === "select" || Boolean(target?.isContentEditable);
+    };
 
     const directTapHandlers = {
       delayPressIn: 0,
       onClick: (event: any) => {
+        if (isTextEntryTarget(event)) return;
         if (Date.now() < suppressClickUntilRef.current) return;
         onPress(event);
       },
       onPress: undefined,
       onTouchStart: (event: any) => {
+        if (isTextEntryTarget(event)) return;
         touchStartRef.current = getTouchPoint(event);
       },
       onTouchEnd: (event: any) => {
+        if (isTextEntryTarget(event)) return;
         const start = touchStartRef.current;
         const end = getTouchPoint(event);
         touchStartRef.current = null;
