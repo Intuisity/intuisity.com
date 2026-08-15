@@ -2589,6 +2589,7 @@ function updateWebMetadata() {
   setMetaTag("twitter:description", seoDescription);
   setMetaTag("twitter:image", "https://www.intuisity.com/intuisity-preview.png");
   ensureSeoHeading();
+  ensureStructuredData();
   ensureMobileTapStyles();
 }
 
@@ -2618,6 +2619,69 @@ function ensureSeoHeading() {
   heading.style.height = "1px";
   heading.style.overflow = "hidden";
   documentRef.body.insertBefore(heading, documentRef.body.firstChild);
+}
+
+function ensureStructuredData() {
+  const documentRef = (globalThis as any).document;
+  if (!documentRef) return;
+  let script = documentRef.getElementById("intuisity-brand-schema");
+  if (!script) {
+    script = documentRef.createElement("script");
+    script.id = "intuisity-brand-schema";
+    script.setAttribute("type", "application/ld+json");
+    documentRef.head.appendChild(script);
+  }
+  script.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://www.intuisity.com/#organization",
+        name: "Intuisity",
+        url: "https://www.intuisity.com/",
+        logo: "https://www.intuisity.com/branding/intuisity-logo-gold-transparent.png",
+        image: "https://www.intuisity.com/intuisity-preview.png",
+        description: seoDescription,
+        sameAs: [
+          "https://intuisity.com/",
+          "https://www.intuisity.com/"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://www.intuisity.com/#website",
+        name: "Intuisity",
+        alternateName: "Intuisity Intuition Training",
+        url: "https://www.intuisity.com/",
+        description: seoDescription,
+        publisher: { "@id": "https://www.intuisity.com/#organization" },
+        inLanguage: "en-US"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://www.intuisity.com/#app",
+        name: "Intuisity",
+        applicationCategory: "LifestyleApplication",
+        operatingSystem: "Web, iOS",
+        url: "https://www.intuisity.com/",
+        description: seoDescription,
+        publisher: { "@id": "https://www.intuisity.com/#organization" },
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "USD"
+        },
+        featureList: [
+          "Daily intuition training",
+          "Treasure Chest friend challenges",
+          "Remote viewing practice",
+          "Daily astrology insights",
+          "Mindfulness and awareness prompts",
+          "Personal growth and self-discovery results"
+        ]
+      }
+    ]
+  });
 }
 
 function ensureMobileTapStyles() {

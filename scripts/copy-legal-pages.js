@@ -47,24 +47,53 @@ const seoKeywords = [
 
 const structuredData = {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Intuisity",
-  applicationCategory: "LifestyleApplication",
-  operatingSystem: "Web, iOS",
-  url: "https://www.intuisity.com/",
-  description: seoDescription,
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "USD"
-  },
-  featureList: [
-    "Daily intuition training",
-    "Treasure Chest friend challenges",
-    "Remote viewing practice",
-    "Daily astrology insights",
-    "Mindfulness and awareness prompts",
-    "Personal growth and self-discovery results"
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://www.intuisity.com/#organization",
+      name: "Intuisity",
+      url: "https://www.intuisity.com/",
+      logo: "https://www.intuisity.com/branding/intuisity-logo-gold-transparent.png",
+      image: "https://www.intuisity.com/intuisity-preview.png",
+      description: seoDescription,
+      sameAs: [
+        "https://intuisity.com/",
+        "https://www.intuisity.com/"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.intuisity.com/#website",
+      name: "Intuisity",
+      alternateName: "Intuisity Intuition Training",
+      url: "https://www.intuisity.com/",
+      description: seoDescription,
+      publisher: { "@id": "https://www.intuisity.com/#organization" },
+      inLanguage: "en-US"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://www.intuisity.com/#app",
+      name: "Intuisity",
+      applicationCategory: "LifestyleApplication",
+      operatingSystem: "Web, iOS",
+      url: "https://www.intuisity.com/",
+      description: seoDescription,
+      publisher: { "@id": "https://www.intuisity.com/#organization" },
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD"
+      },
+      featureList: [
+        "Daily intuition training",
+        "Treasure Chest friend challenges",
+        "Remote viewing practice",
+        "Daily astrology insights",
+        "Mindfulness and awareness prompts",
+        "Personal growth and self-discovery results"
+      ]
+    }
   ]
 };
 
