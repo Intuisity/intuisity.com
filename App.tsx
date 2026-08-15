@@ -105,6 +105,43 @@ function isMobileWebBrowser() {
 }
 
 function Pressable(props: React.ComponentProps<typeof NativePressable>) {
+  const { onPress, ...rest } = props;
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressClickUntilRef = useRef(0);
+
+  if (isMobileWebBrowser() && onPress && !(props as any).disabled) {
+    const getTouchPoint = (event: any) => {
+      const touch = event?.nativeEvent?.changedTouches?.[0] || event?.nativeEvent?.touches?.[0] || event?.changedTouches?.[0] || event?.touches?.[0];
+      return touch ? { x: Number(touch.clientX ?? touch.pageX ?? 0), y: Number(touch.clientY ?? touch.pageY ?? 0) } : null;
+    };
+
+    const directTapHandlers = {
+      delayPressIn: 0,
+      onClick: (event: any) => {
+        if (Date.now() < suppressClickUntilRef.current) return;
+        onPress(event);
+      },
+      onPress: undefined,
+      onTouchStart: (event: any) => {
+        touchStartRef.current = getTouchPoint(event);
+      },
+      onTouchEnd: (event: any) => {
+        const start = touchStartRef.current;
+        const end = getTouchPoint(event);
+        touchStartRef.current = null;
+        if (start && end) {
+          const moved = Math.hypot(end.x - start.x, end.y - start.y);
+          if (moved > 12) {
+            suppressClickUntilRef.current = Date.now() + 700;
+            return;
+          }
+        }
+        suppressClickUntilRef.current = Date.now() + 700;
+        onPress(event);
+      }
+    } as any;
+    return <NativePressable {...rest} {...directTapHandlers} />;
+  }
   return <NativePressable {...props} />;
 }
 

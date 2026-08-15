@@ -45,6 +45,43 @@ function isMobileWebBrowser() {
 }
 
 function Pressable(props: React.ComponentProps<typeof NativePressable>) {
+  const { onPress, ...rest } = props;
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressClickUntilRef = useRef(0);
+
+  if (isMobileWebBrowser() && onPress && !(props as any).disabled) {
+    const getTouchPoint = (event: any) => {
+      const touch = event?.nativeEvent?.changedTouches?.[0] || event?.nativeEvent?.touches?.[0] || event?.changedTouches?.[0] || event?.touches?.[0];
+      return touch ? { x: Number(touch.clientX ?? touch.pageX ?? 0), y: Number(touch.clientY ?? touch.pageY ?? 0) } : null;
+    };
+
+    const directTapHandlers = {
+      delayPressIn: 0,
+      onClick: (event: any) => {
+        if (Date.now() < suppressClickUntilRef.current) return;
+        onPress(event);
+      },
+      onPress: undefined,
+      onTouchStart: (event: any) => {
+        touchStartRef.current = getTouchPoint(event);
+      },
+      onTouchEnd: (event: any) => {
+        const start = touchStartRef.current;
+        const end = getTouchPoint(event);
+        touchStartRef.current = null;
+        if (start && end) {
+          const moved = Math.hypot(end.x - start.x, end.y - start.y);
+          if (moved > 12) {
+            suppressClickUntilRef.current = Date.now() + 700;
+            return;
+          }
+        }
+        suppressClickUntilRef.current = Date.now() + 700;
+        onPress(event);
+      }
+    } as any;
+    return <NativePressable {...rest} {...directTapHandlers} />;
+  }
   return <NativePressable {...props} />;
 }
 
@@ -4989,26 +5026,76 @@ function PageHeader({
   onNext?: () => void;
 }) {
   const theme = getHeaderTheme(eyebrow, title);
+  const headerPressGuardRef = useRef(0);
   const renderHeaderDirectionButton = (
     direction: "back" | "next",
     label: string,
     onPress: () => void
-  ) => (
-    <NativePressable
-      accessibilityLabel={direction === "back" ? "Go back" : "Go to next module"}
-      accessibilityRole="button"
-      hitSlop={14}
-      key={direction}
-      onPress={onPress}
-      style={styles.headerDirectionButton}
-    >
-      <View pointerEvents="none" style={styles.headerButtonInner}>
-        {direction === "back" && <Ionicons color="#f3c64d" name="arrow-back-outline" size={17} />}
-        <Text style={styles.headerNextText}>{label}</Text>
-        {direction === "next" && <Ionicons color="#f3c64d" name="arrow-forward-outline" size={17} />}
-      </View>
-    </NativePressable>
-  );
+  ) => {
+    const activateHeaderButton = (event: any) => {
+      event.preventDefault?.();
+      event.stopPropagation?.();
+      const now = Date.now();
+      if (now - headerPressGuardRef.current < 300) return;
+      headerPressGuardRef.current = now;
+      onPress();
+    };
+
+    if (typeof (globalThis as any).document !== "undefined") {
+      return React.createElement(
+        "button",
+        {
+          "aria-label": direction === "back" ? "Go back" : "Go to next module",
+          key: direction,
+          onClick: activateHeaderButton,
+          onPointerUp: activateHeaderButton,
+          onTouchEnd: activateHeaderButton,
+          style: {
+            alignItems: "center",
+            background: "#6537c7",
+            border: "1px solid #f3c64d",
+            borderRadius: 14,
+            boxShadow: "0 2px 7px rgba(81, 38, 173, 0.2)",
+            color: "#fff4cf",
+            cursor: "pointer",
+            display: "inline-flex",
+            fontFamily: "inherit",
+            fontSize: 14,
+            fontWeight: 800,
+            gap: 6,
+            justifyContent: "center",
+            minHeight: 46,
+            minWidth: 78,
+            padding: "0 12px",
+            pointerEvents: "auto",
+            position: "relative",
+            touchAction: "manipulation",
+            zIndex: 50
+          } as any,
+          type: "button"
+        },
+        direction === "back" ? "\u2190 Back" : "Next \u2192"
+      );
+    }
+
+    return (
+      <Pressable
+        accessibilityLabel={direction === "back" ? "Go back" : "Go to next module"}
+        accessibilityRole="button"
+        hitSlop={14}
+        key={direction}
+        onPress={activateHeaderButton}
+        onPressIn={activateHeaderButton as any}
+        style={styles.headerDirectionButton}
+      >
+        <View pointerEvents="none" style={styles.headerButtonInner}>
+          {direction === "back" && <Ionicons color="#f3c64d" name="arrow-back-outline" size={17} />}
+          <Text style={styles.headerNextText}>{label}</Text>
+          {direction === "next" && <Ionicons color="#f3c64d" name="arrow-forward-outline" size={17} />}
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
     <View style={[styles.header, compact && styles.headerCompact, { backgroundColor: theme.background, borderColor: theme.border }]}>
@@ -5031,7 +5118,7 @@ function PageHeader({
         </View>
       </ImageBackground>
       {(onBack || onNext) && (
-        <View pointerEvents="box-none" style={styles.headerNavigation}>
+        <View pointerEvents="auto" style={styles.headerNavigation}>
           <View style={styles.headerDirectionButtons}>
             {onBack && renderHeaderDirectionButton("back", "Back", onBack)}
             {onNext && renderHeaderDirectionButton("next", "Next", onNext)}
