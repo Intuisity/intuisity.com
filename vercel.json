@@ -54,6 +54,10 @@
       "destination": "/intuition-games-with-friends.html"
     },
     {
+      "source": "/remote-viewing-practice",
+      "destination": "/remote-viewing-practice.html"
+    },
+    {
       "source": "/challenge/:path*",
       "destination": "/index.html"
     },

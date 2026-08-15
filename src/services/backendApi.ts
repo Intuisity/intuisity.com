@@ -37,6 +37,23 @@ type BackendAdminReport = {
     lastSeenAt?: string;
     favoriteModule: string;
   }>;
+  todayDate?: string;
+  todayVisitorDetails?: Array<{
+    id: string;
+    displayName: string;
+    email?: string;
+    type: string;
+    platform: string;
+    currentCity?: string;
+    currentState?: string;
+    currentCountry?: string;
+    visits: number;
+    totalMs: number;
+    activeMs: number;
+    firstSeenAt?: string;
+    lastSeenAt?: string;
+    favoriteModule: string;
+  }>;
   visitorVolume: {
     today: number;
     week: number;

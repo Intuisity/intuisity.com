@@ -32,10 +32,13 @@ async function buildAdminReport(options = {}) {
   const visitorEvents = coalesceVisitorSessions(buildVisitorEvents(analyticsEvents, profiles));
   const rangedVisitorEvents = filterEventsByDateRange(visitorEvents, dateRange);
   const volume = buildVisitorVolume(visitorEvents, dateRange);
+  const todayDate = getPacificDateKey(new Date());
+  const todayVisitorEvents = filterEventsSince(visitorEvents, todayDate);
   const visitorTrend = buildVisitorTrend(rangedVisitorEvents);
   const platformBreakdown = buildPlatformBreakdown(rangedVisitorEvents);
   const visitorBreakdown = buildVisitorBreakdown(rangedVisitorEvents);
   const visitorDetails = buildVisitorDetails(rangedVisitorEvents);
+  const todayVisitorDetails = buildVisitorDetails(todayVisitorEvents);
   const rangedTrackedEvents = rangedVisitorEvents.filter((event) => event.event_json?.source !== "profiles");
   const rangedModuleEvents = rangedAnalyticsEvents.filter((event) => !isSiteVisitEvent(event));
   const moduleDailyTrend = buildModuleDailyTrend(rangedModuleEvents);
@@ -74,6 +77,8 @@ async function buildAdminReport(options = {}) {
     uniqueVisitors: countUniqueVisitors(rangedVisitorEvents),
     visitorBreakdown,
     visitorDetails,
+    todayDate,
+    todayVisitorDetails,
     visitorVolume: volume,
     visitorTrend,
     platformBreakdown,

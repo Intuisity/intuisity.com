@@ -1138,6 +1138,11 @@ function loadActiveProfile(): UserProfile | null {
 
 function loadSavedActiveTab(): TabKey {
   try {
+    const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+    const params = new URLSearchParams(browserWindow?.location?.search || "");
+    const requestedTab = params.get("tab") as TabKey | null;
+    if (requestedTab && requestedTab !== "admin" && tabs.some((tab) => tab.key === requestedTab)) return requestedTab;
+    if (params.has("screen")) return "today";
     const savedTab = globalThis.localStorage?.getItem(activeTabKey) as TabKey | null;
     return tabs.some((tab) => tab.key === savedTab) ? savedTab : "today";
   } catch {
@@ -1778,14 +1783,17 @@ function AdminDashboard() {
   const openReportDetail = (detailKey: string) => {
     setSelectedReportDetail((current) => current === detailKey ? null : detailKey);
   };
-  const renderVisitorDetailRows = () => {
-    const visitors = report.visitorDetails || [];
+  const renderVisitorDetailRows = (
+    visitors = report.visitorDetails || [],
+    title = "Recent visitor rows",
+    emptyText = "As signed-in and anonymous visitors open pages or modules, the most recent visitor rows will appear here."
+  ) => {
     if (!visitors.length) {
       return (
         <View style={styles.adminEmptyCard}>
           <Ionicons color="#B87908" name="person-circle-outline" size={24} />
           <Text style={styles.adminEmptyTitle}>No visitor rows yet</Text>
-          <Text style={styles.bodyText}>As signed-in and anonymous visitors open pages or modules, the most recent visitor rows will appear here.</Text>
+          <Text style={styles.bodyText}>{emptyText}</Text>
         </View>
       );
     }
@@ -1793,7 +1801,7 @@ function AdminDashboard() {
     return (
       <View style={styles.adminVisitorList}>
         <View style={styles.adminModuleTopline}>
-          <Text style={styles.adminStartTitle}>Recent visitor rows</Text>
+          <Text style={styles.adminStartTitle}>{title}</Text>
           <Text style={styles.adminFeedbackMeta}>{visitors.length} shown</Text>
         </View>
         {visitors.map((visitor) => (
@@ -1863,6 +1871,15 @@ function AdminDashboard() {
           { label: "Saved profile signups", value: visitorBreakdown.profileSignups }
         ]
       },
+      "today-visitors": {
+        title: `Today visitors${report.todayDate ? ` (${report.todayDate} Pacific)` : ""}`,
+        text: "Visitors counted for the current Pacific-time day. Admin test emails are excluded, so activity while signed in as admin@intuisity.com or kathy@intuisity.com will not appear here.",
+        rows: [
+          { label: "Today unique visitors", value: report.visitorVolume?.today || 0 },
+          { label: "Today detail rows", value: report.todayVisitorDetails?.length || 0 },
+          { label: "Admin test emails", value: "Excluded" }
+        ]
+      },
       "active-time": {
         title: "Active time",
         text: "Estimated time when the visitor was active on the page. This is better than raw page time when someone walks away or switches tabs.",
@@ -1910,6 +1927,11 @@ function AdminDashboard() {
             <Text style={styles.adminValue}>{row.value}</Text>
           </View>
         ))}
+        {selectedReportDetail === "today-visitors" && renderVisitorDetailRows(
+          report.todayVisitorDetails || [],
+          `Today visitor rows${report.todayDate ? ` (${report.todayDate} Pacific)` : ""}`,
+          "No non-admin visitor rows have been recorded for today yet. If you are testing while logged in as admin@intuisity.com or kathy@intuisity.com, those visits are intentionally excluded."
+        )}
         {(selectedReportDetail === "unique-visitors" || selectedReportDetail === "tracked-visits") && renderVisitorDetailRows()}
         {selectedReportDetail === "saved-users" && (
           <Pressable onPress={() => setAdminReportPage("user-insights")} style={styles.adminLightButton}>
@@ -2224,7 +2246,7 @@ function AdminDashboard() {
 
       <Text style={styles.adminSectionTitle}>Visitor volume</Text>
       <View style={styles.adminVolumeGrid}>
-        <Metric icon="today-outline" label="Today" onPress={() => openReportDetail("unique-visitors")} value={report.visitorVolume?.today || 0} />
+        <Metric icon="today-outline" label="Today" onPress={() => openReportDetail("today-visitors")} value={report.visitorVolume?.today || 0} />
         <Metric icon="calendar-outline" label="Last 7 days" onPress={() => openReportDetail("unique-visitors")} value={report.visitorVolume?.week || 0} />
         <Metric icon="calendar-number-outline" label="Last 30 days" onPress={() => openReportDetail("unique-visitors")} value={report.visitorVolume?.month || 0} />
         <Metric icon="filter-outline" label="Selected range" onPress={() => openReportDetail("unique-visitors")} value={report.visitorVolume?.range || report.uniqueVisitors || 0} />
@@ -2511,7 +2533,15 @@ function Metric({
 function formatReportDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return date.toLocaleString(undefined, {
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    month: "short",
+    timeZone: "America/Los_Angeles",
+    timeZoneName: "short",
+    year: "numeric"
+  });
 }
 
 function updateWebMetadata() {

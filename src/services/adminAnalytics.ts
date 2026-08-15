@@ -33,6 +33,8 @@ export type AdminAnalyticsReport = {
     totalUnique: number;
   };
   visitorDetails?: VisitorDetailReport[];
+  todayDate?: string;
+  todayVisitorDetails?: VisitorDetailReport[];
   visitorVolume: {
     today: number;
     week: number;
@@ -201,6 +203,8 @@ export function loadAdminAnalyticsReport(startDate = "", endDate = ""): AdminAna
   const visitorEvents = buildLocalVisitorEvents(allEvents, allProfiles);
   const events = filterEventsByDateRange(allEvents, dateRange).filter((event) => !isVisitorOnlyEvent(event));
   const rangedVisitorEvents = filterEventsByDateRange(visitorEvents, dateRange);
+  const todayDate = getDateKey(Date.now());
+  const todayVisitorEvents = visitorEvents.filter((event) => event.date === todayDate);
   const moduleTotals = new Map<string, ModuleAnalyticsSummary>();
 
   events.forEach((event) => {
@@ -235,6 +239,8 @@ export function loadAdminAnalyticsReport(startDate = "", endDate = ""): AdminAna
     uniqueVisitors: countUniqueVisitors(rangedVisitorEvents),
     visitorBreakdown: buildVisitorBreakdown(rangedVisitorEvents),
     visitorDetails: buildVisitorDetails(rangedVisitorEvents),
+    todayDate,
+    todayVisitorDetails: buildVisitorDetails(todayVisitorEvents),
     visitorVolume: buildVisitorVolume(visitorEvents, dateRange),
     visitorTrend: buildVisitorTrend(rangedVisitorEvents),
     platformBreakdown: buildPlatformBreakdown(rangedVisitorEvents),
