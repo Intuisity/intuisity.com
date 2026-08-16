@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Contacts from "expo-contacts";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Animated, Easing, Image, ImageBackground, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Animated, Easing, Image, ImageBackground, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { getAstrologyReading, getBirthLocationSuggestions, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
@@ -5430,10 +5430,71 @@ function PageHeader({
   onNext?: () => void;
 }) {
   const theme = getHeaderTheme(eyebrow, title);
+  const nativeNavigationGuardRef = useRef(0);
+  const runNativeNavigation = (action: () => void) => {
+    const now = Date.now();
+    if (now - nativeNavigationGuardRef.current < 350) return;
+    nativeNavigationGuardRef.current = now;
+    action();
+  };
+  const renderDirectionButtons = () => (
+    <View style={styles.headerDirectionButtons}>
+      {onBack && (
+        <Pressable
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          hitSlop={12}
+          onPress={onBack}
+          style={styles.headerDirectionButton}
+        >
+          <Ionicons color="#30264C" name="arrow-back-outline" size={17} />
+          <Text style={styles.headerNextText}>Back</Text>
+        </Pressable>
+      )}
+      {onNext && (
+        <Pressable
+          accessibilityLabel="Go to next module"
+          accessibilityRole="button"
+          hitSlop={12}
+          onPress={onNext}
+          style={styles.headerDirectionButton}
+        >
+          <Text style={styles.headerNextText}>Next</Text>
+          <Ionicons color="#30264C" name="arrow-forward-outline" size={17} />
+        </Pressable>
+      )}
+    </View>
+  );
   return (
     <View style={[styles.header, compact && styles.headerCompact, { backgroundColor: theme.background, borderColor: theme.border }]}>
+      {Platform.OS !== "web" && (onHome || onBack || onNext) && (
+        <View style={styles.nativeHeaderNavigation}>
+          {onHome ? (
+            <TouchableOpacity accessibilityLabel="Return home" accessibilityRole="button" activeOpacity={0.65} hitSlop={14} onPress={() => runNativeNavigation(onHome)} style={[styles.headerNavButton, styles.nativeHeaderButton]}>
+              <Ionicons color="#30264C" name="home-outline" size={20} />
+              <Text style={styles.headerHomeText}>Home</Text>
+            </TouchableOpacity>
+          ) : (
+            <View />
+          )}
+          <View style={styles.headerDirectionButtons}>
+            {onBack && (
+              <TouchableOpacity accessibilityLabel="Go back" accessibilityRole="button" activeOpacity={0.65} hitSlop={14} onPress={() => runNativeNavigation(onBack)} style={[styles.headerDirectionButton, styles.nativeHeaderButton]}>
+                <Ionicons color="#30264C" name="arrow-back-outline" size={19} />
+                <Text style={styles.headerNextText}>Back</Text>
+              </TouchableOpacity>
+            )}
+            {onNext && (
+              <TouchableOpacity accessibilityLabel="Go to next module" accessibilityRole="button" activeOpacity={0.65} hitSlop={14} onPress={() => runNativeNavigation(onNext)} style={[styles.headerDirectionButton, styles.nativeHeaderButton]}>
+                <Text style={styles.headerNextText}>Next</Text>
+                <Ionicons color="#30264C" name="arrow-forward-outline" size={19} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
       <View style={[styles.headerShade, compact && styles.headerShadeCompact]}>
-        {(onHome || onBack || onNext) && (
+        {Platform.OS === "web" && (onHome || onBack || onNext) && (
           <View style={styles.headerNavigation}>
             {onHome ? (
               <Pressable accessibilityLabel="Return home" onPress={onHome} style={styles.headerNavButton}>
@@ -5443,20 +5504,7 @@ function PageHeader({
             ) : (
               <View />
             )}
-            <View style={styles.headerDirectionButtons}>
-              {onBack && (
-                <Pressable accessibilityLabel="Go back" onPress={onBack} style={styles.headerDirectionButton}>
-                  <Ionicons color="#30264C" name="arrow-back-outline" size={17} />
-                  <Text style={styles.headerNextText}>Back</Text>
-                </Pressable>
-              )}
-              {onNext && (
-                <Pressable accessibilityLabel="Go to next module" onPress={onNext} style={styles.headerDirectionButton}>
-                  <Text style={styles.headerNextText}>Next</Text>
-                  <Ionicons color="#30264C" name="arrow-forward-outline" size={17} />
-                </Pressable>
-              )}
-            </View>
+            {renderDirectionButtons()}
           </View>
         )}
         <View style={styles.headerTopRow}>
@@ -5914,10 +5962,12 @@ const styles = StyleSheet.create({
   headerCompact: { marginBottom: 8, minHeight: 116 },
   headerShade: { backgroundColor: "rgba(19, 15, 35, 0.08)", flex: 1, justifyContent: "flex-end", minHeight: 150, padding: 14, paddingTop: 58 },
   headerShadeCompact: { minHeight: 116, padding: 10, paddingTop: 50 },
-  headerNavigation: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", left: 12, position: "absolute", right: 12, top: 12 },
+  headerNavigation: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", left: 12, position: "absolute", right: 12, top: 12, zIndex: 10 },
+  nativeHeaderNavigation: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.97)", borderBottomColor: "rgba(255,255,255,0.45)", borderBottomWidth: 1, flexDirection: "row", justifyContent: "space-between", minHeight: 62, paddingHorizontal: 14, paddingVertical: 8, width: "100%", zIndex: 20 },
   headerNavButton: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.94)", borderRadius: 8, flexDirection: "row", gap: 5, height: 42, justifyContent: "center", minWidth: 82, paddingHorizontal: 10, shadowColor: "#30264C", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.18, shadowRadius: 4 },
-  headerDirectionButtons: { flexDirection: "row", gap: 6 },
-  headerDirectionButton: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.94)", borderRadius: 8, flexDirection: "row", gap: 4, minHeight: 42, paddingHorizontal: 10 },
+  headerDirectionButtons: { flexDirection: "row", gap: 8, zIndex: 21 },
+  headerDirectionButton: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.98)", borderColor: "#D6C5F4", borderRadius: 10, borderWidth: 1, elevation: 4, flexDirection: "row", gap: 5, justifyContent: "center", minHeight: 48, minWidth: 82, paddingHorizontal: 12, zIndex: 22 },
+  nativeHeaderButton: { minHeight: 52, minWidth: 88 },
   headerHomeText: { color: "#30264C", fontSize: 12, fontWeight: "900" },
   headerNextText: { color: "#30264C", fontSize: 12, fontWeight: "900" },
   headerTopRow: { alignItems: "center", flexDirection: "row", gap: 10 },

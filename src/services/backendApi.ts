@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 const localBackendUrl = "http://localhost:4000";
 const productionBackendUrl = "https://www.intuisity.com";
 
@@ -562,7 +564,9 @@ function getClientPlatformDetails() {
     browserWindow?.matchMedia?.("(display-mode: standalone)")?.matches ||
     (navigatorRef as any)?.standalone
   );
-  const appChannel = (globalThis as any).Expo || (navigatorRef as any)?.product === "ReactNative" || isStandalone;
+  // Use React Native's platform value as the source of truth. Newer Expo/iOS
+  // runtimes do not always expose the older global Expo or navigator markers.
+  const appChannel = Platform.OS !== "web" || (globalThis as any).Expo || (navigatorRef as any)?.product === "ReactNative" || isStandalone;
   const mobileWeb = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
   const search = String(browserWindow?.location?.search || "");
   const params = new URLSearchParams(search);
