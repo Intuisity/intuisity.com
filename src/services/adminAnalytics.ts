@@ -469,6 +469,13 @@ function buildLocalAcquisitionDetails(events: AnalyticsEvent[]) {
   return [...details.values()].sort((a, b) => b.uniqueVisitors - a.uniqueVisitors || a.label.localeCompare(b.label));
 }
 
+function getVisitorKey(event: AnalyticsEvent) {
+  const email = String(event.email || "").trim().toLowerCase();
+  if (email) return email;
+  const visitorId = String(event.visitorId || "").trim();
+  return visitorId ? `anonymous:${visitorId}` : "";
+}
+
 function getAcquisitionDetail(source: { source: string; label: string }, event: AnalyticsEvent) {
   const referrer = String(event.referrer || "");
   let referrerHost = "";

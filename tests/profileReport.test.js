@@ -2,6 +2,19 @@ const assert = require("node:assert/strict");
 const serverReport = require("../server/supabase-report");
 const moduleTimeHandler = require("../api/analytics/module-time");
 
+(async () => {
+  const sourceRows = Array.from({ length: 2005 }, (_, index) => ({ id: index + 1 }));
+  const fetchedRows = await serverReport.fetchAllPages((offset, pageSize) =>
+    Promise.resolve(sourceRows.slice(offset, offset + pageSize))
+  );
+  assert.equal(fetchedRows.length, 2005);
+  assert.equal(fetchedRows[0].id, 1);
+  assert.equal(fetchedRows[2004].id, 2005);
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+
 assert.deepEqual(moduleTimeHandler.getRequestGeography({ headers: {
   "x-vercel-ip-city": "San%20Diego",
   "x-vercel-ip-country-region": "CA",

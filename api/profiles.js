@@ -51,11 +51,7 @@ module.exports = async function handler(request, response) {
 
     try {
       await upsertProfile(payload);
-    } catch (error) {
-      if (!String(error.message || "").includes("birth_") && !String(error.message || "").includes("sun_sign")) {
-        throw error;
-      }
-
+    } catch (fullProfileError) {
       const legacyPayload = { ...payload };
       [
         "birth_latitude",
@@ -69,7 +65,22 @@ module.exports = async function handler(request, response) {
         "midheaven_sign",
         "strongest_aspect"
       ].forEach((key) => delete legacyPayload[key]);
-      await upsertProfile(legacyPayload);
+      try {
+        await upsertProfile(legacyPayload);
+      } catch (legacyProfileError) {
+        // Some existing Intuisity databases predate the location and timezone
+        // columns. Preserve the complete profile inside profile_json while
+        // saving only the original core columns in that case.
+        await upsertProfile({
+          email,
+          name: profile.name || "",
+          phone: profile.phone || "",
+          language: profile.language || "en",
+          reminder_time: profile.reminderTime || "9:00 AM",
+          profile_json: profile,
+          updated_at: new Date().toISOString()
+        });
+      }
     }
 
     sendJson(response, 200, { ok: true });

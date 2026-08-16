@@ -360,8 +360,23 @@ function buildVisitorInsights(events, profiles) {
   return [...visitors.values()].sort((a, b) => new Date(b.lastSeenAt || 0).getTime() - new Date(a.lastSeenAt || 0).getTime());
 }
 
-function selectAll(table) {
-  return supabaseRequest(`/${table}?select=*`);
+async function selectAll(table) {
+  return fetchAllPages((offset, pageSize) =>
+    supabaseRequest(`/${table}?select=*&limit=${pageSize}&offset=${offset}`)
+  );
+}
+
+async function fetchAllPages(fetchPage, pageSize = 1000) {
+  const rows = [];
+  let offset = 0;
+
+  while (true) {
+    const page = await fetchPage(offset, pageSize);
+    const pageRows = Array.isArray(page) ? page : [];
+    rows.push(...pageRows);
+    if (pageRows.length < pageSize) return rows;
+    offset += pageSize;
+  }
 }
 
 function buildVisitorVolume(events, dateRange) {
@@ -745,6 +760,7 @@ module.exports = {
   buildPremiumInterest,
   buildUserInsightsCsv,
   collectKnownEmails,
+  fetchAllPages,
   getReportingDateKey,
   reconcileAnonymousVisitors,
   resolveProfileField
