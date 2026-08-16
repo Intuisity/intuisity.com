@@ -592,9 +592,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const hasSavedBirthDetails = Boolean(userProfile.birthdate);
   const birthDetailsComplete = Boolean(
     userProfile.birthdate &&
-    userProfile.birthTime &&
     userProfile.birthCity &&
-    userProfile.birthState &&
     userProfile.birthCountry
   );
   const birthLocation = [userProfile.birthCity, userProfile.birthState, userProfile.birthCountry].filter(Boolean).join(", ");
@@ -611,9 +609,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     birthLocation
   ].filter(Boolean).join(" · ");
   const birthDetailsMissingList = [
-    !userProfile.birthTime && "birth time",
     !userProfile.birthCity && "birth city",
-    !userProfile.birthState && "birth state/region",
     !userProfile.birthCountry && "birth country"
   ].filter(Boolean).join(", ");
   const astrologyReading = useMemo(
@@ -887,11 +883,13 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   );
 
   const chooseBirthLocationSuggestion = (label: string) => {
-    const parts = label.split(",").map((part) => part.trim()).filter(Boolean);
-    const city = parts[0] || "";
-    const country = parts.length === 1 ? parts[0] : parts[parts.length - 1] || "";
-    const state = parts.length > 2 ? parts.slice(1, -1).join(", ") : "";
-    setBirthDetails({ ...birthDetails, birthCity: city, birthState: state, birthCountry: country });
+    const location = splitBirthLocationLabel(label);
+    setBirthDetails((current) => ({
+      ...current,
+      birthCity: location.city,
+      birthState: location.state,
+      birthCountry: location.country
+    }));
     setBirthDetailsSaved(false);
     setBirthLocationSuggestionsOpen(false);
     setBirthLocationStatus(`Birthplace selected: ${label}`);
@@ -899,16 +897,22 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
 
   const saveBirthDetails = async () => {
     try {
+    const enteredLocation = splitBirthLocationLabel(birthDetails.birthCity);
+    const normalizedBirthDetails = {
+      ...birthDetails,
+      birthCity: enteredLocation.country ? enteredLocation.city : birthDetails.birthCity.trim(),
+      birthState: birthDetails.birthState.trim() || enteredLocation.state,
+      birthCountry: birthDetails.birthCountry.trim() || enteredLocation.country
+    };
+    setBirthDetails(normalizedBirthDetails);
     const nextBirthDetailsComplete = Boolean(
-      birthDetails.birthdate.trim() &&
-      birthDetails.birthTime.trim() &&
-      birthDetails.birthCity.trim() &&
-      birthDetails.birthState.trim() &&
-      birthDetails.birthCountry.trim()
+      normalizedBirthDetails.birthdate.trim() &&
+      normalizedBirthDetails.birthCity.trim() &&
+      normalizedBirthDetails.birthCountry.trim()
     );
-    const nextBirthLocation = [birthDetails.birthCity, birthDetails.birthState, birthDetails.birthCountry].filter(Boolean).join(", ");
+    const nextBirthLocation = [normalizedBirthDetails.birthCity, normalizedBirthDetails.birthState, normalizedBirthDetails.birthCountry].filter(Boolean).join(", ");
     const builtInLocation = getKnownBirthLocation(nextBirthLocation);
-    const lookedUpLocation = !builtInLocation && birthDetails.birthCity.trim() && birthDetails.birthCountry.trim()
+    const lookedUpLocation = !builtInLocation && normalizedBirthDetails.birthCity.trim() && normalizedBirthDetails.birthCountry.trim()
       ? await lookupBirthLocation(nextBirthLocation)
       : null;
     const resolvedLocation = builtInLocation || lookedUpLocation;
@@ -916,13 +920,13 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       setBirthLocationStatus(`Birthplace matched: ${builtInLocation.label}`);
     } else if (lookedUpLocation) {
       setBirthLocationStatus(`Birthplace found and saved: ${lookedUpLocation.label}`);
-    } else if (birthDetails.birthCity.trim()) {
+    } else if (normalizedBirthDetails.birthCity.trim()) {
       setBirthLocationStatus("Birth details saved. Today's reading will use the strongest guidance available from what you entered, and you can refine the birthplace later if needed.");
     }
     const nextAstrologyReading = getAstrologyReading(
-      birthDetails.birthdate.trim(),
+      normalizedBirthDetails.birthdate.trim(),
       new Date(),
-      birthDetails.birthTime.trim(),
+      normalizedBirthDetails.birthTime.trim(),
       nextBirthLocation,
       resolvedLocation
     );
@@ -943,11 +947,11 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       : undefined;
     onUpdateProfile({
       ...userProfile,
-      birthdate: birthDetails.birthdate.trim(),
-      birthTime: birthDetails.birthTime.trim(),
-      birthCity: birthDetails.birthCity.trim(),
-      birthState: birthDetails.birthState.trim(),
-      birthCountry: birthDetails.birthCountry.trim(),
+      birthdate: normalizedBirthDetails.birthdate.trim(),
+      birthTime: normalizedBirthDetails.birthTime.trim(),
+      birthCity: normalizedBirthDetails.birthCity.trim(),
+      birthState: normalizedBirthDetails.birthState.trim(),
+      birthCountry: normalizedBirthDetails.birthCountry.trim(),
       birthLatitude: resolvedLocation?.latitude,
       birthLongitude: resolvedLocation?.longitude,
       birthLocationLabel: resolvedLocation?.label,
@@ -4394,6 +4398,16 @@ function makeKnowingRewardPictures() {
 
 const astrologyJournalKey = "intuisity-astrology-journal";
 const learningJournalKey = "intuisity-learning-journal";
+
+function splitBirthLocationLabel(label: string) {
+  const parts = label.split(",").map((part) => part.trim()).filter(Boolean);
+  if (parts.length < 2) return { city: parts[0] || "", state: "", country: "" };
+  return {
+    city: parts[0],
+    state: parts.length > 2 ? parts.slice(1, -1).join(", ") : "",
+    country: parts[parts.length - 1]
+  };
+}
 
 function getDateKey(date = new Date()) {
   const year = date.getFullYear();
