@@ -97,7 +97,7 @@ type Props = {
 
 const personChoiceLimit = 3;
 const personMaximumScore = 3;
-const guestPlayLimit = 2;
+const guestPlayLimit = 3;
 const personPortraitSearchLimit = 100;
 const portraitCache = new Map<string, string | null>();
 const photographicPersonProfileIds = new Set([
@@ -4285,7 +4285,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           <View style={styles.guestPlayNoticeCopy}>
             <Text style={styles.guestPlayNoticeTitle}>Explore Intuisity</Text>
             <Text style={styles.guestPlayNoticeText}>
-              Play Treasure Chest and explore your intuition. You can create a free account whenever you are ready to save and track your progress.
+              Enjoy three plays before signing in. Create a free account afterward for always-free play and to save and track your progress.
             </Text>
           </View>
         </View>
@@ -5003,8 +5003,7 @@ function calculateModulePoints(score: number, maximum: number, possiblePoints: n
 
 function getCompletedGuestPlayCount(answers: Answers) {
   const recordedPlayCount = Number.parseInt(answers["guest-play-count"] || "", 10);
-  if (Number.isFinite(recordedPlayCount) && recordedPlayCount >= 0) return recordedPlayCount;
-  return [
+  const completedModuleCount = [
     answers["social-prediction"] === "Completed",
     Object.prototype.hasOwnProperty.call(answers, "knowing-score"),
     answers["remote-viewing-arena"] === "Completed" ||
@@ -5014,6 +5013,9 @@ function getCompletedGuestPlayCount(answers: Answers) {
     answers["psychic-potential-score"] === "Completed",
     Object.prototype.hasOwnProperty.call(answers, "remote-viewing-score")
   ].filter(Boolean).length;
+  return Number.isFinite(recordedPlayCount) && recordedPlayCount >= 0
+    ? Math.max(recordedPlayCount, completedModuleCount)
+    : completedModuleCount;
 }
 
 async function resolveWikipediaPortrait(title: string): Promise<string | null> {

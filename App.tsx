@@ -151,7 +151,7 @@ function isAdminUser(profile: UserProfile | null) {
 
 export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => Platform.OS === "web"
-    ? loadActiveProfile() || loadTreasureInviteGuestProfile() || (isTreasurePlayRequest() ? loadOrCreateGuestProfile() : null)
+    ? loadActiveProfile() || loadTreasureInviteGuestProfile() || loadOrCreateGuestProfile()
     : null);
   const [sessionRestoring, setSessionRestoring] = useState(Platform.OS !== "web");
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
@@ -264,6 +264,8 @@ export default function App() {
           sessionActivityRef.current = Date.now();
           persistSessionActivity(sessionActivityRef.current);
           setUserProfile(normalizeLoadedProfile(JSON.parse(storedProfile)));
+        } else if (!cancelled) {
+          setUserProfile(loadOrCreateGuestProfile());
         }
       })
       .catch(() => {
