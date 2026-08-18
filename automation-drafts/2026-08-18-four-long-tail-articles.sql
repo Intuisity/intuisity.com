@@ -1,5 +1,4 @@
--- Four original long-tail article drafts created 2026-08-18.
--- Review in the Intuisity article editor before changing status to published.
+-- Four approved long-tail articles prepared for publication 2026-08-18.
 insert into articles (
   id, slug, title, description, body, author_name, category,
   call_to_action_label, call_to_action_url, status, published_at
@@ -87,8 +86,8 @@ Intuisity's Positivity Practice gives you a daily prompt, a place to record your
   'Intuition Training',
   'Open Positivity Practice',
   '/?screen=remote-viewing-arena',
-  'draft',
-  null
+  'published',
+  now()
 ),
 (
   'ff3ab074-1383-487d-a369-055af88c10ee',
@@ -172,8 +171,8 @@ Intuisity's Remote Viewing activity keeps the picture hidden while you record wo
   'Remote Viewing',
   'Try Remote Viewing in Intuisity',
   '/?screen=remote-viewing-test',
-  'draft',
-  null
+  'published',
+  now()
 ),
 (
   'c4cd86fd-1358-4ee5-9bf1-279c7dcfa2ab',
@@ -261,8 +260,8 @@ Intuisity's Treasure Chest lets you arrange a hidden challenge and share it with
   'Intuition Training',
   'Play Treasure Chest Together',
   '/?screen=social-prediction',
-  'draft',
-  null
+  'published',
+  now()
 ),
 (
   '870864fb-5ea9-476d-bb61-741ff22e7c56',
@@ -356,7 +355,7 @@ Intuisity's Train Your Knowing activity presents a hidden answer, lets you choos
   'Understanding Intuition',
   'Start Train Your Knowing',
   '/?screen=knowing',
-  'draft',
-  null
+  'published',
+  now()
 )
 on conflict (slug) do nothing;
