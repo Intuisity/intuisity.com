@@ -4,6 +4,7 @@
     "slug": "intuisity-mvp",
     "description": "Intuisity is a daily training platform designed to help you develop intuition, awareness, insight, consciousness, mindfulness, synchronicity recognition, and your natural sixth sense through fun, engaging challenges and real-world experiences. Every day you'll complete five guided activities that help strengthen your inner knowing, improve decision-making, sharpen pattern recognition, and increase your awareness of the opportunities and signals that surround you. Whether you're interested in personal growth, spiritual awakening, consciousness expansion, mindfulness, intuition development, remote viewing, manifestation, or self-discovery, Intuisity provides a structured and measurable path to explore your potential.",
     "version": "0.1.0",
+    "icon": "./assets/app-icon.png",
     "orientation": "portrait",
     "scheme": "intuisity",
     "userInterfaceStyle": "automatic",
@@ -12,6 +13,7 @@
     ],
     "ios": {
       "buildNumber": "10",
+      "icon": "./assets/app-icon.png",
       "supportsTablet": false,
       "bundleIdentifier": "com.intuisity.app",
       "config": {
