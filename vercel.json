@@ -3,6 +3,9 @@
   "outputDirectory": "dist",
   "trailingSlash": false,
   "framework": null,
+  "redirects": [
+    { "source": "/faq", "destination": "/faq.html", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/api/public-config", "destination": "/api/misc?endpoint=public-config" },
     { "source": "/api/birth-location", "destination": "/api/misc?endpoint=birth-location" },
