@@ -471,7 +471,8 @@ const treasurePositiveMessages = [
   "Practice with kindness toward yourself and curiosity about the result.",
   "Your willingness to explore is part of the discovery."
 ];
-let lastTreasurePositiveMessage = "";
+let sessionTreasureWinMessages: string[] = [];
+let sessionTreasurePositiveMessages: string[] = [];
 const treasureChestClosedImage = require("../../assets/treasure-chest/realistic-chest-closed.png");
 const treasureChestOpenImage = require("../../assets/treasure-chest/realistic-chest-open.png");
 const treasureSceneImages = [
@@ -4784,9 +4785,17 @@ function makeTreasureWinMessage(triesUsed: number) {
     previousMessages = [];
   }
 
-  const availableMessages = treasureWinMessages.filter((message) => !previousMessages.includes(message));
-  const messagePool = availableMessages.length ? availableMessages : treasureWinMessages;
+  let availableMessages = treasureWinMessages.filter(
+    (message) => !previousMessages.includes(message) && !sessionTreasureWinMessages.includes(message)
+  );
+  if (!availableMessages.length) {
+    previousMessages = [];
+    sessionTreasureWinMessages = [];
+    availableMessages = treasureWinMessages;
+  }
+  const messagePool = availableMessages;
   const phrase = shuffle(messagePool)[0] || "Fantastic, you opened the chest";
+  sessionTreasureWinMessages = [...sessionTreasureWinMessages, phrase].slice(-treasureWinMessages.length);
 
   try {
     globalThis.localStorage?.setItem(historyKey, JSON.stringify([...previousMessages, phrase].slice(-280)));
@@ -5892,19 +5901,20 @@ function makeTreasurePositiveMessage() {
   }
 
   let availableMessages = treasurePositiveMessages.filter(
-    (message) => !previousMessages.includes(message) && message !== lastTreasurePositiveMessage
+    (message) => !previousMessages.includes(message) && !sessionTreasurePositiveMessages.includes(message)
   );
   if (!availableMessages.length) {
     previousMessages = [];
-    availableMessages = treasurePositiveMessages.filter((message) => message !== lastTreasurePositiveMessage);
+    sessionTreasurePositiveMessages = [];
+    availableMessages = treasurePositiveMessages;
   }
   const message = shuffle(availableMessages)[0] || treasurePositiveMessages[0];
-  lastTreasurePositiveMessage = message;
+  sessionTreasurePositiveMessages = [...sessionTreasurePositiveMessages, message].slice(-treasurePositiveMessages.length);
 
   try {
     globalThis.localStorage?.setItem(historyKey, JSON.stringify([...previousMessages, message].slice(-treasurePositiveMessages.length)));
   } catch {
-    // Native apps and private browser sessions still use the in-memory last-message guard.
+    // Native apps and private browser sessions still use the in-memory no-repeat queue.
   }
   return message;
 }
