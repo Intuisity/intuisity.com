@@ -41,7 +41,7 @@ import {
 } from "./src/data/mockData";
 import { premiumPlan } from "./src/services/subscriptions";
 import { formatDuration, loadAdminAnalyticsReport, recordPremiumInterest } from "./src/services/adminAnalytics";
-import { backendUserInsightsCsvUrl, clearBackendSyncLog, fetchSavedProfile, getLastAdminReportError, isOwnerTestDevice, loadAdminSecret, loadBackendAdminReport, loadBackendSyncLog, saveAdminSecret, setOwnerTestDevice, syncDailyAnswers, syncModuleTime, syncProfile, syncSiteVisit } from "./src/services/backendApi";
+import { backendUserInsightsCsvUrl, clearBackendSyncLog, fetchSavedProfile, getLastAdminReportError, isOwnerTestDevice, loadAdminSecret, loadBackendAdminReport, loadBackendSyncLog, saveAdminSecret, setOwnerTestDevice, syncDailyAnswers, syncModuleTime, syncProfile, syncSiteTime, syncSiteVisit } from "./src/services/backendApi";
 import { DailyChallengeHub } from "./src/components/DailyChallengeHub";
 import { AdminArticleEditor } from "./src/components/AdminArticleEditor";
 import { UserProfile } from "./src/types/userProfile";
@@ -276,6 +276,31 @@ export default function App() {
       });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    let checkpointStartedAt = Date.now();
+    const documentRef = Platform.OS === "web" ? (globalThis as any).document : undefined;
+    const flushSiteTime = (includeHiddenTime = false) => {
+      const now = Date.now();
+      const startedAt = checkpointStartedAt;
+      checkpointStartedAt = now;
+      if (!includeHiddenTime && documentRef?.hidden) return;
+      const durationMs = Math.min(now - startedAt, 20 * 1000);
+      const activeDurationMs = now - sessionActivityRef.current <= 60 * 1000 ? durationMs : 0;
+      syncSiteTime(userProfile?.authProvider === "guest" ? "" : userProfile?.email || "", startedAt, durationMs, activeDurationMs);
+    };
+    const interval = setInterval(() => flushSiteTime(false), 15 * 1000);
+    const handleVisibilityChange = () => {
+      if (documentRef?.hidden) flushSiteTime(true);
+      else checkpointStartedAt = Date.now();
+    };
+    documentRef?.addEventListener?.("visibilitychange", handleVisibilityChange);
+    return () => {
+      clearInterval(interval);
+      flushSiteTime(true);
+      documentRef?.removeEventListener?.("visibilitychange", handleVisibilityChange);
+    };
+  }, [userProfile?.authProvider, userProfile?.email]);
 
   useEffect(() => {
     if (!userProfile) return;
@@ -1915,9 +1940,9 @@ function AdminDashboard() {
   const hasActivity = report.totalUsers > 0 || report.totalVisits > 0 || report.feedbackCount > 0;
   const visitorTrendMax = Math.max(1, ...(report.visitorTrend || []).map((day) => day.uniqueVisitors));
   const visitorTrendRows = (report.visitorTrend || []).slice(-14).reverse();
-  const moduleTrendRows = (report.moduleDailyTrend || []).slice(-moduleTrendDays);
+  const moduleTrendRows = buildDailyModuleTrendRows(report.moduleDailyTrend || [], moduleTrendDays, reportEndDate);
   const moduleTrendLabels = Array.from(new Set(moduleTrendRows.flatMap((day) => day.modules.map((module) => module.moduleLabel))));
-  const moduleTrendMax = Math.max(1, ...moduleTrendRows.flatMap((day) => day.modules.map((module) => module.activeMs || module.totalMs)));
+  const moduleTrendMax = Math.max(1, ...moduleTrendRows.map((day) => day.modules.reduce((sum, module) => sum + (module.activeMs || module.totalMs), 0)));
   const moduleTrendColors = ["#6537c7", "#d79b16", "#43C987", "#F4B740", "#B15A60", "#6537c7", "#706982"];
   const reportedAges = (report.userInsights || [])
     .map((user) => user.age)
@@ -2077,6 +2102,9 @@ function AdminDashboard() {
             </Text>
             <Text style={styles.adminFeedbackMeta}>
               Last seen: {visitor.lastSeenAt ? formatReportDateTime(visitor.lastSeenAt) : "Unknown"}
+            </Text>
+            <Text style={styles.adminFeedbackMeta}>
+              Time on site: {formatDuration(visitor.totalTimeMs || 0)} total · {formatDuration(visitor.totalActiveTimeMs || 0)} active
             </Text>
           </View>
         )) : (
@@ -2638,6 +2666,9 @@ function AdminDashboard() {
                     })}
                   </View>
                   <Text style={styles.adminTrendLabel}>{moduleTrendDays === 1 ? day.date : day.date.slice(5)}</Text>
+                  <Text style={styles.adminTrendValue}>
+                    {formatDuration(day.modules.reduce((sum, module) => sum + (module.activeMs || module.totalMs), 0))}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -2769,6 +2800,24 @@ function formatReportDateTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Unknown";
   return date.toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function buildDailyModuleTrendRows(
+  rows: Array<{ date: string; modules: Array<{ moduleLabel: string; activeMs: number; totalMs: number; visits: number }> }>,
+  days: number,
+  selectedEndDate = ""
+) {
+  const rowsByDate = new Map(rows.map((row) => [row.date, row]));
+  const validSelectedEnd = /^\d{4}-\d{2}-\d{2}$/.test(selectedEndDate) ? selectedEndDate : "";
+  const today = new Date();
+  const localToday = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, "0"), String(today.getDate()).padStart(2, "0")].join("-");
+  const endDate = new Date(`${validSelectedEnd || localToday}T12:00:00`);
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(endDate);
+    date.setDate(endDate.getDate() - (days - index - 1));
+    const dateKey = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+    return rowsByDate.get(dateKey) || { date: dateKey, modules: [] };
+  });
 }
 
 function updateWebMetadata() {
@@ -3566,6 +3615,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     minHeight: 16
   },
+  adminTrendValue: {
+    color: "#30264C",
+    fontSize: 8,
+    fontWeight: "900",
+    minHeight: 13
+  },
   adminTrendTable: {
     borderColor: "#E7E3F2",
     borderRadius: 8,
@@ -3650,17 +3705,16 @@ const styles = StyleSheet.create({
   },
   adminModuleTrendStack: {
     alignItems: "center",
-    flexDirection: "row",
-    gap: 2,
-    height: "86%",
+    flexDirection: "column-reverse",
+    gap: 0,
+    height: "76%",
     justifyContent: "center",
     width: "100%"
   },
   adminModuleTrendSegment: {
-    borderTopLeftRadius: 5,
-    borderTopRightRadius: 5,
+    borderRadius: 3,
     minHeight: 5,
-    width: 7
+    width: 14
   },
   adminModuleLegend: {
     flexDirection: "row",

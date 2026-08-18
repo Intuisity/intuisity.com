@@ -122,6 +122,8 @@ export type VisitorInsightReport = {
   isOwnerTest?: boolean;
   source?: string;
   currentLocation?: string;
+  totalTimeMs?: number;
+  totalActiveTimeMs?: number;
 };
 
 export type UserInsightReport = {

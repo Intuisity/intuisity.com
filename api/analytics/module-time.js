@@ -46,7 +46,7 @@ module.exports = async function handler(request, response) {
       module_label: body.moduleLabel || "Unknown area",
       started_at: body.startedAt || new Date().toISOString(),
       duration_ms: Number(body.durationMs || 0),
-      active_duration_ms: Number(body.activeDurationMs || body.durationMs || 0),
+      active_duration_ms: Number(body.activeDurationMs == null ? body.durationMs || 0 : body.activeDurationMs),
       date: body.date || new Date().toISOString().slice(0, 10),
       event_json: eventJson,
       recorded_at: new Date().toISOString()

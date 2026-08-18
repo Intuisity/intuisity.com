@@ -47,10 +47,11 @@ async function buildAdminReport(options = {}) {
   const acquisitionDetails = buildAcquisitionDetails(rangedVisitorEvents.filter((event) => !isOwnerTestEvent(event)));
   const ownerTestVisitors = countUniqueVisitors(rangedVisitorEvents.filter(isOwnerTestEvent));
   const audienceUniqueVisitors = countUniqueVisitors(rangedVisitorEvents.filter((event) => !isOwnerTestEvent(event)));
-  const moduleDailyTrend = buildModuleDailyTrend(rangedAnalyticsEvents);
+  const rangedModuleEvents = rangedAnalyticsEvents.filter(isModuleTimeEvent);
+  const moduleDailyTrend = buildModuleDailyTrend(rangedModuleEvents);
 
   const moduleTotals = new Map();
-  rangedAnalyticsEvents.forEach((event) => {
+  rangedModuleEvents.forEach((event) => {
     const label = event.module_label || "Unknown area";
     const current = moduleTotals.get(label) || {
       moduleId: event.module_id || "",
@@ -70,8 +71,8 @@ async function buildAdminReport(options = {}) {
   });
 
   const moduleSummaries = [...moduleTotals.values()].sort((a, b) => b.activeMs - a.activeMs || b.totalMs - a.totalMs);
-  const totalTimeMs = rangedAnalyticsEvents.reduce((total, event) => total + Number(event.duration_ms || 0), 0);
-  const totalActiveTimeMs = rangedAnalyticsEvents.reduce((total, event) => total + getActiveDuration(event), 0);
+  const totalTimeMs = rangedModuleEvents.reduce((total, event) => total + Number(event.duration_ms || 0), 0);
+  const totalActiveTimeMs = rangedModuleEvents.reduce((total, event) => total + getActiveDuration(event), 0);
   const ratings = moduleFeedback.filter((entry) => Number(entry.rating || 0));
   const ratingTotal = ratings.reduce((total, entry) => total + Number(entry.rating || 0), 0);
   const userInsights = buildUserInsights({ analyticsEvents: rangedAnalyticsEvents, dailyResults, friends, moduleFeedback, profiles: userProfiles });
@@ -81,7 +82,7 @@ async function buildAdminReport(options = {}) {
 
   return {
     totalUsers: knownUserCount,
-    totalVisits: rangedAnalyticsEvents.length,
+    totalVisits: rangedVisitorEvents.filter(isSiteVisitEvent).length,
     uniqueVisitors: countUniqueVisitors(rangedVisitorEvents),
     audienceUniqueVisitors,
     ownerTestVisitors,
@@ -96,8 +97,8 @@ async function buildAdminReport(options = {}) {
     dateRange,
     totalTimeMs,
     totalActiveTimeMs,
-    averageSessionMs: rangedAnalyticsEvents.length ? Math.round(totalTimeMs / rangedAnalyticsEvents.length) : 0,
-    averageActiveSessionMs: rangedAnalyticsEvents.length ? Math.round(totalActiveTimeMs / rangedAnalyticsEvents.length) : 0,
+    averageSessionMs: rangedModuleEvents.length ? Math.round(totalTimeMs / rangedModuleEvents.length) : 0,
+    averageActiveSessionMs: rangedModuleEvents.length ? Math.round(totalActiveTimeMs / rangedModuleEvents.length) : 0,
     mostUsedModule: moduleSummaries[0]?.moduleLabel || "No module activity yet",
     moduleSummaries,
     feedbackCount: ratings.length,
@@ -344,10 +345,23 @@ function buildVisitorInsights(events, profiles) {
       currentLocation: profile ? [resolveProfileField(profile, "current_city", "currentCity"), resolveProfileField(profile, "current_state", "currentState"), resolveProfileField(profile, "current_country", "currentCountry")].filter(Boolean).join(", ") : "",
       isOwnerTest: isOwnerTestEvent(event),
       visits: 0,
+      eventCount: 0,
+      siteTimeMs: 0,
+      siteActiveTimeMs: 0,
+      legacyTimeMs: 0,
+      legacyActiveTimeMs: 0,
       firstSeenAt: recordedAt,
       lastSeenAt: recordedAt
     };
-    current.visits += 1;
+    current.eventCount += 1;
+    if (isSiteVisitEvent(event)) current.visits += 1;
+    if (isSiteTimeEvent(event)) {
+      current.siteTimeMs += Number(event.duration_ms || 0);
+      current.siteActiveTimeMs += getActiveDuration(event);
+    } else if (isModuleTimeEvent(event)) {
+      current.legacyTimeMs += Number(event.duration_ms || 0);
+      current.legacyActiveTimeMs += getActiveDuration(event);
+    }
     if (isOwnerTestEvent(event)) current.isOwnerTest = true;
     if (recordedAt && (!current.firstSeenAt || recordedAt < current.firstSeenAt)) {
       current.firstSeenAt = recordedAt;
@@ -357,7 +371,14 @@ function buildVisitorInsights(events, profiles) {
     visitors.set(key, current);
   });
 
-  return [...visitors.values()].sort((a, b) => new Date(b.lastSeenAt || 0).getTime() - new Date(a.lastSeenAt || 0).getTime());
+  return [...visitors.values()]
+    .map(({ eventCount, siteTimeMs, siteActiveTimeMs, legacyTimeMs, legacyActiveTimeMs, ...visitor }) => ({
+      ...visitor,
+      visits: visitor.visits || (eventCount ? 1 : 0),
+      totalTimeMs: siteTimeMs || legacyTimeMs,
+      totalActiveTimeMs: siteActiveTimeMs || legacyActiveTimeMs
+    }))
+    .sort((a, b) => new Date(b.lastSeenAt || 0).getTime() - new Date(a.lastSeenAt || 0).getTime());
 }
 
 async function selectAll(table) {
@@ -397,7 +418,7 @@ function buildVisitorTrend(events) {
   events.forEach((event) => {
     const date = getEventDateKey(event);
     const current = dayMap.get(date) || { date, visitCount: 0, visitorEmails: new Set() };
-    current.visitCount += 1;
+    if (isSiteVisitEvent(event)) current.visitCount += 1;
     const visitorKey = getVisitorKey(event);
     if (visitorKey) current.visitorEmails.add(visitorKey);
     dayMap.set(date, current);
@@ -676,11 +697,26 @@ function shiftDateKey(dateKey, days) {
 }
 
 function getActiveDuration(event) {
-  return Number(event.active_duration_ms || event.duration_ms || 0);
+  const fallbackActiveMs = event?.event_json?.activeDurationMs;
+  if (event.active_duration_ms != null) return Number(event.active_duration_ms);
+  if (fallbackActiveMs != null) return Number(fallbackActiveMs);
+  return Number(event.duration_ms || 0);
 }
 
 function isExcludedReportEmail(email) {
   return excludedReportEmails.has(normalizeEmail(email));
+}
+
+function isModuleTimeEvent(event) {
+  return moduleOrder.includes(String(event?.module_label || ""));
+}
+
+function isSiteVisitEvent(event) {
+  return event?.module_id === "site-visit" || event?.module_label === "Website Visit";
+}
+
+function isSiteTimeEvent(event) {
+  return event?.module_id === "site-session" || event?.module_label === "Website Session";
 }
 
 function isOwnerTestEvent(event) {
@@ -756,7 +792,9 @@ module.exports = {
   buildAcquisitionSources,
   buildAcquisitionDetails,
   buildGeographicAreas,
+  buildModuleDailyTrend,
   buildVisitorGeographicAreas,
+  buildVisitorInsights,
   buildPremiumInterest,
   buildUserInsightsCsv,
   collectKnownEmails,

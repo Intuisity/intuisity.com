@@ -1146,6 +1146,25 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   }, [userProfile.email]);
 
   useEffect(() => {
+    const documentRef = Platform.OS === "web" ? (globalThis as any).document : undefined;
+    const flushModuleTime = () => {
+      const now = Date.now();
+      recordModuleTime(userProfile.email, analyticsPageRef.current, analyticsStartedRef.current, now);
+      analyticsStartedRef.current = now;
+    };
+    const interval = setInterval(flushModuleTime, 15 * 1000);
+    const handleVisibilityChange = () => {
+      if (documentRef?.hidden) flushModuleTime();
+      else analyticsStartedRef.current = Date.now();
+    };
+    documentRef?.addEventListener?.("visibilitychange", handleVisibilityChange);
+    return () => {
+      clearInterval(interval);
+      documentRef?.removeEventListener?.("visibilitychange", handleVisibilityChange);
+    };
+  }, [userProfile.email]);
+
+  useEffect(() => {
     let active = true;
 
     async function loadPersonWithPortrait() {

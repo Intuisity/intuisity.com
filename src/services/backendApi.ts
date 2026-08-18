@@ -105,6 +105,8 @@ type BackendAdminReport = {
     isOwnerTest?: boolean;
     source?: string;
     currentLocation?: string;
+    totalTimeMs?: number;
+    totalActiveTimeMs?: number;
   }>;
   userInsights: Array<{
     name: string;
@@ -330,6 +332,21 @@ export function isOwnerTestDevice() {
   }
 }
 
+export function syncSiteTime(email: string, startedAt: number, durationMs: number, activeDurationMs: number) {
+  const safeDurationMs = Math.max(0, Math.min(Number(durationMs || 0), 30 * 1000));
+  if (safeDurationMs < 1000) return Promise.resolve(false);
+  const signedInEmail = String(email || "").trim().toLowerCase();
+  return syncModuleTime({
+    activeDurationMs: Math.max(0, Math.min(Number(activeDurationMs || 0), safeDurationMs)),
+    date: getDateKey(new Date(startedAt)),
+    durationMs: safeDurationMs,
+    email: signedInEmail && !signedInEmail.startsWith("guest-") ? signedInEmail : getAnonymousVisitorEmail(),
+    moduleId: "site-session",
+    moduleLabel: "Website Session",
+    startedAt: new Date(startedAt).toISOString()
+  });
+}
+
 export function setOwnerTestDevice(enabled: boolean) {
   try {
     if (enabled) globalThis.localStorage?.setItem(ownerTestDeviceKey, "true");
@@ -524,8 +541,8 @@ function rememberBackendSync(entry: Omit<BackendSyncLogEntry, "savedAt">) {
   }
 }
 
-function getDateKey() {
-  const now = new Date();
+function getDateKey(value = new Date()) {
+  const now = value;
   return [
     now.getFullYear(),
     String(now.getMonth() + 1).padStart(2, "0"),

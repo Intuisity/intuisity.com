@@ -136,4 +136,21 @@ assert.deepEqual(acquisitionDetails, [{
   uniqueVisitors: 1
 }]);
 
+const timedVisitors = serverReport.buildVisitorInsights([
+  { email: "visitor-timed@anonymous.intuisity", module_id: "site-visit", recorded_at: "2026-08-18T10:00:00.000Z", duration_ms: 1, active_duration_ms: 1, event_json: { visitorId: "timed" } },
+  { email: "visitor-timed@anonymous.intuisity", module_id: "site-session", recorded_at: "2026-08-18T10:00:15.000Z", duration_ms: 15000, active_duration_ms: 15000, event_json: { visitorId: "timed" } },
+  { email: "visitor-timed@anonymous.intuisity", module_id: "site-session", recorded_at: "2026-08-18T10:00:30.000Z", duration_ms: 15000, active_duration_ms: 0, event_json: { visitorId: "timed" } }
+], []);
+assert.equal(timedVisitors[0].visits, 1);
+assert.equal(timedVisitors[0].totalTimeMs, 30000);
+assert.equal(timedVisitors[0].totalActiveTimeMs, 15000);
+
+assert.deepEqual(serverReport.buildModuleDailyTrend([
+  { date: "2026-08-17", module_label: "Challenge 1: Treasure Chest", duration_ms: 5000, active_duration_ms: 4000 },
+  { date: "2026-08-18", module_label: "Challenge 1: Treasure Chest", duration_ms: 9000, active_duration_ms: 7000 }
+]).map((day) => ({ date: day.date, activeMs: day.modules[0].activeMs })), [
+  { date: "2026-08-17", activeMs: 4000 },
+  { date: "2026-08-18", activeMs: 7000 }
+]);
+
 console.log("Profile report tests passed");

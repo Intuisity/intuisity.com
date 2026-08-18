@@ -448,7 +448,10 @@ function getLocalDateKey(date) {
 }
 
 function getActiveDuration(event) {
-  return Number(event.active_duration_ms || event.duration_ms || 0);
+  const fallbackActiveMs = event?.event_json?.activeDurationMs;
+  if (event.active_duration_ms != null) return Number(event.active_duration_ms);
+  if (fallbackActiveMs != null) return Number(fallbackActiveMs);
+  return Number(event.duration_ms || 0);
 }
 
 function isExcludedReportEmail(email) {
