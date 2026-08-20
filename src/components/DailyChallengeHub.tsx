@@ -2750,7 +2750,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 zIndex: 10
               }
             },
-            React.createElement("div", { style: { color: "#6537c7", fontSize: 12, fontWeight: 900, marginBottom: 3, textTransform: "uppercase" } }, "Treasure Pieces · Top Row"),
+            React.createElement("div", { style: { color: "#6544B8", fontSize: 12, fontWeight: 900, marginBottom: 3, textTransform: "uppercase" } }, "Treasure Pieces · Top Row"),
             React.createElement("div", { style: { color: "#706982", fontSize: 11, fontWeight: 700, marginBottom: 8 } }, "Bring each piece down into Game 1, then continue through Games 2, 3, and 4."),
             React.createElement(
               "div",
@@ -2790,7 +2790,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               return React.createElement(
               "div",
               { key: `treasure-game-${rowIndex}`, style: { opacity: completedRow || isActiveRow ? 1 : 0.5 } },
-              React.createElement("div", { style: { color: isActiveRow ? "#6537c7" : "#706982", fontSize: 12, fontWeight: 900, marginBottom: 5, textTransform: "uppercase" } }, `Game ${rowIndex + 1}${isActiveRow ? " · Your turn" : ""}`),
+              React.createElement("div", { style: { color: isActiveRow ? "#6544B8" : "#706982", fontSize: 12, fontWeight: 900, marginBottom: 5, textTransform: "uppercase" } }, `Game ${rowIndex + 1}${isActiveRow ? " · Your turn" : ""}`),
               React.createElement(
                 "div",
                 { style: { display: "flex", gap: 8, justifyContent: "center" } },
@@ -2834,7 +2834,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           ),
           opponent === "friend" && React.createElement(
             "label",
-            { style: { color: "#6537c7", display: "block", fontSize: 13, fontWeight: 900, marginBottom: 7 } },
+            { style: { color: "#6544B8", display: "block", fontSize: 13, fontWeight: 900, marginBottom: 7 } },
             "Message to your friend"
           ),
           opponent === "friend" && React.createElement(
