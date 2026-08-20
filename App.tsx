@@ -2850,7 +2850,7 @@ const styles = StyleSheet.create({
   accountKeyboardAvoider: { flex: 1 },
   accountLoginContent: { flexGrow: 1, justifyContent: "flex-start", padding: 24, paddingBottom: 180 },
   accountFormContent: { padding: 24, paddingBottom: 50 },
-  signupBanner: { alignSelf: "stretch", borderRadius: 10, height: 150, marginBottom: 18, width: "100%" },
+  signupBanner: { alignSelf: "stretch", aspectRatio: 1317 / 460, borderRadius: 10, marginBottom: 18, width: "100%" },
   accountHero: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 2, marginBottom: 20, padding: 30 },
   accountHeroTitle: { color: "#f3c64d", fontSize: 28, fontWeight: "900", marginTop: 12, textAlign: "center" },
   accountHeroText: { color: "#FFFFFF", fontSize: 15, lineHeight: 22, marginTop: 10, textAlign: "center" },
