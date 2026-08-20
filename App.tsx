@@ -481,17 +481,9 @@ export default function App() {
           onPress={returnHome}
           style={styles.profileBadge}
         >
-          <Ionicons color="#f3c64d" name="home-outline" size={22} />
+          <Ionicons color="#6544B8" name="home-outline" size={22} />
           <Text style={styles.profileBadgeText}>Home</Text>
         </Pressable>
-        {Platform.OS !== "web" ? (
-          <Image
-            accessibilityLabel="Intuisity gold logo"
-            resizeMode="contain"
-            source={require("./assets/intuisity-logo-gold-transparent.png")}
-            style={styles.topBrandLogo}
-          />
-        ) : null}
         <View style={styles.topRightActions}>
           {Platform.OS === "web" ? <Pressable
             accessibilityLabel="Read Intuisity articles"
@@ -506,7 +498,7 @@ export default function App() {
             onPress={() => setShowLanguageMenu((current) => !current)}
             style={styles.languageButton}
           >
-            <Ionicons color="#f3c64d" name="language-outline" size={21} />
+            <Ionicons color="#6544B8" name="language-outline" size={21} />
             <Text style={styles.languageButtonText}>{userProfile.language.toUpperCase()}</Text>
           </Pressable>
           <Pressable
@@ -514,7 +506,7 @@ export default function App() {
             onPress={confirmLogout}
             style={styles.logoutIconButton}
           >
-            <Ionicons color="#f3c64d" name="log-out-outline" size={22} />
+            <Ionicons color="#6544B8" name="log-out-outline" size={22} />
             <Text style={styles.logoutIconText}>Logout</Text>
           </Pressable>
         </View>
@@ -2859,70 +2851,70 @@ const styles = StyleSheet.create({
   accountLoginContent: { flexGrow: 1, justifyContent: "flex-start", padding: 24, paddingBottom: 180 },
   accountFormContent: { padding: 24, paddingBottom: 50 },
   signupBanner: { alignSelf: "stretch", borderRadius: 10, height: 150, marginBottom: 18, width: "100%" },
-  accountHero: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 2, marginBottom: 20, padding: 30 },
-  accountHeroTitle: { color: "#f3c64d", fontSize: 28, fontWeight: "900", marginTop: 12, textAlign: "center" },
-  accountHeroText: { color: "#FFFFFF", fontSize: 15, lineHeight: 22, marginTop: 10, textAlign: "center" },
-  freePlayBadge: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#f3c64d", borderRadius: 999, borderWidth: 1, flexDirection: "row", gap: 7, marginTop: 16, paddingHorizontal: 14, paddingVertical: 8 },
+  accountHero: { alignItems: "center", backgroundColor: "#6544B8", borderColor: "#63E3E0", borderRadius: 8, borderWidth: 2, marginBottom: 20, padding: 30 },
+  accountHeroTitle: { color: "#FFFFFF", fontSize: 28, fontWeight: "900", marginTop: 12, textAlign: "center" },
+  accountHeroText: { color: "#EEE8FF", fontSize: 15, lineHeight: 22, marginTop: 10, textAlign: "center" },
+  freePlayBadge: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#63E3E0", borderRadius: 999, borderWidth: 1, flexDirection: "row", gap: 7, marginTop: 16, paddingHorizontal: 14, paddingVertical: 8 },
   freePlayBadgePressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
-  freePlayBadgeText: { color: "#3f1b91", fontSize: 13, fontWeight: "900" },
-  accountTitle: { color: "#b87908", fontSize: 28, fontWeight: "900", marginBottom: 8 },
+  freePlayBadgeText: { color: "#6544B8", fontSize: 13, fontWeight: "900" },
+  accountTitle: { color: "#201B35", fontSize: 28, fontWeight: "900", marginBottom: 8 },
   accountSubtitle: { color: "#706982", fontSize: 15, lineHeight: 22, marginBottom: 20 },
-  loginFreePlayNote: { alignItems: "center", alignSelf: "flex-start", backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 999, borderWidth: 1, flexDirection: "row", gap: 7, marginBottom: 16, marginTop: -8, paddingHorizontal: 12, paddingVertical: 8 },
-  loginFreePlayText: { color: "#b87908", fontSize: 12, fontWeight: "900" },
-  googleButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#e2dff0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 10, justifyContent: "center", marginBottom: 12, minHeight: 48, padding: 12 },
+  loginFreePlayNote: { alignItems: "center", alignSelf: "flex-start", backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 999, borderWidth: 1, flexDirection: "row", gap: 7, marginBottom: 16, marginTop: -8, paddingHorizontal: 12, paddingVertical: 8 },
+  loginFreePlayText: { color: "#008A94", fontSize: 12, fontWeight: "900" },
+  googleButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#DAD3E8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 10, justifyContent: "center", marginBottom: 12, minHeight: 48, padding: 12 },
   googleIconCircle: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 999, borderWidth: 1, height: 26, justifyContent: "center", width: 26 },
   googleIconText: { color: "#4285F4", fontSize: 16, fontWeight: "900" },
   googleButtonText: { color: "#30264C", fontSize: 15, fontWeight: "900" },
-  nativeGoogleNotice: { alignItems: "center", backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 9, marginBottom: 12, padding: 12 },
+  nativeGoogleNotice: { alignItems: "center", backgroundColor: "#F8F5FF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 9, marginBottom: 12, padding: 12 },
   nativeGoogleNoticeText: { color: "#5D536A", flex: 1, fontSize: 12, fontWeight: "700", lineHeight: 17 },
   loginDivider: { alignItems: "center", flexDirection: "row", gap: 10, marginBottom: 12, marginTop: 2 },
   loginDividerLine: { backgroundColor: "#E7E3F2", flex: 1, height: 1 },
   loginDividerText: { color: "#706982", fontSize: 11, fontWeight: "900", textTransform: "uppercase" },
-  accountGroupLabel: { color: "#6537c7", fontSize: 16, fontWeight: "900", marginBottom: 10, marginTop: 12 },
+  accountGroupLabel: { color: "#6544B8", fontSize: 16, fontWeight: "900", marginBottom: 10, marginTop: 12 },
   languageSetup: { marginBottom: 14 },
-  languageSetupHeader: { alignItems: "center", backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", padding: 10 },
+  languageSetupHeader: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", padding: 10 },
   languageSetupDefault: { color: "#706982", fontSize: 11, lineHeight: 16 },
-  signupLanguageMenu: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, marginTop: 6, padding: 6 },
+  signupLanguageMenu: { backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, marginTop: 6, padding: 6 },
   accountField: { marginBottom: 12 },
-  accountFieldLabel: { color: "#211842", fontSize: 13, fontWeight: "800", marginBottom: 6 },
+  accountFieldLabel: { color: "#393149", fontSize: 13, fontWeight: "800", marginBottom: 6 },
   accountInputWrap: { position: "relative" },
-  accountInput: { backgroundColor: "#FFFFFF", borderColor: "#e2dff0", borderRadius: 8, borderWidth: 1, color: "#211842", fontSize: 16, paddingHorizontal: 14, paddingVertical: 12 },
+  accountInput: { backgroundColor: "#FFFFFF", borderColor: "#DAD3E8", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 16, paddingHorizontal: 14, paddingVertical: 12 },
   accountPasswordInput: { paddingRight: 50 },
   passwordVisibilityButton: { alignItems: "center", bottom: 0, justifyContent: "center", position: "absolute", right: 6, top: 0, width: 42 },
   savedAccountList: { marginBottom: 14 },
   savedAccountLabel: { color: "#706982", fontSize: 11, fontWeight: "900", marginBottom: 7, textTransform: "uppercase" },
-  savedAccountButton: { alignItems: "center", backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 9, marginBottom: 7, padding: 10 },
-  savedAccountButtonSelected: { backgroundColor: "#b87908", borderColor: "#d79b16" },
+  savedAccountButton: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 9, marginBottom: 7, padding: 10 },
+  savedAccountButtonSelected: { backgroundColor: "#008A94", borderColor: "#00AEBB" },
   savedAccountCopy: { flex: 1 },
   savedAccountName: { color: "#30264C", fontSize: 13, fontWeight: "900" },
   savedAccountEmail: { color: "#706982", fontSize: 11, marginTop: 2 },
-  savedAccountAction: { color: "#b87908", fontSize: 10, fontWeight: "900", marginTop: 3 },
+  savedAccountAction: { color: "#008A94", fontSize: 10, fontWeight: "900", marginTop: 3 },
   savedAccountTextSelected: { color: "#FFFFFF" },
-  stateSuggestions: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, marginTop: 4, overflow: "hidden" },
+  stateSuggestions: { backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, marginTop: 4, overflow: "hidden" },
   stateSuggestion: { alignItems: "center", borderBottomColor: "#EEEAF5", borderBottomWidth: 1, flexDirection: "row", gap: 8, minHeight: 40, paddingHorizontal: 12, paddingVertical: 8 },
   stateSuggestionText: { color: "#30264C", fontSize: 14, fontWeight: "700" },
-  reminderNotice: { alignItems: "center", backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 10, marginBottom: 14, padding: 12 },
+  reminderNotice: { alignItems: "center", backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 10, marginBottom: 14, padding: 12 },
   reminderNoticeCopy: { flex: 1 },
   reminderNoticeTitle: { color: "#30264C", fontSize: 13, fontWeight: "900" },
   reminderNoticeText: { color: "#706982", fontSize: 11, lineHeight: 16, marginTop: 2 },
-  reminderNoticeTimeZone: { color: "#b87908", fontSize: 11, fontWeight: "900", lineHeight: 16, marginTop: 4 },
-  reminderTimeInput: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 15, fontWeight: "800", marginTop: 8, maxWidth: 150, paddingHorizontal: 12, paddingVertical: 9 },
+  reminderNoticeTimeZone: { color: "#008A94", fontSize: 11, fontWeight: "900", lineHeight: 16, marginTop: 4 },
+  reminderTimeInput: { backgroundColor: "#FFFFFF", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, color: "#30264C", fontSize: 15, fontWeight: "800", marginTop: 8, maxWidth: 150, paddingHorizontal: 12, paddingVertical: 9 },
   accountError: { color: "#B34B56", fontSize: 13, fontWeight: "700", marginBottom: 12 },
   accountGateNotice: { backgroundColor: "#FFF7DE", borderColor: "#E8CC74", borderRadius: 10, borderWidth: 1, color: "#51431C", fontSize: 13, fontWeight: "800", lineHeight: 19, marginBottom: 14, padding: 12, textAlign: "center" },
   accountHint: { color: "#706982", fontSize: 12, fontWeight: "700", marginBottom: 10, marginTop: -4 },
-  passwordRules: { backgroundColor: "#faf8ff", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, marginBottom: 12, marginTop: -2, padding: 10 },
+  passwordRules: { backgroundColor: "#F8F7FC", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, marginBottom: 12, marginTop: -2, padding: 10 },
   passwordRulesTitle: { color: "#30264C", fontSize: 13, fontWeight: "900", marginBottom: 7 },
   passwordRuleRow: { alignItems: "center", flexDirection: "row", gap: 7, marginBottom: 5 },
   passwordRuleText: { color: "#706982", flex: 1, fontSize: 12, fontWeight: "700", lineHeight: 16 },
-  passwordRuleTextPassed: { color: "#b87908" },
+  passwordRuleTextPassed: { color: "#008A94" },
   forgotPasswordButton: { alignSelf: "flex-end", marginBottom: 14, marginTop: -4, paddingHorizontal: 4, paddingVertical: 4 },
-  forgotPasswordText: { color: "#6537c7", fontSize: 13, fontWeight: "900" },
-  accountSecondaryButton: { alignItems: "center", borderColor: "#e2dff0", borderRadius: 8, borderWidth: 1, justifyContent: "center", minHeight: 48, padding: 12 },
-  accountSecondaryText: { color: "#3f1b91", fontSize: 15, fontWeight: "900" },
+  forgotPasswordText: { color: "#6544B8", fontSize: 13, fontWeight: "900" },
+  accountSecondaryButton: { alignItems: "center", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, justifyContent: "center", minHeight: 48, padding: 12 },
+  accountSecondaryText: { color: "#008A94", fontSize: 15, fontWeight: "900" },
   legalLinks: { alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "center", marginTop: 16 },
   legalLinkButton: { paddingHorizontal: 4, paddingVertical: 4 },
   legalLinkDivider: { color: "#B8AFCB", fontSize: 12, fontWeight: "800" },
-  legalLinkText: { color: "#6537c7", fontSize: 12, fontWeight: "900" },
+  legalLinkText: { color: "#6544B8", fontSize: 12, fontWeight: "900" },
   app: {
     backgroundColor: "#FFFFFF",
     flex: 1
@@ -2935,22 +2927,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 8
   },
-  topBrandLogo: { flex: 1, height: 55, marginHorizontal: 8, maxWidth: 312 },
-  profileBadge: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 6, minHeight: 42, paddingHorizontal: 12, paddingVertical: 8 },
-  profileBadgeText: { color: "#fff4cf", flexShrink: 1, fontSize: 13, fontWeight: "800" },
+  profileBadge: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 6, minHeight: 42, paddingHorizontal: 12, paddingVertical: 8 },
+  profileBadgeText: { color: "#30264C", flexShrink: 1, fontSize: 13, fontWeight: "800" },
   topRightActions: { alignItems: "center", flexDirection: "row", gap: 8 },
-  languageButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 3, height: 42, justifyContent: "center", paddingHorizontal: 8 },
-  languageButtonText: { color: "#fff4cf", fontSize: 10, fontWeight: "900" },
-  logoutIconButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 6, height: 42, justifyContent: "center", paddingHorizontal: 10 },
-  logoutIconText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
-  languageMenu: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, elevation: 12, left: 18, padding: 6, position: "absolute", right: 18, shadowColor: "#30264C", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, top: 58, zIndex: 20 },
+  languageButton: { alignItems: "center", backgroundColor: "#EDFBFB", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 3, height: 42, justifyContent: "center", paddingHorizontal: 8 },
+  languageButtonText: { color: "#008A94", fontSize: 10, fontWeight: "900" },
+  logoutIconButton: { alignItems: "center", backgroundColor: "#F8F7FC", borderColor: "#BFE8E8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 6, height: 42, justifyContent: "center", paddingHorizontal: 10 },
+  logoutIconText: { color: "#6544B8", fontSize: 12, fontWeight: "900" },
+  languageMenu: { backgroundColor: "#FFFFFF", borderColor: "#DCCFF5", borderRadius: 8, borderWidth: 1, elevation: 12, left: 18, padding: 6, position: "absolute", right: 18, shadowColor: "#30264C", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, top: 58, zIndex: 20 },
   languageMenuOption: { alignItems: "center", borderRadius: 7, flexDirection: "row", justifyContent: "space-between", minHeight: 38, paddingHorizontal: 10, paddingVertical: 6 },
-  languageMenuOptionSelected: { backgroundColor: "#b87908" },
+  languageMenuOptionSelected: { backgroundColor: "#008A94" },
   languageMenuNative: { color: "#30264C", fontSize: 13, fontWeight: "900" },
   languageMenuEnglish: { color: "#706982", fontSize: 11 },
   languageMenuTextSelected: { color: "#FFFFFF" },
   kicker: {
-    color: "#6537c7",
+    color: "#7555C7",
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0,
@@ -2987,8 +2978,8 @@ const styles = StyleSheet.create({
     marginBottom: 14
   },
   adminHero: {
-    backgroundColor: "#6537c7",
-    borderColor: "#f3c64d",
+    backgroundColor: "#6544B8",
+    borderColor: "#63E3E0",
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 14,
@@ -2997,7 +2988,7 @@ const styles = StyleSheet.create({
   },
   adminHeroIcon: {
     alignItems: "center",
-    backgroundColor: "#b87908",
+    backgroundColor: "#008A94",
     borderColor: "rgba(255,255,255,0.55)",
     borderRadius: 8,
     borderWidth: 1,
@@ -3027,8 +3018,8 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   adminSubpageHeader: {
-    backgroundColor: "#6537c7",
-    borderColor: "#f3c64d",
+    backgroundColor: "#6544B8",
+    borderColor: "#63E3E0",
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 14,
@@ -3038,8 +3029,8 @@ const styles = StyleSheet.create({
   adminBackButton: {
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: "#FFF9E8",
-    borderColor: "#F3C64D",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#DCCFF5",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -3090,7 +3081,7 @@ const styles = StyleSheet.create({
   },
   adminAcquisitionRow: { alignItems: "flex-start", borderTopColor: "#EEEAF5", borderTopWidth: 1, flexDirection: "row", gap: 10, paddingVertical: 11 },
   adminGeographyRank: {
-    color: "#6537c7",
+    color: "#7555C7",
     fontSize: 13,
     fontWeight: "900",
     textAlign: "center",
@@ -3103,9 +3094,9 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   adminGeographyCount: {
-    backgroundColor: "#fff4cf",
+    backgroundColor: "#F1EDFF",
     borderRadius: 8,
-    color: "#6537c7",
+    color: "#6544B8",
     fontSize: 13,
     fontWeight: "900",
     minWidth: 34,
@@ -3115,7 +3106,7 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
   metric: {
-    backgroundColor: "#faf8ff",
+    backgroundColor: "#F8F7FC",
     borderColor: "#E7E3F2",
     borderRadius: 8,
     borderWidth: 1,
@@ -3125,8 +3116,8 @@ const styles = StyleSheet.create({
   },
   metricIcon: {
     alignItems: "center",
-    backgroundColor: "#fffaf0",
-    borderColor: "#f0dca0",
+    backgroundColor: "#EDFBFB",
+    borderColor: "#BFE8E8",
     borderRadius: 8,
     borderWidth: 1,
     height: 34,
@@ -3153,11 +3144,11 @@ const styles = StyleSheet.create({
     padding: 14
   },
   focusCard: {
-    borderColor: "#d79b16",
+    borderColor: "#00AEBB",
     borderWidth: 2
   },
   cardCount: {
-    color: "#6537c7",
+    color: "#7555C7",
     fontSize: 12,
     fontWeight: "800",
     marginBottom: 6,
@@ -3177,7 +3168,7 @@ const styles = StyleSheet.create({
     marginTop: 6
   },
   challengeTagline: {
-    color: "#d79b16",
+    color: "#00AEBB",
     fontSize: 14,
     fontWeight: "800",
     marginBottom: 12,
@@ -3195,7 +3186,7 @@ const styles = StyleSheet.create({
     width: "100%"
   },
   choice: {
-    backgroundColor: "#faf8ff",
+    backgroundColor: "#F8F7FC",
     borderColor: "#E4DFF0",
     borderRadius: 8,
     borderWidth: 1,
@@ -3230,8 +3221,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 3
   },
   choiceSelected: {
-    backgroundColor: "#6537c7",
-    borderColor: "#6537c7"
+    backgroundColor: "#7555C7",
+    borderColor: "#7555C7"
   },
   choiceText: {
     color: "#393149",
@@ -3262,8 +3253,8 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignItems: "center",
-    backgroundColor: "#6537c7",
-    borderColor: "#f3c64d",
+    backgroundColor: "#7555C7",
+    borderColor: "#63E3E0",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -3288,7 +3279,7 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   resultText: {
-    color: "#b87908",
+    color: "#008A94",
     fontSize: 16,
     fontWeight: "900",
     marginTop: 10
@@ -3305,9 +3296,9 @@ const styles = StyleSheet.create({
     gap: 10
   },
   statusPill: {
-    backgroundColor: "#fff4cf",
+    backgroundColor: "#F1EDFF",
     borderRadius: 8,
-    color: "#6537c7",
+    color: "#6544B8",
     flexShrink: 1,
     fontSize: 12,
     fontWeight: "800",
@@ -3329,8 +3320,8 @@ const styles = StyleSheet.create({
   },
   premiumOfferCard: {
     alignItems: "flex-start",
-    backgroundColor: "#faf8ff",
-    borderColor: "#f0dca0",
+    backgroundColor: "#F8F5FF",
+    borderColor: "#DCCFF5",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -3368,8 +3359,8 @@ const styles = StyleSheet.create({
   },
   adminInsightCard: {
     alignItems: "center",
-    backgroundColor: "#fffaf0",
-    borderColor: "#f0dca0",
+    backgroundColor: "#EDFBFB",
+    borderColor: "#BFE8E8",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -3379,8 +3370,8 @@ const styles = StyleSheet.create({
   },
   adminInsightOpenCard: {
     alignItems: "center",
-    backgroundColor: "#faf8ff",
-    borderColor: "#f0dca0",
+    backgroundColor: "#F8F5FF",
+    borderColor: "#DCCFF5",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -3391,7 +3382,7 @@ const styles = StyleSheet.create({
   adminStatusIcon: {
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderColor: "#f0dca0",
+    borderColor: "#BFE8E8",
     borderRadius: 8,
     borderWidth: 1,
     height: 44,
@@ -3407,7 +3398,7 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   adminInsightText: {
-    color: "#b87908",
+    color: "#008A94",
     fontSize: 17,
     fontWeight: "900",
     marginTop: 3
@@ -3420,8 +3411,8 @@ const styles = StyleSheet.create({
   },
   adminStartCard: {
     alignItems: "flex-start",
-    backgroundColor: "#faf8ff",
-    borderColor: "#f0dca0",
+    backgroundColor: "#F8F5FF",
+    borderColor: "#DCCFF5",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -3442,7 +3433,7 @@ const styles = StyleSheet.create({
   },
   adminSecretCard: {
     backgroundColor: "#FFFFFF",
-    borderColor: "#f0dca0",
+    borderColor: "#DCCFF5",
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 14,
@@ -3455,7 +3446,7 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   adminSecretInput: {
-    backgroundColor: "#faf8ff",
+    backgroundColor: "#F8F7FC",
     borderColor: "#DAD3E8",
     borderRadius: 8,
     borderWidth: 1,
@@ -3481,7 +3472,7 @@ const styles = StyleSheet.create({
   adminLightButton: {
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderColor: "#f0dca0",
+    borderColor: "#DCCFF5",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -3497,7 +3488,7 @@ const styles = StyleSheet.create({
   adminPlatformCard: {
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderColor: "#f0dca0",
+    borderColor: "#DCCFF5",
     borderRadius: 8,
     borderWidth: 1,
     flex: 1,
@@ -3506,14 +3497,14 @@ const styles = StyleSheet.create({
     padding: 14
   },
   adminSavedText: {
-    color: "#b87908",
+    color: "#008A94",
     fontSize: 12,
     fontWeight: "900",
     marginTop: 8
   },
   adminCollapseCard: {
     backgroundColor: "#FFFFFF",
-    borderColor: "#f0dca0",
+    borderColor: "#DCCFF5",
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 14,
@@ -3527,8 +3518,8 @@ const styles = StyleSheet.create({
   },
   adminCollapseIcon: {
     alignItems: "center",
-    backgroundColor: "#faf8ff",
-    borderColor: "#f0dca0",
+    backgroundColor: "#F8F5FF",
+    borderColor: "#DCCFF5",
     borderRadius: 8,
     borderWidth: 1,
     height: 38,
@@ -3557,7 +3548,7 @@ const styles = StyleSheet.create({
   },
   adminDateRangeCard: {
     backgroundColor: "#FFFFFF",
-    borderColor: "#f0dca0",
+    borderColor: "#DCCFF5",
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 14,
@@ -3570,7 +3561,7 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   adminDateInput: {
-    backgroundColor: "#faf8ff",
+    backgroundColor: "#F8F7FC",
     borderColor: "#DAD3E8",
     borderRadius: 8,
     borderWidth: 1,
@@ -3592,7 +3583,7 @@ const styles = StyleSheet.create({
   },
   adminTrendGraph: {
     alignItems: "flex-end",
-    backgroundColor: "#faf8ff",
+    backgroundColor: "#F8F7FC",
     borderColor: "#E7E3F2",
     borderRadius: 8,
     borderWidth: 1,
@@ -3611,7 +3602,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end"
   },
   adminTrendBar: {
-    backgroundColor: "#d79b16",
+    backgroundColor: "#00AEBB",
     borderTopLeftRadius: 6,
     borderTopRightRadius: 6,
     minHeight: 8,
@@ -3646,11 +3637,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   adminTrendHeaderRow: {
-    backgroundColor: "#faf8ff",
+    backgroundColor: "#F8F5FF",
     borderTopWidth: 0
   },
   adminTrendHeaderText: {
-    color: "#6537c7",
+    color: "#6544B8",
     flex: 1,
     fontSize: 11,
     fontWeight: "900",
@@ -3670,8 +3661,8 @@ const styles = StyleSheet.create({
   },
   adminRangeButton: {
     alignItems: "center",
-    backgroundColor: "#faf8ff",
-    borderColor: "#f0dca0",
+    backgroundColor: "#F8F7FC",
+    borderColor: "#DCCFF5",
     borderRadius: 8,
     borderWidth: 1,
     flex: 1,
@@ -3681,11 +3672,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10
   },
   adminRangeButtonSelected: {
-    backgroundColor: "#6537c7",
-    borderColor: "#6537c7"
+    backgroundColor: "#7555C7",
+    borderColor: "#7555C7"
   },
   adminRangeButtonText: {
-    color: "#6537c7",
+    color: "#6544B8",
     fontSize: 12,
     fontWeight: "900"
   },
@@ -3694,7 +3685,7 @@ const styles = StyleSheet.create({
   },
   adminModuleTrendGraph: {
     alignItems: "flex-end",
-    backgroundColor: "#faf8ff",
+    backgroundColor: "#F8F7FC",
     borderColor: "#E7E3F2",
     borderRadius: 8,
     borderWidth: 1,
@@ -3714,16 +3705,17 @@ const styles = StyleSheet.create({
   },
   adminModuleTrendStack: {
     alignItems: "center",
-    flexDirection: "column-reverse",
-    gap: 0,
-    height: "76%",
+    flexDirection: "row",
+    gap: 2,
+    height: "86%",
     justifyContent: "center",
     width: "100%"
   },
   adminModuleTrendSegment: {
-    borderRadius: 3,
+    borderTopLeftRadius: 5,
+    borderTopRightRadius: 5,
     minHeight: 5,
-    width: 14
+    width: 7
   },
   adminModuleLegend: {
     flexDirection: "row",
@@ -3772,14 +3764,14 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   adminTrack: {
-    backgroundColor: "#fff4cf",
+    backgroundColor: "#F1EDFF",
     borderRadius: 8,
     height: 9,
     marginTop: 12,
     overflow: "hidden"
   },
   adminTrackFill: {
-    backgroundColor: "#d79b16",
+    backgroundColor: "#00AEBB",
     borderRadius: 8,
     height: "100%"
   },
@@ -3791,8 +3783,8 @@ const styles = StyleSheet.create({
   },
   adminDownloadButton: {
     alignItems: "center",
-    backgroundColor: "#6537c7",
-    borderColor: "#f3c64d",
+    backgroundColor: "#7555C7",
+    borderColor: "#63E3E0",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -3803,15 +3795,15 @@ const styles = StyleSheet.create({
   },
   adminUserCard: {
     backgroundColor: "#FFFFFF",
-    borderColor: "#f0dca0",
+    borderColor: "#DCCFF5",
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 9,
     padding: 13
   },
   adminUserPill: {
-    backgroundColor: "#fffaf0",
-    borderColor: "#f0dca0",
+    backgroundColor: "#EDFBFB",
+    borderColor: "#BFE8E8",
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 10,
@@ -3822,7 +3814,7 @@ const styles = StyleSheet.create({
     borderColor: "#F3B4B4"
   },
   adminUserPillText: {
-    color: "#b87908",
+    color: "#008A94",
     fontSize: 12,
     fontWeight: "900"
   },
@@ -3837,7 +3829,7 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   adminUserStat: {
-    backgroundColor: "#faf8ff",
+    backgroundColor: "#F8F7FC",
     borderColor: "#E7E3F2",
     borderRadius: 8,
     borderWidth: 1,
@@ -3859,7 +3851,7 @@ const styles = StyleSheet.create({
   },
   adminEmptyCard: {
     alignItems: "flex-start",
-    backgroundColor: "#faf8ff",
+    backgroundColor: "#F8F7FC",
     borderColor: "#E7E3F2",
     borderRadius: 8,
     borderWidth: 1,
@@ -3883,7 +3875,7 @@ const styles = StyleSheet.create({
     padding: 14
   },
   adminFeedbackMeta: {
-    color: "#b87908",
+    color: "#008A94",
     fontSize: 12,
     fontWeight: "800"
   },
@@ -3898,8 +3890,8 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   tabBar: {
-    backgroundColor: "#fffaf0",
-    borderColor: "#f3c64d",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E7E3F2",
     borderTopWidth: 1,
     bottom: 0,
     flexDirection: "row",
@@ -3919,16 +3911,16 @@ const styles = StyleSheet.create({
     paddingVertical: 6
   },
   tabButtonSelected: {
-    backgroundColor: "#6537c7"
+    backgroundColor: "#F1EDFF"
   },
   tabLabel: {
-    color: "#b87908",
+    color: "#756D87",
     fontSize: 11,
     fontWeight: "800",
     marginTop: 4
   },
   tabLabelSelected: {
-    color: "#fff4cf"
+    color: "#6544B8"
   },
   hero: {
     borderRadius: 8,
@@ -3950,7 +3942,7 @@ const styles = StyleSheet.create({
     padding: 16
   },
   heroEyebrow: {
-    color: "#f3c64d",
+    color: "#63E3E0",
     fontSize: 12,
     fontWeight: "800",
     textTransform: "uppercase"
@@ -3978,13 +3970,13 @@ const styles = StyleSheet.create({
     overflow: "hidden"
   },
   progressFill: {
-    backgroundColor: "#d79b16",
+    backgroundColor: "#00AEBB",
     borderRadius: 8,
     height: "100%"
   },
   resultsPanel: {
     alignItems: "center",
-    backgroundColor: "#faf8ff",
+    backgroundColor: "#F8F7FC",
     borderColor: "#E7E3F2",
     borderRadius: 8,
     borderWidth: 1,
@@ -4005,7 +3997,7 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   resultsPoints: {
-    color: "#d79b16",
+    color: "#00AEBB",
     fontSize: 16,
     fontWeight: "900",
     marginTop: 14
