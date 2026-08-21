@@ -1,5 +1,7 @@
 const { supabaseRequest } = require("./supabase");
 
+const visitMergeWindowMs = 30 * 60 * 1000;
+
 const excludedReportEmails = new Set(["admin@intuisity.com", "kathy@intuisity.com"]);
 const ownerTestEmails = new Set([
   "admin@intuisity.com",
@@ -344,7 +346,7 @@ function buildVisitorInsights(events, profiles) {
       source: getAcquisitionSource(event).label,
       currentLocation: profile ? [resolveProfileField(profile, "current_city", "currentCity"), resolveProfileField(profile, "current_state", "currentState"), resolveProfileField(profile, "current_country", "currentCountry")].filter(Boolean).join(", ") : "",
       isOwnerTest: isOwnerTestEvent(event),
-      visits: 0,
+      visitTimestamps: [],
       eventCount: 0,
       siteTimeMs: 0,
       siteActiveTimeMs: 0,
@@ -354,7 +356,7 @@ function buildVisitorInsights(events, profiles) {
       lastSeenAt: recordedAt
     };
     current.eventCount += 1;
-    if (isSiteVisitEvent(event)) current.visits += 1;
+    if (isSiteVisitEvent(event) && recordedAt) current.visitTimestamps.push(recordedAt);
     if (isSiteTimeEvent(event)) {
       current.siteTimeMs += Number(event.duration_ms || 0);
       current.siteActiveTimeMs += getActiveDuration(event);
@@ -372,9 +374,9 @@ function buildVisitorInsights(events, profiles) {
   });
 
   return [...visitors.values()]
-    .map(({ eventCount, siteTimeMs, siteActiveTimeMs, legacyTimeMs, legacyActiveTimeMs, ...visitor }) => ({
+    .map(({ eventCount, visitTimestamps, siteTimeMs, siteActiveTimeMs, legacyTimeMs, legacyActiveTimeMs, ...visitor }) => ({
       ...visitor,
-      visits: visitor.visits || (eventCount ? 1 : 0),
+      visits: countMergedVisitTimestamps(visitTimestamps) || (eventCount ? 1 : 0),
       totalTimeMs: siteTimeMs || legacyTimeMs,
       totalActiveTimeMs: siteActiveTimeMs || legacyActiveTimeMs
     }))
@@ -417,8 +419,8 @@ function buildVisitorTrend(events) {
   const dayMap = new Map();
   events.forEach((event) => {
     const date = getEventDateKey(event);
-    const current = dayMap.get(date) || { date, visitCount: 0, visitorEmails: new Set() };
-    if (isSiteVisitEvent(event)) current.visitCount += 1;
+    const current = dayMap.get(date) || { date, visitEvents: [], visitorEmails: new Set() };
+    if (isSiteVisitEvent(event)) current.visitEvents.push(event);
     const visitorKey = getVisitorKey(event);
     if (visitorKey) current.visitorEmails.add(visitorKey);
     dayMap.set(date, current);
@@ -430,7 +432,7 @@ function buildVisitorTrend(events) {
     .map((day) => ({
       date: day.date,
       uniqueVisitors: day.visitorEmails.size,
-      visits: day.visitCount
+      visits: countLogicalVisits(day.visitEvents)
     }));
 }
 
@@ -442,23 +444,53 @@ function buildPlatformBreakdown(events) {
     const current = platformMap.get(channel) || {
       channel,
       label: getPlatformLabel(channel),
-      visits: 0,
+      visitEvents: [],
       visitorEmails: new Set()
     };
-    current.visits += 1;
+    if (isSiteVisitEvent(event)) current.visitEvents.push(event);
     const visitorKey = getVisitorKey(event);
     if (visitorKey) current.visitorEmails.add(visitorKey);
     platformMap.set(channel, current);
   });
 
   return ["desktop-web", "mobile-web", "app"]
-    .map((channel) => platformMap.get(channel) || { channel, label: getPlatformLabel(channel), visits: 0, visitorEmails: new Set() })
+    .map((channel) => platformMap.get(channel) || { channel, label: getPlatformLabel(channel), visitEvents: [], visitorEmails: new Set() })
     .map((entry) => ({
       channel: entry.channel,
       label: entry.label,
-      visits: entry.visits,
+      visits: countLogicalVisits(entry.visitEvents),
       uniqueVisitors: entry.visitorEmails.size
     }));
+}
+
+function countLogicalVisits(events) {
+  const timestampsByVisitor = new Map();
+  events.forEach((event) => {
+    const key = getVisitorKey(event);
+    const timestamp = event.recorded_at || event.started_at || "";
+    if (!key || !timestamp) return;
+    const timestamps = timestampsByVisitor.get(key) || [];
+    timestamps.push(timestamp);
+    timestampsByVisitor.set(key, timestamps);
+  });
+  let visits = 0;
+  timestampsByVisitor.forEach((timestamps) => { visits += countMergedVisitTimestamps(timestamps); });
+  return visits;
+}
+
+function countMergedVisitTimestamps(timestamps) {
+  const times = timestamps
+    .map((timestamp) => new Date(timestamp).getTime())
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+  if (!times.length) return 0;
+  let visits = 1;
+  let previous = times[0];
+  for (let index = 1; index < times.length; index += 1) {
+    if (times[index] - previous > visitMergeWindowMs) visits += 1;
+    previous = times[index];
+  }
+  return visits;
 }
 
 function countUniqueVisitors(events) {

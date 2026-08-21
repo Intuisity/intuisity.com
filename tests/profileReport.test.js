@@ -145,6 +145,17 @@ assert.equal(timedVisitors[0].visits, 1);
 assert.equal(timedVisitors[0].totalTimeMs, 30000);
 assert.equal(timedVisitors[0].totalActiveTimeMs, 15000);
 
+const mergedRepeatVisitor = serverReport.buildVisitorInsights([
+  { email: "visitor-repeat@anonymous.intuisity", module_id: "site-visit", recorded_at: "2026-08-18T10:00:00.000Z", event_json: { visitorId: "repeat" } },
+  { email: "visitor-repeat@anonymous.intuisity", module_id: "site-visit", recorded_at: "2026-08-18T10:00:15.000Z", event_json: { visitorId: "repeat" } },
+  { email: "visitor-repeat@anonymous.intuisity", module_id: "site-visit", recorded_at: "2026-08-18T10:00:40.000Z", event_json: { visitorId: "repeat" } },
+  { email: "visitor-repeat@anonymous.intuisity", module_id: "site-session", recorded_at: "2026-08-18T10:00:45.000Z", duration_ms: 15000, active_duration_ms: 12000, event_json: { visitorId: "repeat" } },
+  { email: "visitor-repeat@anonymous.intuisity", module_id: "site-visit", recorded_at: "2026-08-18T10:35:00.000Z", event_json: { visitorId: "repeat" } }
+], []);
+assert.equal(mergedRepeatVisitor[0].visits, 2);
+assert.equal(mergedRepeatVisitor[0].totalTimeMs, 15000);
+assert.equal(mergedRepeatVisitor[0].totalActiveTimeMs, 12000);
+
 assert.deepEqual(serverReport.buildModuleDailyTrend([
   { date: "2026-08-17", module_label: "Challenge 1: Treasure Chest", duration_ms: 5000, active_duration_ms: 4000 },
   { date: "2026-08-18", module_label: "Challenge 1: Treasure Chest", duration_ms: 9000, active_duration_ms: 7000 }
