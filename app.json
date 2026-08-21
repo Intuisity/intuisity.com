@@ -23,7 +23,8 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0E141B"
-      }
+      },
+      "package": "com.intuisity.app"
     },
     "web": {
       "bundler": "metro",

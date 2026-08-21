@@ -609,7 +609,7 @@ export default function App() {
               style={[styles.tabButton, selected && styles.tabButtonSelected]}
             >
               <Ionicons
-                color={selected ? "#6537c7" : "#756D87"}
+                color="#f3c64d"
                 name={tab.icon}
                 size={20}
               />
@@ -710,7 +710,7 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
           keyboardShouldPersistTaps="handled"
         >
         <View style={styles.accountHero}>
-          <Ionicons color="#FFFFFF" name="sparkles-outline" size={34} />
+          <Ionicons color="#f3c64d" name="sparkles-outline" size={34} />
           <Text style={styles.accountHeroTitle}>Welcome to Intuisity</Text>
           <Text style={styles.accountHeroText}>Awaken your intuition. Expand your awareness. Unlock your inner wisdom.</Text>
           <Pressable
@@ -726,7 +726,7 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
           </Pressable>
         </View>
         <Pressable onPress={() => setMode("create")} style={styles.primaryButton}>
-          <Ionicons color="#FFFFFF" name="person-add-outline" size={18} />
+          <Ionicons color="#f3c64d" name="person-add-outline" size={18} />
           <Text style={styles.primaryButtonText}>Create my account</Text>
         </Pressable>
         {initialNotice ? <Text style={styles.accountGateNotice}>{initialNotice}</Text> : null}
@@ -828,7 +828,7 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
                   </Text>
                 </View>
                 {profile.email.toLowerCase() === savedProfile.email.toLowerCase() && (
-                  <Ionicons color="#FFFFFF" name="checkmark-circle" size={19} />
+                  <Ionicons color="#f3c64d" name="checkmark-circle" size={19} />
                 )}
               </Pressable>
             ))}
@@ -1676,7 +1676,7 @@ function DailyChallenge({
           );
         })}
         <Pressable onPress={() => setShowResults(false)} style={styles.primaryButton}>
-          <Ionicons color="#FFFFFF" name="arrow-back-outline" size={18} />
+          <Ionicons color="#f3c64d" name="arrow-back-outline" size={18} />
           <Text style={styles.primaryButtonText}>Review challenges</Text>
         </Pressable>
       </View>
@@ -1775,7 +1775,7 @@ function DailyChallenge({
                 style={styles.rewardImage}
               />
               <View style={styles.rewardMessage}>
-                <Ionicons color="#FFFFFF" name="sparkles" size={20} />
+                <Ionicons color="#f3c64d" name="sparkles" size={20} />
                 <Text style={styles.rewardMessageText}>You knew it!</Text>
               </View>
             </View>
@@ -1790,7 +1790,7 @@ function DailyChallenge({
           answeredCount !== dailyChallenges.length && styles.disabledButton
         ]}
       >
-        <Ionicons color="#FFFFFF" name="trophy-outline" size={18} />
+        <Ionicons color="#f3c64d" name="trophy-outline" size={18} />
         <Text style={styles.primaryButtonText}>See my results</Text>
       </Pressable>
     </View>
@@ -1842,7 +1842,7 @@ function RemoteViewing({
         onPress={() => setRemoteRevealed(true)}
         style={[styles.primaryButton, !remotePick && styles.disabledButton]}
       >
-        <Ionicons color="#FFFFFF" name="eye-outline" size={18} />
+        <Ionicons color="#f3c64d" name="eye-outline" size={18} />
         <Text style={styles.primaryButtonText}>Reveal target</Text>
       </Pressable>
       {remoteRevealed && (
@@ -1871,7 +1871,7 @@ function FriendChallenges({ onCreateChallenge }: { onCreateChallenge: () => void
         onPress={onCreateChallenge}
         style={styles.primaryButton}
       >
-        <Ionicons color="#FFFFFF" name="send-outline" size={18} />
+        <Ionicons color="#f3c64d" name="send-outline" size={18} />
         <Text style={styles.primaryButtonText}>Create multiplayer challenge</Text>
       </Pressable>
       {friendChallenges.length === 0 && (
@@ -1954,7 +1954,7 @@ function Premium({ onBack, onHome, onNext, status, startCheckout }: {
         onPress={startCheckout}
         style={[styles.primaryButton, earlyAccessRequested && styles.primaryButtonDisabled]}
       >
-        <Ionicons color="#FFFFFF" name={earlyAccessRequested ? "checkmark-circle-outline" : "notifications-outline"} size={18} />
+        <Ionicons color="#f3c64d" name={earlyAccessRequested ? "checkmark-circle-outline" : "notifications-outline"} size={18} />
         <Text style={styles.primaryButtonText}>{earlyAccessRequested ? "You're on the early-access list" : "Let me know when Premium is available"}</Text>
       </Pressable>
       {earlyAccessRequested && (
@@ -2108,7 +2108,7 @@ function AdminDashboard() {
             <Text style={styles.adminLightButtonText}>Back to reports</Text>
           </Pressable>
           <View style={styles.adminHeroIcon}>
-            <Ionicons color="#FFFFFF" name="person-circle-outline" size={30} />
+            <Ionicons color="#f3c64d" name="person-circle-outline" size={30} />
           </View>
           <Text style={styles.adminHeroEyebrow}>Admin dashboard</Text>
           <Text style={styles.adminHeroTitle}>Unique visitors</Text>
@@ -2206,7 +2206,7 @@ function AdminDashboard() {
             <Text style={styles.adminLightButtonText}>Back to reports</Text>
           </Pressable>
           <View style={styles.adminHeroIcon}>
-            <Ionicons color="#FFFFFF" name="people-outline" size={30} />
+            <Ionicons color="#f3c64d" name="people-outline" size={30} />
           </View>
           <Text style={styles.adminHeroEyebrow}>Admin dashboard</Text>
           <Text style={styles.adminHeroTitle}>User insights</Text>
@@ -2267,7 +2267,7 @@ function AdminDashboard() {
         </View>
 
         <Pressable onPress={downloadUserInsights} style={styles.adminDownloadButton}>
-          <Ionicons color="#FFFFFF" name="download-outline" size={18} />
+          <Ionicons color="#f3c64d" name="download-outline" size={18} />
           <Text style={styles.primaryButtonText}>Download user insights CSV</Text>
         </Pressable>
 
@@ -2281,7 +2281,7 @@ function AdminDashboard() {
     <View>
       <View style={styles.adminHero}>
         <View style={styles.adminHeroIcon}>
-          <Ionicons color="#FFFFFF" name="analytics-outline" size={30} />
+          <Ionicons color="#f3c64d" name="analytics-outline" size={30} />
         </View>
         <Text style={styles.adminHeroEyebrow}>Admin dashboard</Text>
         <Text style={styles.adminHeroTitle}>Intuisity reporting</Text>

@@ -1319,10 +1319,10 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         </View>
         <Pressable onPress={() => setPage("remote-viewing-arena")} style={styles.primaryButton}>
           <Text style={styles.primaryButtonText}>Carry the signal forward</Text>
-          <Ionicons color="#FFFFFF" name="arrow-forward-outline" size={18} />
+          <Ionicons color="#f3c64d" name="arrow-forward-outline" size={18} />
         </Pressable>
         <Pressable onPress={resetKnowing} style={styles.primaryButton}>
-          <Ionicons color="#FFFFFF" name="refresh-outline" size={18} />
+          <Ionicons color="#f3c64d" name="refresh-outline" size={18} />
           <Text style={styles.primaryButtonText}>Follow five more signals</Text>
         </Pressable>
       </View>
@@ -1399,8 +1399,8 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 )}
                 <View style={styles.colorLabel}>
                   <Text style={styles.colorText}>{color}</Text>
-                  {revealPhoto && <Ionicons color="#FFFFFF" name="sparkles" size={18} />}
-                  {showCorrectBox && <Ionicons color="#FFFFFF" name="checkmark-circle" size={18} />}
+                  {revealPhoto && <Ionicons color="#f3c64d" name="sparkles" size={18} />}
+                  {showCorrectBox && <Ionicons color="#f3c64d" name="checkmark-circle" size={18} />}
                 </View>
               </Pressable>
             );
@@ -1555,7 +1555,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               style={[styles.primaryButton, styles.taskContinueButton]}
             >
               <Text style={styles.primaryButtonText}>Continue</Text>
-              <Ionicons color="#FFFFFF" name="arrow-forward-outline" size={18} />
+              <Ionicons color="#f3c64d" name="arrow-forward-outline" size={18} />
             </Pressable>
           </View>
         ) : (
@@ -1574,7 +1574,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             }}
             style={[styles.primaryButton, styles.learningSubmitButton, !learningChallenge.trim() && styles.disabledButton]}
           >
-            <Ionicons color="#FFFFFF" name="checkmark-circle-outline" size={18} />
+            <Ionicons color="#f3c64d" name="checkmark-circle-outline" size={18} />
             <Text style={styles.primaryButtonText}>Lock in today's task</Text>
           </Pressable>
         )}
@@ -1800,7 +1800,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               </Text>
             </View>
             <Pressable onPress={() => setPage("hub")} style={styles.secondaryButton}>
-              <Ionicons color="#FFFFFF" name="arrow-back-outline" size={18} />
+              <Ionicons color="#f3c64d" name="arrow-back-outline" size={18} />
               <Text style={styles.secondaryButtonText}>Return to challenges</Text>
             </Pressable>
           </View>
@@ -1825,7 +1825,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               onPress={startPersonPracticeRound}
               style={styles.secondaryButton}
             >
-              <Ionicons color="#FFFFFF" name="refresh-outline" size={18} />
+              <Ionicons color="#f3c64d" name="refresh-outline" size={18} />
               <Text style={styles.secondaryButtonText}>Play another person</Text>
             </Pressable>
             <Pressable
@@ -1833,7 +1833,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               style={styles.primaryButton}
             >
               <Text style={styles.primaryButtonText}>Carry this insight forward</Text>
-              <Ionicons color="#FFFFFF" name="arrow-forward-outline" size={18} />
+              <Ionicons color="#f3c64d" name="arrow-forward-outline" size={18} />
             </Pressable>
             <Pressable onPress={() => setPage("hub")} style={styles.primaryButton}>
               <Text style={styles.primaryButtonText}>Back to challenges</Text>
@@ -1982,7 +1982,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           <View>
             <View style={styles.signBanner}>
               <View style={styles.signSymbol}>
-                <Ionicons color="#FFFFFF" name="star-outline" size={25} />
+                <Ionicons color="#f3c64d" name="star-outline" size={25} />
               </View>
               <View style={styles.menuCopy}>
                 <Text style={styles.signTitle}>Today's personal focus</Text>
@@ -2109,7 +2109,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               style={styles.primaryButton}
             >
               <Text style={styles.primaryButtonText}>Save my guidance and continue</Text>
-              <Ionicons color="#FFFFFF" name="arrow-forward-outline" size={18} />
+              <Ionicons color="#f3c64d" name="arrow-forward-outline" size={18} />
             </Pressable>
           </View>
         )}
@@ -3021,7 +3021,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             onPress={submitTreasureGuess}
             style={[styles.primaryButton, treasureMissingCount > 0 && styles.disabledButton]}
           >
-            <Ionicons color="#FFFFFF" name={opponent === "friend" ? "send-outline" : "key-outline"} size={18} />
+            <Ionicons color="#f3c64d" name={opponent === "friend" ? "send-outline" : "key-outline"} size={18} />
             <Text style={styles.primaryButtonText}>
               {opponent === "friend"
                 ? treasureMissingCount > 0
@@ -3182,7 +3182,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               onPress={saveTreasureFriendAndContinue}
               style={[styles.primaryButton, (!friendName.trim() || (!friendPhone.replace(/\D/g, "") && !friendEmail.trim()) || (userProfile.authProvider === "guest" && (!treasureGuestSenderName.trim() || !validEmailAddress(treasureGuestSenderEmail)))) && styles.disabledButton]}
             >
-              <Ionicons color="#FFFFFF" name="person-add-outline" size={18} />
+              <Ionicons color="#f3c64d" name="person-add-outline" size={18} />
               <Text style={styles.primaryButtonText}>Save this friend</Text>
             </Pressable>
             {pendingTreasureFriend && (
@@ -3197,7 +3197,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                   }}
                   style={styles.primaryButton}
                 >
-                  <Ionicons color="#FFFFFF" name="checkmark-circle-outline" size={18} />
+                  <Ionicons color="#f3c64d" name="checkmark-circle-outline" size={18} />
                   <Text style={styles.primaryButtonText}>Yes, play {pendingTreasureFriend.contact.name}</Text>
                 </Pressable>
                 <Pressable
@@ -3311,7 +3311,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               opponent === "friend" && selectedFriendPhones.length === 0 && !treasureWinText && styles.disabledButton
             ]}
           >
-            <Ionicons color="#FFFFFF" name={opponent === "friend" ? "send-outline" : "sparkles-outline"} size={18} />
+            <Ionicons color="#f3c64d" name={opponent === "friend" ? "send-outline" : "sparkles-outline"} size={18} />
             <Text style={styles.primaryButtonText}>
               {treasureWinText ? "Play again" : opponent === "friend" ? "Continue with selected friend" : "Start computer game"}
             </Text>
@@ -3376,12 +3376,12 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 <Text style={styles.treasureResultShareText}>{friendInviteStatus || "Your invitation is ready. Email sends automatically; phone invitations open in Messages for you to review and send."}</Text>
                 {treasureTextInvites.length ? treasureTextInvites.map((invite) => (
                   <Pressable key={`${invite.phone}-${invite.url}`} accessibilityLabel={`Text Treasure Chest challenge link to ${invite.name}`} onPress={() => textTreasureChallengeLink(invite)} style={styles.treasureShareButton}>
-                    <Ionicons color="#FFFFFF" name="chatbubble-outline" size={18} />
+                    <Ionicons color="#f3c64d" name="chatbubble-outline" size={18} />
                     <Text style={styles.primaryButtonText}>{treasureCanOpenMessages ? `Open Messages for ${invite.name}` : `Copy Link for ${invite.name}`}</Text>
                   </Pressable>
                 )) : (
                   <Pressable accessibilityLabel="Text Treasure Chest challenge link" onPress={() => textTreasureChallengeLink()} style={styles.treasureShareButton}>
-                    <Ionicons color="#FFFFFF" name="chatbubble-outline" size={18} />
+                    <Ionicons color="#f3c64d" name="chatbubble-outline" size={18} />
                     <Text style={styles.primaryButtonText}>{treasureCanOpenMessages ? "Open Messages to Text" : "Copy Link for Text"}</Text>
                   </Pressable>
                 )}
@@ -3398,7 +3398,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                   Share your result so a friend can try Treasure Chest and see if they can beat your score.
                 </Text>
                 <Pressable accessibilityLabel="Share my Treasure Chest result" onPress={shareTreasureResult} style={styles.treasureShareButton}>
-                  <Ionicons color="#FFFFFF" name="share-social-outline" size={18} />
+                  <Ionicons color="#f3c64d" name="share-social-outline" size={18} />
                   <Text style={styles.primaryButtonText}>Share my result</Text>
                 </Pressable>
                 <Pressable accessibilityLabel="Copy Treasure Chest challenge link" onPress={copyTreasureChallengeLink} style={styles.treasureCopyLinkButton}>
@@ -3426,7 +3426,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                   To make a challenge and send it back to {invitedTreasureSender}, or invite someone else, create your free Intuisity account first.
                 </Text>
                 <Pressable onPress={onLogout} style={styles.treasureSiteInviteButton}>
-                  <Ionicons color="#FFFFFF" name="person-add-outline" size={18} />
+                  <Ionicons color="#f3c64d" name="person-add-outline" size={18} />
                   <Text style={styles.primaryButtonText}>Create account to send my own</Text>
                 </Pressable>
               </View>
@@ -3473,7 +3473,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             <Text style={styles.powerWordMeaningText}>{computerWordMeaning}</Text>
           </View>
           <Pressable onPress={resetKnowing} style={styles.primaryButton}>
-            <Ionicons color="#FFFFFF" name="checkmark-circle-outline" size={18} />
+            <Ionicons color="#f3c64d" name="checkmark-circle-outline" size={18} />
             <Text style={styles.primaryButtonText}>Continue to Challenge 2</Text>
           </Pressable>
         </View>
@@ -3512,12 +3512,12 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             <View style={styles.sealedItem}>
               <Text style={styles.practiceLabel}>Friend's choice</Text>
               <View style={styles.hiddenChoice}>
-                <Ionicons color="#FFFFFF" name="lock-closed-outline" size={28} />
+                <Ionicons color="#f3c64d" name="lock-closed-outline" size={28} />
               </View>
             </View>
           </View>
           <Pressable onPress={resetKnowing} style={styles.primaryButton}>
-            <Ionicons color="#FFFFFF" name="checkmark-circle-outline" size={18} />
+            <Ionicons color="#f3c64d" name="checkmark-circle-outline" size={18} />
             <Text style={styles.primaryButtonText}>Continue to Challenge 2</Text>
           </Pressable>
         </View>
@@ -3578,7 +3578,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 !friendPicture && styles.disabledButton
               ]}
             >
-              <Ionicons color="#FFFFFF" name="arrow-forward-outline" size={22} />
+              <Ionicons color="#f3c64d" name="arrow-forward-outline" size={22} />
               <Text style={styles.answerNavForwardText}>Forward</Text>
             </Pressable>
           </View>
@@ -3644,7 +3644,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 onPress={addFriendPhone}
                 style={[styles.addFriendButton, (!friendName.trim() || !friendPhone.trim() || selectedFriendPhones.length >= 5) && styles.disabledButton]}
               >
-                <Ionicons color="#FFFFFF" name="add" size={24} />
+                <Ionicons color="#f3c64d" name="add" size={24} />
               </Pressable>
             </View>
             {friendPhoneError ? <Text style={styles.inputError}>{friendPhoneError}</Text> : null}
@@ -3754,7 +3754,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               : !predictedPowerWord) && styles.disabledButton
           ]}
         >
-          <Ionicons color="#FFFFFF" name={opponent === "friend" ? "send-outline" : "sparkles-outline"} size={18} />
+          <Ionicons color="#f3c64d" name={opponent === "friend" ? "send-outline" : "sparkles-outline"} size={18} />
           <Text style={styles.primaryButtonText}>
             {opponent === "friend"
               ? selectedFriendPhones.length
@@ -3808,12 +3808,12 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             <DrawingPad onDrawingChange={onDrawingChange} points={drawingPoints} setPoints={setDrawingPoints} />
             <View style={styles.drawingActions}>
               <Pressable onPress={() => setDrawingPoints([])} style={[styles.secondaryButton, styles.drawingActionButton]}>
-                <Ionicons color="#FFFFFF" name="trash-outline" size={17} />
+                <Ionicons color="#f3c64d" name="trash-outline" size={17} />
                 <Text style={styles.secondaryButtonText}>Clear drawing</Text>
               </Pressable>
               <Pressable onPress={() => setRemotePhase("choose")} style={[styles.primaryButton, styles.drawingActionButton]}>
                 <Text style={styles.primaryButtonText}>Reveal two choices</Text>
-                <Ionicons color="#FFFFFF" name="arrow-forward-outline" size={18} />
+                <Ionicons color="#f3c64d" name="arrow-forward-outline" size={18} />
               </Pressable>
             </View>
           </View>
@@ -3866,7 +3866,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 <Text style={styles.primaryButtonText}>
                   {remoteRound === 2 ? "See remote viewing results" : "Begin next test"}
                 </Text>
-                <Ionicons color="#FFFFFF" name="arrow-forward-outline" size={18} />
+                <Ionicons color="#f3c64d" name="arrow-forward-outline" size={18} />
               </Pressable>
             )}
           </View>
@@ -3889,7 +3889,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           <Text style={styles.resultsPoints}>{calculateModulePoints(remoteCorrect, 3, dailyPointWeights.remoteViewing)} of {dailyPointWeights.remoteViewing} points added to today's score</Text>
         </View>
         <Pressable onPress={() => setPage("daily-results")} style={styles.primaryButton}>
-          <Ionicons color="#FFFFFF" name="trophy-outline" size={18} />
+          <Ionicons color="#f3c64d" name="trophy-outline" size={18} />
           <Text style={styles.primaryButtonText}>View final daily results</Text>
         </Pressable>
       </View>
@@ -4004,7 +4004,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           subtitle="See your personal score and how today's Intuisity community performed."
         />
         <View style={styles.finalScoreHero}>
-          <Ionicons color="#FFFFFF" name="trophy-outline" size={38} />
+          <Ionicons color="#f3c64d" name="trophy-outline" size={38} />
           <Text style={styles.finalScoreLabel}>Overall daily points</Text>
           <Text style={styles.finalScoreNumber}>{totalPoints} of {maximumPoints}</Text>
           <Text style={styles.finalScorePercent}>
@@ -4064,7 +4064,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
 
         <Text style={styles.resultsSectionTitle}>Your strengths over time</Text>
         <View style={styles.strengthHero}>
-          <Ionicons color="#FFFFFF" name="sparkles-outline" size={28} />
+          <Ionicons color="#f3c64d" name="sparkles-outline" size={28} />
           <View style={styles.strengthHeroCopy}>
             <Text style={styles.strengthHeroLabel}>Current strongest area</Text>
             <Text style={styles.strengthHeroTitle}>{strongestArea.label}</Text>
@@ -4231,7 +4231,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           }}
           style={styles.primaryButton}
         >
-          <Ionicons color="#FFFFFF" name="save-outline" size={18} />
+          <Ionicons color="#f3c64d" name="save-outline" size={18} />
           <Text style={styles.primaryButtonText}>{feedbackSaved ? "Feedback saved" : "Save my feedback"}</Text>
         </Pressable>
 
@@ -4291,7 +4291,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           ))}
         </View>
         <Pressable onPress={() => setPage("hub")} style={styles.primaryButton}>
-          <Ionicons color="#FFFFFF" name="checkmark-outline" size={18} />
+          <Ionicons color="#f3c64d" name="checkmark-outline" size={18} />
           <Text style={styles.primaryButtonText}>Save and return</Text>
         </Pressable>
       </View>
@@ -4352,7 +4352,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           >
             <View style={[styles.moduleIconButton, styles.moduleIconButtonPurple]}>
               <Ionicons
-                color="#FFFFFF"
+                color="#f3c64d"
                 name={challengeIcons[challenge.id]}
                 size={32}
               />
@@ -4370,7 +4370,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         style={styles.homeResultsButton}
       >
         <View style={styles.homeResultsIcon}>
-          <Ionicons color="#FFFFFF" name="stats-chart-outline" size={23} />
+          <Ionicons color="#f3c64d" name="stats-chart-outline" size={23} />
         </View>
         <View style={styles.homeResultsCopy}>
           <Text style={styles.homeResultsTitle}>View My Results</Text>
@@ -5503,7 +5503,7 @@ function PageHeader({
           onPress={onBack}
           style={styles.headerDirectionButton}
         >
-          <Ionicons color="#30264C" name="arrow-back-outline" size={17} />
+          <Ionicons color="#f3c64d" name="arrow-back-outline" size={17} />
           <Text style={styles.headerNextText}>Back</Text>
         </Pressable>
       )}
@@ -5516,7 +5516,7 @@ function PageHeader({
           style={styles.headerDirectionButton}
         >
           <Text style={styles.headerNextText}>Next</Text>
-          <Ionicons color="#30264C" name="arrow-forward-outline" size={17} />
+          <Ionicons color="#f3c64d" name="arrow-forward-outline" size={17} />
         </Pressable>
       )}
     </View>
@@ -5527,7 +5527,7 @@ function PageHeader({
         <View style={styles.nativeHeaderNavigation}>
           {onHome ? (
             <TouchableOpacity accessibilityLabel="Return home" accessibilityRole="button" activeOpacity={0.65} hitSlop={14} onPress={() => runNativeNavigation(onHome)} style={[styles.headerNavButton, styles.nativeHeaderButton]}>
-              <Ionicons color="#30264C" name="home-outline" size={20} />
+              <Ionicons color="#f3c64d" name="home-outline" size={20} />
               <Text style={styles.headerHomeText}>Home</Text>
             </TouchableOpacity>
           ) : (
@@ -5536,14 +5536,14 @@ function PageHeader({
           <View style={styles.headerDirectionButtons}>
             {onBack && (
               <TouchableOpacity accessibilityLabel="Go back" accessibilityRole="button" activeOpacity={0.65} hitSlop={14} onPress={() => runNativeNavigation(onBack)} style={[styles.headerDirectionButton, styles.nativeHeaderButton]}>
-                <Ionicons color="#30264C" name="arrow-back-outline" size={19} />
+                <Ionicons color="#f3c64d" name="arrow-back-outline" size={19} />
                 <Text style={styles.headerNextText}>Back</Text>
               </TouchableOpacity>
             )}
             {onNext && (
               <TouchableOpacity accessibilityLabel="Go to next module" accessibilityRole="button" activeOpacity={0.65} hitSlop={14} onPress={() => runNativeNavigation(onNext)} style={[styles.headerDirectionButton, styles.nativeHeaderButton]}>
                 <Text style={styles.headerNextText}>Next</Text>
-                <Ionicons color="#30264C" name="arrow-forward-outline" size={19} />
+                <Ionicons color="#f3c64d" name="arrow-forward-outline" size={19} />
               </TouchableOpacity>
             )}
           </View>
@@ -5554,7 +5554,7 @@ function PageHeader({
           <View style={styles.headerNavigation}>
             {onHome ? (
               <Pressable accessibilityLabel="Return home" onPress={onHome} style={styles.headerNavButton}>
-                <Ionicons color="#30264C" name="home-outline" size={20} />
+                <Ionicons color="#f3c64d" name="home-outline" size={20} />
                 <Text style={styles.headerHomeText}>Home</Text>
               </Pressable>
             ) : (
@@ -5565,7 +5565,7 @@ function PageHeader({
         )}
         <View style={styles.headerTopRow}>
           <View style={[styles.headerIcon, { backgroundColor: theme.accent }]}>
-            <Ionicons color="#FFFFFF" name={theme.icon} size={24} />
+            <Ionicons color="#f3c64d" name={theme.icon} size={24} />
           </View>
           <Text style={styles.headerEyebrow}>{eyebrow}</Text>
         </View>
@@ -5738,14 +5738,14 @@ function PictureGrid({
           />
           {selectedId === picture.id && !showResult && (
             <View style={[styles.pictureSelectedBadge, columns === 3 && styles.pictureSelectedBadgeCompact]}>
-              <Ionicons color="#FFFFFF" name="checkmark" size={columns === 3 ? 12 : 22} />
+              <Ionicons color="#f3c64d" name="checkmark" size={columns === 3 ? 12 : 22} />
             </View>
           )}
           <View style={[styles.pictureChoiceLabel, columns === 3 && styles.pictureChoiceLabelCompact, compact && styles.remotePictureLabelCompact]}>
             <Text style={[styles.pictureChoiceText, columns === 3 && styles.pictureChoiceTextCompact, compact && styles.remotePictureTextCompact]}>{picture.label}</Text>
             {(selectedId === picture.id || (showResult && correctId === picture.id)) && (
               <Ionicons
-                color="#FFFFFF"
+                color="#f3c64d"
                 name="checkmark-circle"
                 size={19}
               />
