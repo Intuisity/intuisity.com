@@ -19,6 +19,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
   type TextInputProps
 } from "react-native";
@@ -490,14 +491,17 @@ export default function App() {
     <SafeAreaView onTouchEnd={markSessionActivity} style={styles.app}>
       <StatusBar style="dark" />
       <View style={styles.floatingScore}>
-        <Pressable
+        <TouchableOpacity
+          activeOpacity={0.65}
           accessibilityLabel="Go to home page"
+          accessibilityRole="button"
+          hitSlop={10}
           onPress={returnHome}
           style={styles.profileBadge}
         >
           <Ionicons color="#f3c64d" name="home-outline" size={22} />
           <Text style={styles.profileBadgeText}>Home</Text>
-        </Pressable>
+        </TouchableOpacity>
         <View style={styles.topRightActions}>
           {Platform.OS === "web" ? <Pressable
             accessibilityLabel="Read Intuisity articles"
@@ -515,14 +519,17 @@ export default function App() {
             <Ionicons color="#f3c64d" name="language-outline" size={21} />
             <Text style={styles.languageButtonText}>{userProfile.language.toUpperCase()}</Text>
           </Pressable>
-          <Pressable
+          <TouchableOpacity
+            activeOpacity={0.65}
             accessibilityLabel="Log out"
+            accessibilityRole="button"
+            hitSlop={10}
             onPress={confirmLogout}
             style={styles.logoutIconButton}
           >
             <Ionicons color="#f3c64d" name="log-out-outline" size={22} />
             <Text style={styles.logoutIconText}>Logout</Text>
-          </Pressable>
+          </TouchableOpacity>
         </View>
       </View>
       {showLanguageMenu && (
@@ -580,7 +587,13 @@ export default function App() {
           setFriendChallengeRequestId((current) => current + 1);
         }} />}
         {activeTab === "premium" && (
-          <Premium status={subscriptionStatus} startCheckout={startCheckout} />
+          <Premium
+            onBack={() => setActiveTab("friends")}
+            onHome={returnHome}
+            onNext={() => setActiveTab("today")}
+            status={subscriptionStatus}
+            startCheckout={startCheckout}
+          />
         )}
         {activeTab === "admin" && userIsAdmin && <AdminDashboard />}
       </ScrollView>
@@ -632,25 +645,29 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
   };
 
   const authenticate = async (nextProfile: UserProfile) => {
-    saveProfile(nextProfile);
+    const authenticatedProfile: UserProfile = {
+      ...nextProfile,
+      authProvider: nextProfile.authProvider === "google" ? "google" : "password"
+    };
+    saveProfile(authenticatedProfile);
     if (Platform.OS !== "web") {
       // Finish the Keychain write before leaving the login screen. This prevents
       // an iOS lifecycle restart from reopening the app in a signed-out state.
-      await SecureStore.setItemAsync(nativeActiveProfileKey, JSON.stringify(nextProfile));
+      await SecureStore.setItemAsync(nativeActiveProfileKey, JSON.stringify(authenticatedProfile));
     }
-    if (nextProfile.email) {
+    if (authenticatedProfile.email) {
       const signedInAt = new Date();
       syncModuleTime({
         activeDurationMs: 1,
         date: signedInAt.toISOString().slice(0, 10),
         durationMs: 1,
-        email: nextProfile.email,
+        email: authenticatedProfile.email,
         moduleId: "login",
         moduleLabel: "Login",
         startedAt: signedInAt.toISOString()
       });
     }
-    onAuthenticated(nextProfile);
+    onAuthenticated(authenticatedProfile);
   };
 
   const handleGoogleSignIn = async () => {
@@ -838,7 +855,7 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
               return;
             }
             const profileToUse: UserProfile = saved.passwordHash
-              ? { ...saved, authProvider: saved.authProvider || "password" }
+              ? { ...saved, authProvider: "password" }
               : { ...saved, authProvider: "password", passwordHash };
             authenticate(profileToUse);
           }}
@@ -1877,10 +1894,32 @@ function FriendChallenges({ onCreateChallenge }: { onCreateChallenge: () => void
   );
 }
 
-function Premium({ status, startCheckout }: { status: string; startCheckout: () => void }) {
+function Premium({ onBack, onHome, onNext, status, startCheckout }: {
+  onBack: () => void;
+  onHome: () => void;
+  onNext: () => void;
+  status: string;
+  startCheckout: () => void;
+}) {
   const earlyAccessRequested = status !== "Free";
   return (
     <View>
+      <View style={styles.premiumPageNavigation}>
+        <TouchableOpacity accessibilityLabel="Return home" accessibilityRole="button" activeOpacity={0.65} hitSlop={8} onPress={onHome} style={styles.premiumPageNavButton}>
+          <Ionicons color="#fff4cf" name="home-outline" size={18} />
+          <Text style={styles.premiumPageNavText}>Home</Text>
+        </TouchableOpacity>
+        <View style={styles.premiumPageNavDirections}>
+          <TouchableOpacity accessibilityLabel="Go back" accessibilityRole="button" activeOpacity={0.65} hitSlop={8} onPress={onBack} style={styles.premiumPageNavButton}>
+            <Ionicons color="#fff4cf" name="arrow-back-outline" size={18} />
+            <Text style={styles.premiumPageNavText}>Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity accessibilityLabel="Go to next page" accessibilityRole="button" activeOpacity={0.65} hitSlop={8} onPress={onNext} style={styles.premiumPageNavButton}>
+            <Text style={styles.premiumPageNavText}>Next</Text>
+            <Ionicons color="#fff4cf" name="arrow-forward-outline" size={18} />
+          </TouchableOpacity>
+        </View>
+      </View>
       <SectionHeader
         eyebrow="Subscriptions"
         title={premiumPlan.name}
@@ -2939,7 +2978,9 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: "space-between",
     paddingHorizontal: 18,
-    paddingTop: 8
+    paddingTop: 8,
+    zIndex: 30,
+    elevation: 8
   },
   profileBadge: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 6, minHeight: 42, paddingHorizontal: 12, paddingVertical: 8 },
   profileBadgeText: { color: "#fff4cf", flexShrink: 1, fontSize: 13, fontWeight: "800" },
@@ -3332,6 +3373,10 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 12
   },
+  premiumPageNavigation: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 14 },
+  premiumPageNavDirections: { flexDirection: "row", gap: 8 },
+  premiumPageNavButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 1, elevation: 4, flexDirection: "row", gap: 6, minHeight: 46, minWidth: 82, justifyContent: "center", paddingHorizontal: 12 },
+  premiumPageNavText: { color: "#fff4cf", fontSize: 13, fontWeight: "900" },
   premiumOfferCard: {
     alignItems: "flex-start",
     backgroundColor: "#faf8ff",
