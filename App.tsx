@@ -253,7 +253,7 @@ export default function App() {
       SecureStore.getItemAsync(nativeActiveProfileKey),
       SecureStore.getItemAsync(nativeSessionActivityKey)
     ])
-      .then(([storedProfile, storedActivity]) => {
+      .then(async ([storedProfile, storedActivity]) => {
         if (!cancelled && storedProfile) {
           const lastActivity = Number(storedActivity || Date.now());
           if (Date.now() - lastActivity >= sessionInactivityLimitMs) {
@@ -263,7 +263,21 @@ export default function App() {
           }
           sessionActivityRef.current = Date.now();
           persistSessionActivity(sessionActivityRef.current);
-          setUserProfile(normalizeLoadedProfile(JSON.parse(storedProfile)));
+          const keychainProfile = normalizeLoadedProfile(JSON.parse(storedProfile));
+          const backendProfile = keychainProfile.authProvider !== "guest" && keychainProfile.email
+            ? await fetchSavedProfile(keychainProfile.email)
+            : null;
+          const restoredProfile = backendProfile
+            ? normalizeLoadedProfile({
+                ...keychainProfile,
+                ...backendProfile,
+                authProvider: backendProfile.authProvider || keychainProfile.authProvider,
+                passwordHash: backendProfile.passwordHash || keychainProfile.passwordHash
+              })
+            : keychainProfile;
+          if (cancelled) return;
+          setUserProfile(restoredProfile);
+          await SecureStore.setItemAsync(nativeActiveProfileKey, JSON.stringify(restoredProfile));
         } else if (!cancelled) {
           setUserProfile(loadOrCreateGuestProfile());
         }

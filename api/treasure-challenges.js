@@ -26,7 +26,10 @@ module.exports = async function handler(request, response) {
 async function createChallenge(body, response) {
   const senderEmail = normalizeEmail(body.senderEmail);
   const friendEmail = normalizeEmail(body.friendEmail);
-  const friendPhone = String(body.friendPhone || "").replace(/\D/g, "");
+  const enteredFriendPhone = String(body.friendPhone || "").replace(/\D/g, "");
+  const friendPhone = enteredFriendPhone.length === 11 && enteredFriendPhone.startsWith("1")
+    ? enteredFriendPhone.slice(1)
+    : enteredFriendPhone;
   const senderName = cleanText(body.senderName, "A friend");
   const friendName = cleanText(body.friendName, "friend");
   const note = cleanText(body.note, "");

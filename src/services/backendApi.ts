@@ -419,7 +419,11 @@ export async function createTreasureChallenge(invite: {
   origin?: string;
   competitionId?: string;
 }): Promise<{ id: string; senderToken: string; status: TreasureChallengeStatus; emailDeliveryStatus?: string; emailError?: string | null }> {
-  return treasureChallengeRequest("", invite, "POST");
+  const phoneDigits = String(invite.friendPhone || "").replace(/\D/g, "");
+  const normalizedPhone = phoneDigits.length === 11 && phoneDigits.startsWith("1")
+    ? phoneDigits.slice(1)
+    : phoneDigits;
+  return treasureChallengeRequest("", { ...invite, friendPhone: normalizedPhone }, "POST");
 }
 
 export async function markTreasureChallengeOpened(id: string) {
@@ -451,7 +455,7 @@ async function treasureChallengeRequest(query: string, body: unknown, method: "G
       error?.details?.name ||
       error?.message ||
       error?.error ||
-      "Treasure challenge request failed.";
+      `Treasure challenge request failed (server status ${response.status}).`;
     throw new Error(detailMessage);
   }
 

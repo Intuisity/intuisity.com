@@ -132,6 +132,18 @@ const handler = require("../api/treasure-challenges");
   assert.equal(rows.get(phoneOnly.payload.id).invite_delivery_status, "share_required");
   assert.equal(emails.length, emailCountBeforePhoneOnly, "Phone-only invitations do not call the email provider");
 
+  const countryCodePhone = await call("POST", {}, {
+    senderEmail: "sender@example.com",
+    senderName: "Sender",
+    friendEmail: "country-code@example.com",
+    friendPhone: "+1 (555) 555-0199",
+    friendName: "Country Code Friend",
+    tiles: ["one", "two", "three", "four", "five"],
+    origin: "https://intuisity.com"
+  });
+  assert.equal(countryCodePhone.statusCode, 201, "iPhone contacts with a +1 country code remain valid");
+  assert.equal(rows.get(countryCodePhone.payload.id).friend_email, "country-code@example.com");
+
   const missingContact = await call("POST", {}, {
     senderEmail: "sender@example.com",
     senderName: "Sender",
