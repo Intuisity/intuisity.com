@@ -99,6 +99,7 @@ const personChoiceLimit = 3;
 const personMaximumScore = 3;
 const guestPlayLimit = 3;
 const personPortraitSearchLimit = 100;
+const personPortraitFetchAttemptLimit = 8;
 const portraitCache = new Map<string, string | null>();
 const photographicPersonProfileIds = new Set([
   "sojourner-truth",
@@ -578,6 +579,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     savedPersonChallenge?.attributeChoices?.length ? savedPersonChallenge.attributeChoices : shuffle(initialPersonProfile.attributes)
   );
   const [personPortraitLoading, setPersonPortraitLoading] = useState(!savedPersonChallenge?.portraitUri && !initialPersonProfile.portraitUri);
+  const [personPortraitUnavailable, setPersonPortraitUnavailable] = useState(false);
   const [personSelections, setPersonSelections] = useState<string[]>(savedPersonChallenge?.selections || []);
   const [showPersonResults, setShowPersonResults] = useState(Boolean(savedPersonChallenge?.completed));
   const [personPracticeMode, setPersonPracticeMode] = useState(false);
@@ -1105,10 +1107,11 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const startPersonPracticeRound = async () => {
     setPersonPracticeMode(true);
     setPersonPortraitLoading(true);
+    setPersonPortraitUnavailable(false);
     const lockedProfileId = savedPersonChallengeRef.current?.profileId;
-    for (let attempt = 0; attempt < Math.min(personProfiles.length, personPortraitSearchLimit); attempt += 1) {
+    for (let attempt = 0; attempt < Math.min(personProfiles.length, personPortraitFetchAttemptLimit); attempt += 1) {
       const candidate = pickBalancedPersonProfile(userProfile.email, Date.now() + attempt);
-      if ((candidate.id === lockedProfileId || candidate.id === person.id) && attempt < personPortraitSearchLimit - 1) continue;
+      if ((candidate.id === lockedProfileId || candidate.id === person.id) && attempt < personPortraitFetchAttemptLimit - 1) continue;
       const portraitUri = candidate.portraitUri || await resolveWikipediaPortrait(candidate.wikipediaTitle || candidate.name);
       if (portraitUri) {
         setPerson(candidate);
@@ -1118,12 +1121,14 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         setPersonSelections([]);
         setShowPersonResults(false);
         setPersonPortraitLoading(false);
+        setPersonPortraitUnavailable(false);
         return;
       }
     }
     setPersonSelections([]);
     setShowPersonResults(false);
     setPersonPortraitLoading(false);
+    setPersonPortraitUnavailable(true);
   };
 
   useEffect(() => {
@@ -1178,6 +1183,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         if (!active) return;
         setPerson(lockedProfile);
         setPersonPortraitUri(savedPortrait || null);
+        setPersonPortraitUnavailable(!savedPortrait);
         setPersonAttributeChoices(savedChallenge.attributeChoices?.length ? savedChallenge.attributeChoices : shuffle(lockedProfile.attributes));
         setPersonSelections(savedChallenge.selections || []);
         setShowPersonResults(Boolean(savedChallenge.completed));
@@ -1206,7 +1212,8 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       }
 
       setPersonPortraitLoading(true);
-      for (let attempt = 0; attempt < Math.min(personProfiles.length, personPortraitSearchLimit); attempt += 1) {
+      setPersonPortraitUnavailable(false);
+      for (let attempt = 0; attempt < Math.min(personProfiles.length, personPortraitFetchAttemptLimit); attempt += 1) {
         const candidate = pickBalancedPersonProfile(userProfile.email, attempt);
         const portraitUri = candidate.portraitUri || await resolveWikipediaPortrait(candidate.wikipediaTitle || candidate.name);
         if (!active) return;
@@ -1228,10 +1235,12 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             });
           }
           setPersonPortraitLoading(false);
+          setPersonPortraitUnavailable(false);
           return;
         }
       }
       setPersonPortraitLoading(false);
+      setPersonPortraitUnavailable(true);
     }
 
     loadPersonWithPortrait();
@@ -1601,22 +1610,6 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     ).length;
     const personPortraitSource = personPortraitUri ? { uri: personPortraitUri } : personImages[person.id];
 
-    if (personPortraitLoading || !personPortraitSource) {
-      return (
-        <View>
-          <ChallengePageHeader
-            eyebrow="Challenge 4 · Read the Person"
-            title="Finding a real historic photo"
-            subtitle="Preparing a person with an available photograph and factual history."
-          />
-          <View style={styles.loadingPanel}>
-            <Ionicons color="#6537c7" name="image-outline" size={34} />
-            <Text style={styles.loadingPanelText}>Loading a real photo for this challenge...</Text>
-          </View>
-        </View>
-      );
-    }
-
     return (
       <View>
         <ChallengePageHeader
@@ -1633,15 +1626,17 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           explanation="You form a first impression from limited information, then check it against facts. Reviewing misses is useful too because it can reveal personal assumptions and patterns."
         />
         <View style={styles.personPortraitFrame}>
-          <Image
+          {personPortraitSource && !personPortraitUnavailable ? <Image
             accessibilityLabel="Portrait for the Read the Person challenge"
             onError={async () => {
               if ((!personPracticeMode && savedPersonChallengeRef.current) || showPersonResults) {
                 setPersonPortraitLoading(false);
+                setPersonPortraitUnavailable(true);
                 return;
               }
               setPersonPortraitLoading(true);
-                for (let attempt = 0; attempt < Math.min(personProfiles.length, personPortraitSearchLimit); attempt += 1) {
+              setPersonPortraitUnavailable(false);
+                for (let attempt = 0; attempt < Math.min(personProfiles.length, personPortraitFetchAttemptLimit); attempt += 1) {
                 const candidate = pickBalancedPersonProfile(userProfile.email, attempt + 1);
                 const portraitUri = candidate.portraitUri || await resolveWikipediaPortrait(candidate.wikipediaTitle || candidate.name);
                 if (portraitUri) {
@@ -1662,15 +1657,29 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                     });
                   }
                   setPersonPortraitLoading(false);
+                  setPersonPortraitUnavailable(false);
                   return;
                 }
               }
               setPersonPortraitLoading(false);
+              setPersonPortraitUnavailable(true);
             }}
             resizeMode="contain"
             source={personPortraitSource}
             style={styles.personPortrait}
-          />
+          /> : (
+            <View style={styles.personPortraitFallback}>
+              <Ionicons color="#6537c7" name={personPortraitLoading ? "hourglass-outline" : "person-circle-outline"} size={72} />
+              <Text style={styles.personPortraitFallbackTitle}>
+                {personPortraitLoading ? "Loading today’s portrait…" : "Portrait unavailable"}
+              </Text>
+              <Text style={styles.personPortraitFallbackText}>
+                {personPortraitLoading
+                  ? "You can read and consider the attributes while the image loads."
+                  : "The questions remain available. Check your connection and try another person afterward."}
+              </Text>
+            </View>
+          )}
         </View>
 
         <Text style={styles.selectionCount}>
@@ -5047,8 +5056,12 @@ async function resolveWikipediaPortrait(title: string): Promise<string | null> {
   const cacheKey = title.trim().toLowerCase();
   if (portraitCache.has(cacheKey)) return portraitCache.get(cacheKey) || null;
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
   try {
-    const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+    const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, {
+      signal: controller.signal
+    });
     if (!response.ok) {
       portraitCache.set(cacheKey, null);
       return null;
@@ -5060,6 +5073,8 @@ async function resolveWikipediaPortrait(title: string): Promise<string | null> {
   } catch {
     portraitCache.set(cacheKey, null);
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -6148,6 +6163,9 @@ const styles = StyleSheet.create({
   loadingPanelText: { color: "#30264C", fontSize: 15, fontWeight: "800", textAlign: "center" },
   personPortraitFrame: { alignSelf: "center", backgroundColor: "#faf8ff", borderColor: "#E7E3F2", borderRadius: 8, borderWidth: 1, height: 320, marginBottom: 16, maxWidth: 360, overflow: "hidden", width: "100%" },
   personPortrait: { height: "100%", width: "100%" },
+  personPortraitFallback: { alignItems: "center", flex: 1, justifyContent: "center", padding: 28 },
+  personPortraitFallbackTitle: { color: "#30264C", fontSize: 20, fontWeight: "900", marginTop: 12, textAlign: "center" },
+  personPortraitFallbackText: { color: "#706982", fontSize: 14, fontWeight: "700", lineHeight: 20, marginTop: 8, textAlign: "center" },
   personHistory: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, marginBottom: 16, padding: 16 },
   selectionCount: { color: "#6537c7", fontSize: 14, fontWeight: "900", marginBottom: 10 },
   attributeList: { flexDirection: "row", flexWrap: "wrap", gap: 7, justifyContent: "space-between", marginBottom: 16 },
