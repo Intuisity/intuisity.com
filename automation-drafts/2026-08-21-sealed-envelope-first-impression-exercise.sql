@@ -96,8 +96,18 @@ The most useful question is not “Did I prove I was right?” It is “What did
   'Kathy Kennedy',
   'Intuition Training',
   'Try Train Your Knowing',
-  '/',
-  'draft',
-  null
+  '/?screen=knowing',
+  'published',
+  now()
 )
-on conflict (slug) do nothing;
+on conflict (slug) do update set
+  title = excluded.title,
+  description = excluded.description,
+  body = excluded.body,
+  author_name = excluded.author_name,
+  category = excluded.category,
+  call_to_action_label = excluded.call_to_action_label,
+  call_to_action_url = excluded.call_to_action_url,
+  status = excluded.status,
+  published_at = coalesce(articles.published_at, excluded.published_at),
+  updated_at = now();
