@@ -155,6 +155,12 @@ const mergedRepeatVisitor = serverReport.buildVisitorInsights([
 assert.equal(mergedRepeatVisitor[0].visits, 2);
 assert.equal(mergedRepeatVisitor[0].totalTimeMs, 15000);
 assert.equal(mergedRepeatVisitor[0].totalActiveTimeMs, 12000);
+assert.equal(serverReport.countLogicalVisits([
+  { email: "visitor-repeat@anonymous.intuisity", module_id: "site-visit", recorded_at: "2026-08-18T10:00:00.000Z", event_json: { visitorId: "repeat" } },
+  { email: "visitor-repeat@anonymous.intuisity", module_id: "site-visit", recorded_at: "2026-08-18T10:00:20.000Z", event_json: { visitorId: "repeat" } },
+  { email: "visitor-other@anonymous.intuisity", module_id: "site-visit", recorded_at: "2026-08-18T10:00:25.000Z", event_json: { visitorId: "other" } },
+  { email: "visitor-repeat@anonymous.intuisity", module_id: "site-visit", recorded_at: "2026-08-18T10:45:00.000Z", event_json: { visitorId: "repeat" } }
+]), 3);
 
 assert.deepEqual(serverReport.buildModuleDailyTrend([
   { date: "2026-08-17", module_label: "Challenge 1: Treasure Chest", duration_ms: 5000, active_duration_ms: 4000 },

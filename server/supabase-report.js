@@ -84,7 +84,7 @@ async function buildAdminReport(options = {}) {
 
   return {
     totalUsers: knownUserCount,
-    totalVisits: rangedVisitorEvents.filter(isSiteVisitEvent).length,
+    totalVisits: countLogicalVisits(rangedVisitorEvents.filter(isSiteVisitEvent)),
     uniqueVisitors: countUniqueVisitors(rangedVisitorEvents),
     audienceUniqueVisitors,
     ownerTestVisitors,
@@ -830,6 +830,7 @@ module.exports = {
   buildPremiumInterest,
   buildUserInsightsCsv,
   collectKnownEmails,
+  countLogicalVisits,
   fetchAllPages,
   getReportingDateKey,
   reconcileAnonymousVisitors,
