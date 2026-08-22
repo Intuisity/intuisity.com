@@ -161,6 +161,11 @@ assert.equal(serverReport.countLogicalVisits([
   { email: "visitor-other@anonymous.intuisity", module_id: "site-visit", recorded_at: "2026-08-18T10:00:25.000Z", event_json: { visitorId: "other" } },
   { email: "visitor-repeat@anonymous.intuisity", module_id: "site-visit", recorded_at: "2026-08-18T10:45:00.000Z", event_json: { visitorId: "repeat" } }
 ]), 3);
+assert.equal(serverReport.countLogicalVisits([
+  { email: "profile-only@example.com", module_id: "profile-signup", recorded_at: "2026-08-18T09:00:00.000Z" },
+  { email: "visitor-active@anonymous.intuisity", module_id: "site-session", recorded_at: "2026-08-18T10:00:00.000Z", event_json: { visitorId: "active" } },
+  { email: "visitor-active@anonymous.intuisity", module_id: "site-session", recorded_at: "2026-08-18T10:00:15.000Z", event_json: { visitorId: "active" } }
+]), 2);
 
 const cleanedNativeVisitorEvents = serverReport.buildVisitorEvents([
   { email: "visitor-nativevisit@anonymous.intuisity", module_id: "site-visit", recorded_at: "2026-08-18T10:00:00.000Z", event_json: { visitorId: "nativevisit", clientChannel: "app" } },

@@ -84,7 +84,7 @@ async function buildAdminReport(options = {}) {
 
   return {
     totalUsers: knownUserCount,
-    totalVisits: countLogicalVisits(rangedVisitorEvents.filter(isSiteVisitEvent)),
+    totalVisits: countLogicalVisits(rangedVisitorEvents),
     uniqueVisitors: countUniqueVisitors(rangedVisitorEvents),
     audienceUniqueVisitors,
     ownerTestVisitors,
@@ -360,7 +360,7 @@ function buildVisitorInsights(events, profiles) {
       source: getAcquisitionSource(event).label,
       currentLocation: profile ? [resolveProfileField(profile, "current_city", "currentCity"), resolveProfileField(profile, "current_state", "currentState"), resolveProfileField(profile, "current_country", "currentCountry")].filter(Boolean).join(", ") : "",
       isOwnerTest: isOwnerTestEvent(event),
-      visitTimestamps: [],
+      activityTimestamps: [],
       eventCount: 0,
       siteTimeMs: 0,
       siteActiveTimeMs: 0,
@@ -370,7 +370,7 @@ function buildVisitorInsights(events, profiles) {
       lastSeenAt: recordedAt
     };
     current.eventCount += 1;
-    if (isSiteVisitEvent(event) && recordedAt) current.visitTimestamps.push(recordedAt);
+    if (recordedAt) current.activityTimestamps.push(recordedAt);
     if (isSiteTimeEvent(event)) {
       current.siteTimeMs += Number(event.duration_ms || 0);
       current.siteActiveTimeMs += getActiveDuration(event);
@@ -388,9 +388,9 @@ function buildVisitorInsights(events, profiles) {
   });
 
   return [...visitors.values()]
-    .map(({ eventCount, visitTimestamps, siteTimeMs, siteActiveTimeMs, legacyTimeMs, legacyActiveTimeMs, ...visitor }) => ({
+    .map(({ eventCount, activityTimestamps, siteTimeMs, siteActiveTimeMs, legacyTimeMs, legacyActiveTimeMs, ...visitor }) => ({
       ...visitor,
-      visits: countMergedVisitTimestamps(visitTimestamps) || (eventCount ? 1 : 0),
+      visits: countMergedVisitTimestamps(activityTimestamps) || (eventCount ? 1 : 0),
       totalTimeMs: siteTimeMs || legacyTimeMs,
       totalActiveTimeMs: siteActiveTimeMs || legacyActiveTimeMs
     }))
@@ -434,7 +434,7 @@ function buildVisitorTrend(events) {
   events.forEach((event) => {
     const date = getEventDateKey(event);
     const current = dayMap.get(date) || { date, visitEvents: [], visitorEmails: new Set() };
-    if (isSiteVisitEvent(event)) current.visitEvents.push(event);
+    current.visitEvents.push(event);
     const visitorKey = getVisitorKey(event);
     if (visitorKey) current.visitorEmails.add(visitorKey);
     dayMap.set(date, current);
@@ -461,7 +461,7 @@ function buildPlatformBreakdown(events) {
       visitEvents: [],
       visitorEmails: new Set()
     };
-    if (isSiteVisitEvent(event)) current.visitEvents.push(event);
+    current.visitEvents.push(event);
     const visitorKey = getVisitorKey(event);
     if (visitorKey) current.visitorEmails.add(visitorKey);
     platformMap.set(channel, current);
