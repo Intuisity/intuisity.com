@@ -137,7 +137,21 @@ function buildVisitorEvents(analyticsEvents, profiles) {
       event_json: { clientChannel: "desktop-web", deviceCategory: "Desktop Web", source: "profiles" }
     }));
 
-  return reconcileAnonymousVisitors([...analyticsEvents, ...profileEvents]);
+  const reconciledEvents = reconcileAnonymousVisitors([...analyticsEvents, ...profileEvents]);
+  const establishedVisitorKeys = new Set(
+    reconciledEvents
+      .filter((event) => isSiteVisitEvent(event) || !isAnonymousVisitorEmail(event.email))
+      .map(getVisitorKey)
+      .filter(Boolean)
+  );
+  // Older native builds generated a fresh anonymous ID for every timing
+  // checkpoint. Those orphaned site-session rows are useful raw telemetry but
+  // must not masquerade as hundreds of distinct visitors in the report.
+  return reconciledEvents.filter((event) =>
+    !isSiteTimeEvent(event) ||
+    !isAnonymousVisitorEmail(event.email) ||
+    establishedVisitorKeys.has(getVisitorKey(event))
+  );
 }
 
 function reconcileAnonymousVisitors(events) {
@@ -821,6 +835,7 @@ function formatDuration(milliseconds) {
 
 module.exports = {
   buildAdminReport,
+  buildVisitorEvents,
   buildAcquisitionSources,
   buildAcquisitionDetails,
   buildGeographicAreas,

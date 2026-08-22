@@ -162,6 +162,15 @@ assert.equal(serverReport.countLogicalVisits([
   { email: "visitor-repeat@anonymous.intuisity", module_id: "site-visit", recorded_at: "2026-08-18T10:45:00.000Z", event_json: { visitorId: "repeat" } }
 ]), 3);
 
+const cleanedNativeVisitorEvents = serverReport.buildVisitorEvents([
+  { email: "visitor-nativevisit@anonymous.intuisity", module_id: "site-visit", recorded_at: "2026-08-18T10:00:00.000Z", event_json: { visitorId: "nativevisit", clientChannel: "app" } },
+  { email: "visitor-orphanone@anonymous.intuisity", module_id: "site-session", recorded_at: "2026-08-18T10:00:15.000Z", event_json: { visitorId: "orphanone", clientChannel: "app" } },
+  { email: "visitor-orphantwo@anonymous.intuisity", module_id: "site-session", recorded_at: "2026-08-18T10:00:30.000Z", event_json: { visitorId: "orphantwo", clientChannel: "app" } },
+  { email: "visitor-nativevisit@anonymous.intuisity", module_id: "site-session", recorded_at: "2026-08-18T10:00:45.000Z", event_json: { visitorId: "nativevisit", clientChannel: "app" } }
+], []);
+assert.equal(cleanedNativeVisitorEvents.length, 2);
+assert.deepEqual(cleanedNativeVisitorEvents.map((event) => event.event_json.visitorId), ["nativevisit", "nativevisit"]);
+
 assert.deepEqual(serverReport.buildModuleDailyTrend([
   { date: "2026-08-17", module_label: "Challenge 1: Treasure Chest", duration_ms: 5000, active_duration_ms: 4000 },
   { date: "2026-08-18", module_label: "Challenge 1: Treasure Chest", duration_ms: 9000, active_duration_ms: 7000 }
