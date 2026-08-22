@@ -2,6 +2,7 @@ import { Platform } from "react-native";
 
 const localBackendUrl = "http://localhost:4000";
 const productionBackendUrl = "https://www.intuisity.com";
+let nativeAnonymousVisitorId = "";
 
 function getBackendUrl() {
   const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
@@ -562,7 +563,7 @@ function getAnonymousVisitorId() {
   const storageKey = "intuisity-anonymous-visitor-id";
   const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
   const storage = browserWindow?.localStorage || globalThis.localStorage;
-  let visitorId = storage?.getItem(storageKey) || "";
+  let visitorId = Platform.OS === "web" ? storage?.getItem(storageKey) || "" : nativeAnonymousVisitorId;
 
   if (!visitorId) {
     const randomValue =
@@ -570,7 +571,8 @@ function getAnonymousVisitorId() {
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     visitorId = randomValue.replace(/[^a-zA-Z0-9]/g, "").slice(0, 32);
-    storage?.setItem(storageKey, visitorId);
+    if (Platform.OS === "web") storage?.setItem(storageKey, visitorId);
+    else nativeAnonymousVisitorId = visitorId;
   }
 
   return visitorId;
