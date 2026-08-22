@@ -21,6 +21,8 @@ assert.ok(getBirthLocationSuggestions("san").length <= 5, "Suggestion results st
 
 assert.equal(getAstrologyReading("03/21/1985", new Date("2026-06-12")).sign.name, "Aries");
 assert.equal(getAstrologyReading("12/25/1990", new Date("2026-06-12")).sign.name, "Capricorn");
+assert.equal(getAstrologyReading("07/20/1969", new Date("2026-06-12")).lifePathNumber, 7);
+assert.equal(getAstrologyReading("01/01/2007", new Date("2026-06-12")).lifePathNumber, 11, "Master Life Path numbers are preserved");
 assert.equal(getAstrologyReading("02/29/2024", new Date("2026-06-12")).tips.length, 1);
 assert.ok(getAstrologyReading("02/29/2024", new Date("2026-06-12")).synopsis.length > 80);
 assert.ok(getAstrologyReading("02/29/2024", new Date("2026-06-12")).dailyQuestion.includes("?"));

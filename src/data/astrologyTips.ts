@@ -283,6 +283,7 @@ export function getAstrologyReading(
 
   return {
     sign,
+    lifePathNumber: calculateLifePathNumber(parsed),
     fullChart,
     tips: [dailyQuestion],
     synopsis,
@@ -290,6 +291,18 @@ export function getAstrologyReading(
     birthDetailsIncluded: Boolean(fullChart || birthTime.trim() || birthCity.trim()),
     chartCalculation: fullChart ? "full-birth-chart" : "sun-sign-daily"
   };
+}
+
+function calculateLifePathNumber(birthdate: { year: number; month: number; day: number }) {
+  let total = `${birthdate.month}${birthdate.day}${birthdate.year}`
+    .split("")
+    .reduce((sum, digit) => sum + Number(digit), 0);
+
+  while (total > 9 && total !== 11 && total !== 22 && total !== 33) {
+    total = String(total).split("").reduce((sum, digit) => sum + Number(digit), 0);
+  }
+
+  return total;
 }
 
 function parseBirthdate(value: string) {

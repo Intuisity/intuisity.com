@@ -1994,16 +1994,42 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             </View>
             {astrologyReading.fullChart ? (
               <View style={styles.fullChartCard}>
-                <Text style={styles.fullChartTitle}>Personalized for you</Text>
+                <Text style={styles.fullChartTitle}>Your signs and Life Path</Text>
+                <View style={styles.fullChartGrid}>
+                  <View style={styles.fullChartItem}>
+                    <Text style={styles.fullChartLabel}>Sun sign</Text>
+                    <Text style={styles.fullChartValue}>{astrologyReading.fullChart.sunSign || astrologyReading.sign.name}</Text>
+                  </View>
+                  <View style={styles.fullChartItem}>
+                    <Text style={styles.fullChartLabel}>Moon sign</Text>
+                    <Text style={styles.fullChartValue}>{astrologyReading.fullChart.moonSign || "Not available"}</Text>
+                  </View>
+                  <View style={styles.fullChartItem}>
+                    <Text style={styles.fullChartLabel}>Rising sign</Text>
+                    <Text style={styles.fullChartValue}>{astrologyReading.fullChart.risingSign || "Not available"}</Text>
+                  </View>
+                  <View style={styles.fullChartItem}>
+                    <Text style={styles.fullChartLabel}>Life Path (birthdate)</Text>
+                    <Text style={styles.fullChartValue}>{astrologyReading.lifePathNumber}</Text>
+                  </View>
+                </View>
                 <Text style={styles.fullChartSource}>
                   Your saved birth date, time, and location help make this guidance more personal. You do not need to understand any special terms to use it.
                 </Text>
               </View>
             ) : (
               <View style={styles.fullChartCard}>
-                <Text style={styles.fullChartTitle}>
-                  {astrologyReading.birthDetailsIncluded ? "Using your saved birth details" : "Using your birthdate guidance"}
-                </Text>
+                <Text style={styles.fullChartTitle}>Your Sun sign and Life Path</Text>
+                <View style={styles.fullChartGrid}>
+                  <View style={styles.fullChartItem}>
+                    <Text style={styles.fullChartLabel}>Sun sign</Text>
+                    <Text style={styles.fullChartValue}>{astrologyReading.sign.name}</Text>
+                  </View>
+                  <View style={styles.fullChartItem}>
+                    <Text style={styles.fullChartLabel}>Life Path (birthdate)</Text>
+                    <Text style={styles.fullChartValue}>{astrologyReading.lifePathNumber}</Text>
+                  </View>
+                </View>
                 <Text style={styles.fullChartSource}>
                   {astrologyReading.birthDetailsIncluded
                     ? "Intuisity uses the details you entered to make the guidance more personal. Add or update missing birth information anytime for a more complete reading."
@@ -6223,7 +6249,7 @@ const styles = StyleSheet.create({
   fullChartCard: { backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, marginBottom: 14, padding: 14 },
   fullChartTitle: { color: "#30264C", fontSize: 16, fontWeight: "900", marginBottom: 10 },
   fullChartGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },
-  fullChartItem: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, minWidth: "47%", padding: 10 },
+  fullChartItem: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, flexGrow: 1, minWidth: "47%", padding: 10 },
   fullChartLabel: { color: "#b87908", fontSize: 11, fontWeight: "900", marginBottom: 3, textTransform: "uppercase" },
   fullChartValue: { color: "#30264C", fontSize: 15, fontWeight: "900" },
   fullChartAspect: { color: "#b87908", fontSize: 13, fontWeight: "900", lineHeight: 18, marginBottom: 7 },
