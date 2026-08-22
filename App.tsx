@@ -1995,7 +1995,6 @@ function AdminDashboard() {
   const visitorTrendRows = (report.visitorTrend || []).slice(-14).reverse();
   const moduleTrendRows = buildDailyModuleTrendRows(report.moduleDailyTrend || [], moduleTrendDays, reportEndDate);
   const moduleTrendLabels = Array.from(new Set(moduleTrendRows.flatMap((day) => day.modules.map((module) => module.moduleLabel))));
-  const moduleTrendMax = Math.max(1, ...moduleTrendRows.map((day) => day.modules.reduce((sum, module) => sum + (module.activeMs || module.totalMs), 0)));
   const moduleTrendColors = ["#6537c7", "#d79b16", "#43C987", "#F4B740", "#B15A60", "#6537c7", "#706982"];
   const reportedAges = (report.userInsights || [])
     .map((user) => user.age)
@@ -2701,6 +2700,7 @@ function AdminDashboard() {
             <View style={styles.adminModuleTrendGraph}>
               {moduleTrendRows.map((day) => (
                 <View key={day.date} style={styles.adminModuleTrendDay}>
+                  <Text style={styles.adminModuleTrendDate}>{moduleTrendDays === 1 ? day.date : day.date.slice(5)}</Text>
                   <View style={styles.adminModuleTrendStack}>
                     {day.modules.map((module) => {
                       const labelIndex = Math.max(0, moduleTrendLabels.indexOf(module.moduleLabel));
@@ -2711,15 +2711,15 @@ function AdminDashboard() {
                             styles.adminModuleTrendSegment,
                             {
                               backgroundColor: moduleTrendColors[labelIndex % moduleTrendColors.length],
-                              height: `${Math.max(5, Math.round(((module.activeMs || module.totalMs) / moduleTrendMax) * 100))}%`
+                              flexGrow: module.activeMs || module.totalMs,
+                              flexBasis: 0
                             }
                           ]}
                         />
                       );
                     })}
                   </View>
-                  <Text style={styles.adminTrendLabel}>{moduleTrendDays === 1 ? day.date : day.date.slice(5)}</Text>
-                  <Text style={styles.adminTrendValue}>
+                  <Text style={styles.adminModuleTrendTotal}>
                     {formatDuration(day.modules.reduce((sum, module) => sum + (module.activeMs || module.totalMs), 0))}
                   </Text>
                 </View>
@@ -3743,37 +3743,44 @@ const styles = StyleSheet.create({
     color: "#FFFFFF"
   },
   adminModuleTrendGraph: {
-    alignItems: "flex-end",
     backgroundColor: "#faf8ff",
     borderColor: "#E7E3F2",
     borderRadius: 8,
     borderWidth: 1,
-    flexDirection: "row",
-    gap: 6,
-    height: 180,
-    justifyContent: "space-between",
+    gap: 9,
     marginBottom: 12,
-    paddingHorizontal: 8,
-    paddingTop: 12
+    padding: 12
   },
   adminModuleTrendDay: {
     alignItems: "center",
-    flex: 1,
-    height: "100%",
-    justifyContent: "flex-end"
+    flexDirection: "row",
+    gap: 8,
+    minHeight: 24
   },
   adminModuleTrendStack: {
-    alignItems: "center",
-    flexDirection: "column-reverse",
+    flex: 1,
+    flexDirection: "row",
     gap: 0,
-    height: "76%",
-    justifyContent: "center",
-    width: "100%"
+    height: 16,
+    overflow: "hidden",
+    borderRadius: 5
   },
   adminModuleTrendSegment: {
-    borderRadius: 3,
-    minHeight: 5,
-    width: 14
+    height: 16,
+    minWidth: 3
+  },
+  adminModuleTrendDate: {
+    color: "#706982",
+    fontSize: 10,
+    fontWeight: "800",
+    width: 52
+  },
+  adminModuleTrendTotal: {
+    color: "#30264C",
+    fontSize: 10,
+    fontWeight: "900",
+    textAlign: "right",
+    width: 54
   },
   adminModuleLegend: {
     flexDirection: "row",
