@@ -12,15 +12,16 @@
       "**/*"
     ],
     "ios": {
-      "buildNumber": "10",
       "icon": "./assets/app-icon.png",
       "supportsTablet": false,
       "bundleIdentifier": "com.intuisity.app",
+      "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
       }
     },
     "android": {
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#0E141B"
       },
@@ -39,6 +40,7 @@
       "expo-asset",
       "expo-font",
       "expo-secure-store",
+      "expo-apple-authentication",
       "expo-web-browser",
       "expo-notifications",
       [

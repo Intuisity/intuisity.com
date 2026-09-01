@@ -69,6 +69,7 @@ export type AdminAnalyticsReport = {
   }>;
   geographicAreas: GeographicAreasReport;
   visitorGeographicAreas: VisitorGeographicAreasReport;
+  ownerTestGeographicAreas?: VisitorGeographicAreasReport;
   acquisitionSources: Array<{ source: string; label: string; uniqueVisitors: number }>;
   acquisitionDetails: Array<{ source: string; label: string; uniqueVisitors: number; landingPage?: string; referrer?: string; campaign?: string; keyword?: string; medium?: string }>;
   moduleDailyTrend: Array<{
@@ -163,7 +164,14 @@ const profilesKey = "intuisity-user-profiles";
 const maxStoredEvents = 1200;
 const activeGraceMs = 60000;
 const excludedReportEmails = new Set(["admin@intuisity.com", "kathy@intuisity.com"]);
-const ownerTestEmails = new Set(["admin@intuisity.com", "kathy@intuisity.com", "kathy@kathykennedy.biz"]);
+const ownerTestEmails = new Set([
+  "admin@intuisity.com",
+  "kathy@intuisity.com",
+  "k@kathykennedy.biz",
+  "kathy@kathykennedy.biz",
+  "tonyv@cox.net",
+  "tonyv@cix.net"
+]);
 let lastInteractionAt = Date.now();
 let activityTrackingStarted = false;
 
@@ -302,6 +310,7 @@ export function loadAdminAnalyticsReport(startDate = "", endDate = ""): AdminAna
     platformBreakdown: buildPlatformBreakdown(rangedVisitorEvents),
     geographicAreas: buildLocalGeographicAreas(allProfiles),
     visitorGeographicAreas: buildLocalVisitorGeographicAreas(rangedVisitorEvents.filter((event) => !isLocalOwnerTestEvent(event)), allProfiles),
+    ownerTestGeographicAreas: buildLocalVisitorGeographicAreas(rangedVisitorEvents.filter(isLocalOwnerTestEvent), allProfiles),
     acquisitionSources: buildLocalAcquisitionSources(rangedVisitorEvents.filter((event) => !isLocalOwnerTestEvent(event))),
     acquisitionDetails: buildLocalAcquisitionDetails(rangedVisitorEvents.filter((event) => !isLocalOwnerTestEvent(event))),
     moduleDailyTrend: buildModuleDailyTrend(events),

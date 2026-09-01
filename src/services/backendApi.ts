@@ -1,8 +1,11 @@
 import { Platform } from "react-native";
+import * as SecureStore from "expo-secure-store";
 
 const localBackendUrl = "http://localhost:4000";
 const productionBackendUrl = "https://www.intuisity.com";
+const anonymousVisitorStorageKey = "intuisity-anonymous-visitor-id";
 let nativeAnonymousVisitorId = "";
+let nativeAnonymousVisitorIdPromise: Promise<string> | null = null;
 
 function getBackendUrl() {
   const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
@@ -92,6 +95,13 @@ type BackendAdminReport = {
     usersWithLocation: number;
     totalVisitors: number;
   };
+  ownerTestGeographicAreas?: {
+    countries: Array<{ label: string; count: number }>;
+    states: Array<{ label: string; count: number }>;
+    cities: Array<{ label: string; count: number }>;
+    usersWithLocation: number;
+    totalVisitors: number;
+  };
   acquisitionSources: Array<{ source: string; label: string; uniqueVisitors: number }>;
   acquisitionDetails: Array<{ source: string; label: string; uniqueVisitors: number; landingPage?: string; referrer?: string; campaign?: string; keyword?: string; medium?: string }>;
   visitorInsights: Array<{
@@ -147,6 +157,7 @@ const backendSyncLogKey = "intuisity-backend-sync-log";
 const ownerTestDeviceKey = "intuisity-owner-test-device";
 let lastDailyAnswersSyncPayload = "";
 let lastAdminReportError = "";
+let nativeAdminSecret = "";
 
 type BackendSyncLogEntry = {
   path: string;
@@ -157,14 +168,26 @@ type BackendSyncLogEntry = {
 };
 
 export function saveAdminSecret(secret: string) {
+  const normalizedSecret = secret.trim();
+  nativeAdminSecret = normalizedSecret;
+  if (Platform.OS !== "web") {
+    const persistence = normalizedSecret
+      ? SecureStore.setItemAsync(adminSecretStorageKey, normalizedSecret)
+      : SecureStore.deleteItemAsync(adminSecretStorageKey);
+    persistence.catch(() => {
+      // The password remains available for this app session if secure storage fails.
+    });
+    return;
+  }
   try {
-    globalThis.localStorage?.setItem(adminSecretStorageKey, secret.trim());
+    globalThis.localStorage?.setItem(adminSecretStorageKey, normalizedSecret);
   } catch {
     // Admin reports can still be opened manually with the secret query string.
   }
 }
 
 export function loadAdminSecret() {
+  if (Platform.OS !== "web") return nativeAdminSecret;
   try {
     return globalThis.localStorage?.getItem(adminSecretStorageKey) || "";
   } catch {
@@ -206,17 +229,35 @@ export async function fetchSavedProfile(email: string) {
   const normalizedEmail = String(email || "").trim().toLowerCase();
   if (!normalizedEmail) return null;
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 6000);
   try {
     const response = await fetch(`${getBackendUrl()}/api/profiles?email=${encodeURIComponent(normalizedEmail)}`, {
       cache: "no-store",
-      headers: { "Cache-Control": "no-cache" }
+      headers: { "Cache-Control": "no-cache" },
+      signal: controller.signal
     });
     if (!response.ok) return null;
     const payload = await response.json();
     return payload?.profile || null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
+}
+
+export async function requestAccountDeletion(email: string, name = "") {
+  const response = await fetch(`${getBackendUrl()}/api/account-deletion`, {
+    body: JSON.stringify({ email, name }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST"
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload?.message || payload?.error || "Account deletion could not be started.");
+  }
+  return payload;
 }
 
 export async function lookupBirthLocation(query: string): Promise<{ label: string; latitude: number; longitude: number; source?: string } | null> {
@@ -333,6 +374,16 @@ export function isOwnerTestDevice() {
   }
 }
 
+export async function loadAdminSecretFromDevice() {
+  if (Platform.OS === "web") return loadAdminSecret();
+  try {
+    nativeAdminSecret = await SecureStore.getItemAsync(adminSecretStorageKey) || "";
+  } catch {
+    nativeAdminSecret = "";
+  }
+  return nativeAdminSecret;
+}
+
 export function syncSiteTime(email: string, startedAt: number, durationMs: number, activeDurationMs: number) {
   const safeDurationMs = Math.max(0, Math.min(Number(durationMs || 0), 30 * 1000));
   if (safeDurationMs < 1000) return Promise.resolve(false);
@@ -346,6 +397,32 @@ export function syncSiteTime(email: string, startedAt: number, durationMs: numbe
     moduleLabel: "Website Session",
     startedAt: new Date(startedAt).toISOString()
   });
+}
+
+export async function initializeAnalyticsIdentity() {
+  if (Platform.OS === "web") return getAnonymousVisitorId();
+  if (nativeAnonymousVisitorId) return nativeAnonymousVisitorId;
+  if (nativeAnonymousVisitorIdPromise) return nativeAnonymousVisitorIdPromise;
+
+  nativeAnonymousVisitorIdPromise = (async () => {
+    try {
+      const storedVisitorId = sanitizeVisitorId(await SecureStore.getItemAsync(anonymousVisitorStorageKey));
+      if (storedVisitorId) {
+        nativeAnonymousVisitorId = storedVisitorId;
+        return storedVisitorId;
+      }
+    } catch {
+      // Analytics identity must never prevent the app from opening.
+    }
+
+    if (!nativeAnonymousVisitorId) nativeAnonymousVisitorId = createAnonymousVisitorId();
+    SecureStore.setItemAsync(anonymousVisitorStorageKey, nativeAnonymousVisitorId).catch(() => undefined);
+    return nativeAnonymousVisitorId;
+  })().finally(() => {
+    nativeAnonymousVisitorIdPromise = null;
+  });
+
+  return nativeAnonymousVisitorIdPromise;
 }
 
 export function setOwnerTestDevice(enabled: boolean) {
@@ -560,22 +637,32 @@ function getAnonymousVisitorEmail() {
 }
 
 function getAnonymousVisitorId() {
-  const storageKey = "intuisity-anonymous-visitor-id";
   const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
   const storage = browserWindow?.localStorage || globalThis.localStorage;
-  let visitorId = Platform.OS === "web" ? storage?.getItem(storageKey) || "" : nativeAnonymousVisitorId;
+  let visitorId = Platform.OS === "web" ? sanitizeVisitorId(storage?.getItem(anonymousVisitorStorageKey)) : nativeAnonymousVisitorId;
 
   if (!visitorId) {
-    const randomValue =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    visitorId = randomValue.replace(/[^a-zA-Z0-9]/g, "").slice(0, 32);
-    if (Platform.OS === "web") storage?.setItem(storageKey, visitorId);
-    else nativeAnonymousVisitorId = visitorId;
+    visitorId = createAnonymousVisitorId();
+    if (Platform.OS === "web") storage?.setItem(anonymousVisitorStorageKey, visitorId);
+    else {
+      nativeAnonymousVisitorId = visitorId;
+      SecureStore.setItemAsync(anonymousVisitorStorageKey, visitorId).catch(() => undefined);
+    }
   }
 
   return visitorId;
+}
+
+function createAnonymousVisitorId() {
+  const randomValue =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return sanitizeVisitorId(randomValue) || `${Date.now()}${Math.random().toString(36).slice(2)}`.slice(0, 32);
+}
+
+function sanitizeVisitorId(value: unknown) {
+  return String(value || "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 32);
 }
 
 function getClientPlatformDetails() {

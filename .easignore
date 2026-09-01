@@ -1,0 +1,46 @@
+# Source control and installed dependencies
+.git/
+node_modules/
+
+# Local Expo, Vercel, and package-manager state
+.expo/
+.expo-*/
+.vercel/
+.npm-cache/
+.npm-cache-*/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Generated web/build output and downloaded artifacts
+dist/
+artifacts/
+coverage/
+
+# Local credentials and environment files
+.env
+.env.*
+!.env.example
+
+# Temporary Python/pip work directories
+pip-build-tracker-*/
+pip-ephem-wheel-cache-*/
+pip-install-*/
+pip-target-*/
+pip-unpack-*/
+__pycache__/
+*.pyc
+
+# Repository-only tests, drafts, exports, and backup/reference files
+tests/
+automation-drafts/
+*.sql
+*.txt
+*.html
+UPLOAD-*
+intuisity-all-changes-*
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/

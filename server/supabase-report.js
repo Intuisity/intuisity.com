@@ -6,7 +6,10 @@ const excludedReportEmails = new Set(["admin@intuisity.com", "kathy@intuisity.co
 const ownerTestEmails = new Set([
   "admin@intuisity.com",
   "kathy@intuisity.com",
+  "k@kathykennedy.biz",
   "kathy@kathykennedy.biz",
+  "tonyv@cox.net",
+  "tonyv@cix.net",
   ...String(process.env.INTUISITY_OWNER_EMAILS || "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean)
 ]);
 const moduleOrder = [
@@ -44,7 +47,10 @@ async function buildAdminReport(options = {}) {
   const visitorTrend = buildVisitorTrend(rangedVisitorEvents);
   const platformBreakdown = buildPlatformBreakdown(rangedVisitorEvents);
   const geographicAreas = buildGeographicAreas(userProfiles);
-  const visitorGeographicAreas = buildVisitorGeographicAreas(rangedVisitorEvents.filter((event) => !isOwnerTestEvent(event)), userProfiles);
+  const audienceVisitorEvents = rangedVisitorEvents.filter((event) => !isOwnerTestEvent(event));
+  const ownerTestEvents = rangedVisitorEvents.filter(isOwnerTestEvent);
+  const visitorGeographicAreas = buildVisitorGeographicAreas(audienceVisitorEvents, userProfiles);
+  const ownerTestGeographicAreas = buildVisitorGeographicAreas(ownerTestEvents, userProfiles);
   const acquisitionSources = buildAcquisitionSources(rangedVisitorEvents.filter((event) => !isOwnerTestEvent(event)));
   const acquisitionDetails = buildAcquisitionDetails(rangedVisitorEvents.filter((event) => !isOwnerTestEvent(event)));
   const ownerTestVisitors = countUniqueVisitors(rangedVisitorEvents.filter(isOwnerTestEvent));
@@ -93,6 +99,7 @@ async function buildAdminReport(options = {}) {
     platformBreakdown,
     geographicAreas,
     visitorGeographicAreas,
+    ownerTestGeographicAreas,
     acquisitionSources,
     acquisitionDetails,
     moduleDailyTrend,

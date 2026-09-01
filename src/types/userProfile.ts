@@ -34,6 +34,7 @@ export type UserProfile = {
   currentState: string;
   currentCountry: string;
   passwordHash?: string;
-  authProvider?: "password" | "google" | "guest";
+  authProvider?: "password" | "google" | "apple" | "guest";
+  appleUserIdentifier?: string;
   expoPushToken?: string;
 };

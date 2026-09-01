@@ -11,15 +11,17 @@
     "web:offline": "scripts\\start-web-offline.cmd",
     "backend": "node backend/server.js",
     "build:web": "expo export --platform web && node scripts/copy-legal-pages.js",
-    "test": "node tests/scoring.test.js && node tests/astrology.test.js && node tests/personProfiles.test.js && node tests/dailyLessons.test.js && node tests/treasureChallenges.test.js && node tests/adminReportRoute.test.js && node tests/profileReport.test.js && node tests/articles.test.js && node tests/indexnow.test.js"
+    "test": "node tests/scoring.test.js && node tests/astrology.test.js && node tests/personProfiles.test.js && node tests/dailyLessons.test.js && node tests/treasureChallenges.test.js && node tests/adminReportRoute.test.js && node tests/profileReport.test.js && node tests/articles.test.js && node tests/indexnow.test.js && node tests/accountDeletion.test.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.3",
     "circular-natal-horoscope-js": "^1.1.0",
     "expo": "~54.0.36",
+    "expo-apple-authentication": "~8.0.8",
     "expo-asset": "~12.0.13",
     "expo-auth-session": "~7.0.11",
+    "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.13",
     "expo-contacts": "~15.0.11",
     "expo-device": "~8.0.10",

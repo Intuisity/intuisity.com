@@ -91,7 +91,7 @@ async function createChallenge(body, response) {
       html: inviteHtml({ challengeUrl, friendName, note, senderName }),
       text: `Hi ${friendName},\n\n${senderName} created an Intuisity Treasure Chest challenge just for you. Trust your first impression, arrange the five treasures, and see if you can unlock the hidden order in four tries.\n\n${note ? `A note from ${senderName}: “${note}”\n\n` : ""}Play the challenge: ${challengeUrl}\n\nNo account is needed to accept this challenge. Have fun!\n\n— Intuisity\nAwaken Your Intuition`
     });
-    await updateChallenge(id, { invite_delivery_id: deliveryId, invite_delivery_status: "sent", updated_at: new Date().toISOString() });
+    await updateChallenge(id, { invite_delivery_id: deliveryId, invite_delivery_status: "accepted", updated_at: new Date().toISOString() });
     console.info("treasure_challenge_invite_sent", { challengeId: id, deliveryId, pushDeliveryId: pushDeliveryId || null, recipient: maskEmail(friendEmail) });
   } catch (error) {
     const emailError = safeError(error);
@@ -100,7 +100,7 @@ async function createChallenge(body, response) {
     return sendJson(response, 201, { id, senderToken, status: "sent", emailDeliveryStatus: "failed", emailError });
   }
 
-  return sendJson(response, 201, { id, senderToken, status: "sent", emailDeliveryStatus: "sent" });
+  return sendJson(response, 201, { id, senderToken, status: "sent", emailDeliveryStatus: "accepted" });
 }
 
 async function getChallenge(request, response) {
@@ -262,7 +262,8 @@ async function sendEmail(message) {
   });
   const payload = await result.json().catch(() => ({}));
   if (!result.ok) throw new Error(payload?.message || payload?.error || `Email provider returned ${result.status}`);
-  return payload.id || null;
+  if (!payload.id) throw new Error("Email provider accepted the request without returning a delivery ID");
+  return payload.id;
 }
 
 async function getEmailDeliveryStatus(deliveryId) {

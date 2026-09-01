@@ -1,5 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import * as SecureStore from "expo-secure-store";
+import * as AppleAuthentication from "expo-apple-authentication";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import Constants from "expo-constants";
@@ -16,6 +17,7 @@ import {
   Pressable,
   SafeAreaView,
   ScrollView,
+  StatusBar as NativeStatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -42,14 +44,14 @@ import {
 } from "./src/data/mockData";
 import { premiumPlan } from "./src/services/subscriptions";
 import { formatDuration, loadAdminAnalyticsReport, recordPremiumInterest } from "./src/services/adminAnalytics";
-import { backendUserInsightsCsvUrl, clearBackendSyncLog, fetchSavedProfile, getLastAdminReportError, isOwnerTestDevice, loadAdminSecret, loadBackendAdminReport, loadBackendSyncLog, saveAdminSecret, setOwnerTestDevice, syncDailyAnswers, syncModuleTime, syncProfile, syncSiteTime, syncSiteVisit } from "./src/services/backendApi";
+import { backendUserInsightsCsvUrl, clearBackendSyncLog, fetchSavedProfile, getLastAdminReportError, initializeAnalyticsIdentity, isOwnerTestDevice, loadAdminSecret, loadAdminSecretFromDevice, loadBackendAdminReport, loadBackendSyncLog, requestAccountDeletion, saveAdminSecret, setOwnerTestDevice, syncDailyAnswers, syncModuleTime, syncProfile, syncSiteTime, syncSiteVisit } from "./src/services/backendApi";
 import { DailyChallengeHub } from "./src/components/DailyChallengeHub";
 import { AdminArticleEditor } from "./src/components/AdminArticleEditor";
 import { UserProfile } from "./src/types/userProfile";
 
 const { scoreDailyChallenge } = require("./src/domain/scoringCore");
 
-type TabKey = "today" | "remote" | "friends" | "premium" | "admin";
+type TabKey = "today" | "remote" | "friends" | "premium" | "account" | "admin";
 type Answers = Record<string, string>;
 const profilesKey = "intuisity-user-profiles";
 const activeProfileKey = "intuisity-active-profile";
@@ -100,23 +102,31 @@ const tabs: Array<{ key: TabKey; label: string; icon: keyof typeof Ionicons.glyp
   { key: "today", label: "Today", icon: "sparkles-outline" },
   { key: "friends", label: "Friends", icon: "people-outline" },
   { key: "premium", label: "Premium", icon: "card-outline" },
+  { key: "account", label: "Account", icon: "person-circle-outline" },
   { key: "admin", label: "Admin", icon: "shield-checkmark-outline" }
 ];
 
 const tabTranslations: Record<string, Record<TabKey | "score", string>> = {
-  en: { today: "Today", remote: "Remote", friends: "Friends", premium: "Premium", admin: "Admin", score: "Score" },
-  zh: { today: "今日", remote: "遥视", friends: "朋友", premium: "高级", admin: "管理", score: "得分" },
-  hi: { today: "आज", remote: "दूरदृष्टि", friends: "मित्र", premium: "प्रीमियम", admin: "प्रबंध", score: "अंक" },
-  es: { today: "Hoy", remote: "Visión", friends: "Amigos", premium: "Premium", admin: "Admin", score: "Puntos" },
-  fr: { today: "Aujourd’hui", remote: "Vision", friends: "Amis", premium: "Premium", admin: "Admin", score: "Score" },
-  ar: { today: "اليوم", remote: "الرؤية", friends: "الأصدقاء", premium: "مميز", admin: "الإدارة", score: "النتيجة" },
-  bn: { today: "আজ", remote: "দূরদৃষ্টি", friends: "বন্ধুরা", premium: "প্রিমিয়াম", admin: "অ্যাডমিন", score: "স্কোর" },
-  pt: { today: "Hoje", remote: "Visão", friends: "Amigos", premium: "Premium", admin: "Admin", score: "Pontos" },
-  ru: { today: "Сегодня", remote: "Видение", friends: "Друзья", premium: "Премиум", admin: "Админ", score: "Счёт" },
-  ur: { today: "آج", remote: "دور بینی", friends: "دوست", premium: "پریمیم", admin: "انتظام", score: "اسکور" }
+  en: { today: "Today", remote: "Remote", friends: "Friends", premium: "Premium", account: "Account", admin: "Admin", score: "Score" },
+  zh: { today: "今日", remote: "遥视", friends: "朋友", premium: "高级", account: "账户", admin: "管理", score: "得分" },
+  hi: { today: "आज", remote: "दूरदृष्टि", friends: "मित्र", premium: "प्रीमियम", account: "खाता", admin: "प्रबंध", score: "अंक" },
+  es: { today: "Hoy", remote: "Visión", friends: "Amigos", premium: "Premium", account: "Cuenta", admin: "Admin", score: "Puntos" },
+  fr: { today: "Aujourd’hui", remote: "Vision", friends: "Amis", premium: "Premium", account: "Compte", admin: "Admin", score: "Score" },
+  ar: { today: "اليوم", remote: "الرؤية", friends: "الأصدقاء", premium: "مميز", account: "الحساب", admin: "الإدارة", score: "النتيجة" },
+  bn: { today: "আজ", remote: "দূরদৃষ্টি", friends: "বন্ধুরা", premium: "প্রিমিয়াম", account: "অ্যাকাউন্ট", admin: "অ্যাডমিন", score: "স্কোর" },
+  pt: { today: "Hoje", remote: "Visão", friends: "Amigos", premium: "Premium", account: "Conta", admin: "Admin", score: "Pontos" },
+  ru: { today: "Сегодня", remote: "Видение", friends: "Друзья", premium: "Премиум", account: "Аккаунт", admin: "Админ", score: "Счёт" },
+  ur: { today: "آج", remote: "دور بینی", friends: "دوست", premium: "پریمیم", account: "اکاؤنٹ", admin: "انتظام", score: "اسکور" }
 };
 
-const adminEmailAllowlist = new Set(["admin@intuisity.com", "kathy@intuisity.com"]);
+const adminEmailAllowlist = new Set([
+  "admin@intuisity.com",
+  "kathy@intuisity.com",
+  "k@kathykennedy.biz",
+  "kathy@kathykennedy.biz",
+  "tonyv@cox.net",
+  "tonyv@cix.net"
+]);
 
 const seoKeywords = [
   "Awareness",
@@ -157,11 +167,13 @@ export default function App() {
   const [sessionRestoring, setSessionRestoring] = useState(Platform.OS !== "web");
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("today");
+  const [dailyPage, setDailyPage] = useState("hub");
+  const [drawingActive, setDrawingActive] = useState(false);
+  const drawingUnlockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const webTabHistoryReadyRef = useRef(false);
   const webTabPopRef = useRef(false);
   const lastWebTabRef = useRef<TabKey>("today");
   const [homeRequestId, setHomeRequestId] = useState(0);
-  const [drawingActive, setDrawingActive] = useState(false);
   const [friendChallengeRequestId, setFriendChallengeRequestId] = useState(0);
   const [treasureEntryRequestId, setTreasureEntryRequestId] = useState(() => isTreasurePlayRequest() ? 1 : 0);
   const [answers, setAnswers] = useState<Answers>(() => {
@@ -170,14 +182,35 @@ export default function App() {
   });
   const [subscriptionStatus, setSubscriptionStatus] = useState("Free");
   const [premiumInterestPending, setPremiumInterestPending] = useState(false);
+  const [accountDeletionPending, setAccountDeletionPending] = useState(false);
   const [accountGateNotice, setAccountGateNotice] = useState("");
   const sessionActivityRef = useRef(Date.now());
   const sessionActivityPersistedRef = useRef(0);
   const userIsAdmin = isAdminUser(userProfile);
   const visibleTabs = useMemo(
-    () => tabs.filter((tab) => tab.key !== "admin" || userIsAdmin),
-    [userIsAdmin]
+    () => tabs.filter((tab) => (tab.key !== "admin" || userIsAdmin) && (tab.key !== "account" || userProfile?.authProvider !== "guest")),
+    [userIsAdmin, userProfile?.authProvider]
   );
+
+  const handleDrawingChange = useCallback((active: boolean) => {
+    if (drawingUnlockTimeoutRef.current) {
+      clearTimeout(drawingUnlockTimeoutRef.current);
+      drawingUnlockTimeoutRef.current = null;
+    }
+
+    setDrawingActive(active);
+
+    if (active) {
+      drawingUnlockTimeoutRef.current = setTimeout(() => {
+        drawingUnlockTimeoutRef.current = null;
+        setDrawingActive(false);
+      }, 1500);
+    }
+  }, []);
+
+  useEffect(() => () => {
+    if (drawingUnlockTimeoutRef.current) clearTimeout(drawingUnlockTimeoutRef.current);
+  }, []);
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
@@ -236,7 +269,7 @@ export default function App() {
 
   useEffect(() => {
     updateWebMetadata();
-    syncSiteVisit();
+    void initializeAnalyticsIdentity().then(() => syncSiteVisit());
     if (Platform.OS === "web") return;
     const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const challengeUrl = response.notification.request.content.data?.challengeUrl;
@@ -469,6 +502,33 @@ export default function App() {
     setUserProfile(null);
   };
 
+  const startAccountDeletion = async () => {
+    if (!userProfile.email || userProfile.authProvider === "guest" || accountDeletionPending) return;
+    setAccountDeletionPending(true);
+    try {
+      const result = await requestAccountDeletion(userProfile.email, userProfile.name);
+      Alert.alert("Check your email", result?.message || "Use the secure link we sent within 24 hours to permanently delete your account.");
+    } catch (error) {
+      Alert.alert("Deletion request not sent", error instanceof Error ? error.message : "Please check your connection and try again.");
+    } finally {
+      setAccountDeletionPending(false);
+    }
+  };
+
+  const confirmAccountDeletion = () => {
+    if (userProfile.authProvider === "guest") return;
+    const message = "We will email you a secure confirmation link. Opening that link permanently deletes your profile, saved results, analytics, friend records, and Treasure Chest records. This cannot be undone.";
+    const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+    if (browserWindow?.confirm) {
+      if (browserWindow.confirm(message)) void startAccountDeletion();
+      return;
+    }
+    Alert.alert("Permanently delete account?", message, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Email deletion link", style: "destructive", onPress: () => void startAccountDeletion() }
+    ]);
+  };
+
   const confirmLogout = () => {
     const browserWindow = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
     if (browserWindow?.confirm) {
@@ -491,17 +551,17 @@ export default function App() {
     <SafeAreaView onTouchEnd={markSessionActivity} style={styles.app}>
       <StatusBar style="dark" />
       <View style={styles.floatingScore}>
-        <TouchableOpacity
+        {activeTab === "today" && dailyPage === "hub" ? <TouchableOpacity
           activeOpacity={0.65}
           accessibilityLabel="Go to home page"
           accessibilityRole="button"
           hitSlop={10}
           onPress={returnHome}
-          style={styles.profileBadge}
+          style={[styles.profileBadge, Platform.OS === "android" && styles.nativeTopAction]}
         >
           <Ionicons color="#f3c64d" name="home-outline" size={22} />
           <Text style={styles.profileBadgeText}>Home</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> : <View />}
         <View style={styles.topRightActions}>
           {Platform.OS === "web" ? <Pressable
             accessibilityLabel="Read Intuisity articles"
@@ -511,21 +571,22 @@ export default function App() {
             <Ionicons color="#b87908" name="newspaper-outline" size={19} />
             <Text style={styles.languageButtonText}>Articles</Text>
           </Pressable> : null}
-          <Pressable
+          <TouchableOpacity
+            activeOpacity={0.65}
             accessibilityLabel="Change language"
             onPress={() => setShowLanguageMenu((current) => !current)}
-            style={styles.languageButton}
+            style={[styles.languageButton, Platform.OS === "android" && styles.nativeTopAction]}
           >
             <Ionicons color="#f3c64d" name="language-outline" size={21} />
             <Text style={styles.languageButtonText}>{userProfile.language.toUpperCase()}</Text>
-          </Pressable>
+          </TouchableOpacity>
           <TouchableOpacity
             activeOpacity={0.65}
             accessibilityLabel="Log out"
             accessibilityRole="button"
             hitSlop={10}
             onPress={confirmLogout}
-            style={styles.logoutIconButton}
+            style={[styles.logoutIconButton, Platform.OS === "android" && styles.nativeTopAction]}
           >
             <Ionicons color="#f3c64d" name="log-out-outline" size={22} />
             <Text style={styles.logoutIconText}>Logout</Text>
@@ -559,6 +620,7 @@ export default function App() {
         contentInsetAdjustmentBehavior="automatic"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled={Platform.OS === "android"}
         scrollEnabled={!drawingActive}
       >
         {activeTab === "today" && (
@@ -568,8 +630,9 @@ export default function App() {
             friendChallengeRequestId={friendChallengeRequestId}
             treasureEntryRequestId={treasureEntryRequestId}
             isPremium={subscriptionStatus !== "Free"}
-            onDrawingChange={setDrawingActive}
+            onDrawingChange={handleDrawingChange}
             onLogout={confirmLogout}
+            onPageChange={setDailyPage}
             onRequireAccount={() => {
               setAccountGateNotice("Glad you're enjoying Intuisity! Log in or create your free account for always-free play and to track your intuition progress.");
               setUserProfile(null);
@@ -596,6 +659,18 @@ export default function App() {
           />
         )}
         {activeTab === "admin" && userIsAdmin && <AdminDashboard />}
+        {activeTab === "account" && userProfile.authProvider !== "guest" && (
+          <AccountSettings
+            deletionPending={accountDeletionPending}
+            onDelete={confirmAccountDeletion}
+            onLogout={confirmLogout}
+            onSave={(updatedProfile) => {
+              saveProfile(updatedProfile);
+              setUserProfile(updatedProfile);
+            }}
+            profile={userProfile}
+          />
+        )}
       </ScrollView>
 
       <View style={styles.tabBar}>
@@ -624,6 +699,127 @@ export default function App() {
   );
 }
 
+function AccountSettings({ profile, deletionPending, onDelete, onLogout, onSave }: {
+  profile: UserProfile;
+  deletionPending: boolean;
+  onDelete: () => void;
+  onLogout: () => void;
+  onSave: (profile: UserProfile) => void;
+}) {
+  const [draft, setDraft] = useState<UserProfile>(profile);
+  const [saveError, setSaveError] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setDraft(profile);
+    setSaveError("");
+    setSaved(false);
+  }, [profile.email]);
+
+  const update = (field: keyof UserProfile, value: string) => {
+    setDraft((current) => ({ ...current, [field]: value }));
+    setSaved(false);
+    setSaveError("");
+  };
+
+  const saveChanges = () => {
+    if (!draft.name.trim()) {
+      setSaveError("Please add your name before saving.");
+      return;
+    }
+    if (draft.birthdate.trim() && !validBirthdate(draft.birthdate)) {
+      setSaveError("Please enter the birthdate as MM/DD/YYYY using a real calendar date.");
+      return;
+    }
+    const birthplaceChanged = ["birthCity", "birthState", "birthCountry"].some(
+      (field) => String(draft[field as keyof UserProfile] || "").trim() !== String(profile[field as keyof UserProfile] || "").trim()
+    );
+    const astrologyChanged = birthplaceChanged || draft.birthdate.trim() !== profile.birthdate.trim() || draft.birthTime.trim() !== profile.birthTime.trim();
+    const nextProfile: UserProfile = {
+      ...draft,
+      name: draft.name.trim(),
+      phone: formatPhoneNumber(draft.phone),
+      reminderTime: draft.reminderTime.trim() || "9:00 AM",
+      currentCity: draft.currentCity.trim(),
+      currentState: draft.currentState.trim(),
+      currentCountry: draft.currentCountry.trim(),
+      birthdate: draft.birthdate.trim(),
+      birthTime: draft.birthTime.trim(),
+      birthCity: draft.birthCity.trim(),
+      birthState: draft.birthState.trim(),
+      birthCountry: draft.birthCountry.trim(),
+      ...(astrologyChanged ? { birthChart: undefined } : {}),
+      ...(birthplaceChanged ? { birthLatitude: undefined, birthLongitude: undefined, birthLocationLabel: undefined } : {})
+    };
+    onSave(nextProfile);
+    setDraft(nextProfile);
+    setSaved(true);
+    Alert.alert("Account updated", "Your profile, reminder, location, and astrology information were saved.");
+  };
+
+  return (
+    <View style={styles.accountManagementCard}>
+      <View style={styles.accountManagementHeading}>
+        <Ionicons color="#b87908" name="person-circle-outline" size={30} />
+        <Text style={styles.accountManagementTitle}>Your account</Text>
+      </View>
+      <Text style={styles.accountSettingsIntro}>Review or update the information connected to your Intuisity account.</Text>
+
+      <Text style={styles.accountSettingsSectionTitle}>Personal information</Text>
+      <ProfileInput autoComplete="name" label="Your name" textContentType="name" value={draft.name} onChangeText={(value) => update("name", value)} />
+      <View style={styles.accountReadOnlyField}>
+        <Text style={styles.accountFieldLabel}>Sign-in email</Text>
+        <Text style={styles.accountReadOnlyValue}>{profile.email}</Text>
+        <Text style={styles.accountReadOnlyHint}>Your sign-in email cannot be changed here because it identifies your saved account.</Text>
+      </View>
+      <ProfileInput autoComplete="tel" label="Phone number (optional)" placeholder="(555) 555-5555" textContentType="telephoneNumber" value={draft.phone} onChangeText={(value) => update("phone", formatPhoneNumber(value))} />
+      <LanguageSelector selected={draft.language} onSelect={(value) => update("language", value)} />
+      <ProfileInput label="Daily reminder time" placeholder="9:00 AM" value={draft.reminderTime} onChangeText={(value) => update("reminderTime", value)} />
+      <Text style={styles.accountTimeZoneText}>Device time zone: {draft.timeZone || detectTimeZone()}</Text>
+
+      <Text style={styles.accountSettingsSectionTitle}>Current location</Text>
+      <Text style={styles.accountSettingsHelp}>Used for your profile and geographic reporting. Intuisity does not collect background GPS location.</Text>
+      <ProfileInput label="Current city" value={draft.currentCity} onChangeText={(value) => update("currentCity", value)} />
+      <ProfileInput label="Current state or region" suggestions={usStates} value={draft.currentState} onChangeText={(value) => update("currentState", value)} />
+      <ProfileInput label="Current country" value={draft.currentCountry} onChangeText={(value) => update("currentCountry", value)} />
+
+      <Text style={styles.accountSettingsSectionTitle}>Astrology information</Text>
+      <Text style={styles.accountSettingsHelp}>Birth time is optional. A complete birthplace helps Intuisity calculate the most detailed available chart.</Text>
+      <ProfileInput label="Birthdate" placeholder="MM/DD/YYYY" value={draft.birthdate} onChangeText={(value) => update("birthdate", value)} />
+      <ProfileInput label="Birth time (optional)" placeholder="7:30 PM" value={draft.birthTime} onChangeText={(value) => update("birthTime", value)} />
+      <ProfileInput label="Birth city" value={draft.birthCity} onChangeText={(value) => update("birthCity", value)} />
+      <ProfileInput label="Birth state or region" value={draft.birthState} onChangeText={(value) => update("birthState", value)} />
+      <ProfileInput label="Birth country" value={draft.birthCountry} onChangeText={(value) => update("birthCountry", value)} />
+
+      {saveError ? <Text style={styles.accountError}>{saveError}</Text> : null}
+      {saved ? <Text style={styles.accountSavedMessage}>Your latest changes are saved.</Text> : null}
+      <Pressable onPress={saveChanges} style={styles.primaryButton}>
+        <Ionicons color="#fff4cf" name="save-outline" size={19} />
+        <Text style={styles.primaryButtonText}>Save account changes</Text>
+      </Pressable>
+      <Pressable onPress={onLogout} style={styles.accountLogoutButton}>
+        <Ionicons color="#6537c7" name="log-out-outline" size={19} />
+        <Text style={styles.accountLogoutButtonText}>Log out</Text>
+      </Pressable>
+
+      <View style={styles.accountDangerSection}>
+        <Text style={styles.accountDangerTitle}>Delete account</Text>
+        <Text style={styles.accountManagementText}>This permanently deletes your profile and associated Intuisity data. A secure confirmation link will be sent to your sign-in email.</Text>
+        <Pressable
+          accessibilityLabel="Permanently delete Intuisity account"
+          accessibilityRole="button"
+          disabled={deletionPending}
+          onPress={onDelete}
+          style={({ pressed }) => [styles.deleteAccountButton, (pressed || deletionPending) && styles.deleteAccountButtonPressed]}
+        >
+          <Ionicons color="#A72F3A" name="trash-outline" size={19} />
+          <Text style={styles.deleteAccountButtonText}>{deletionPending ? "Sending secure link..." : "Delete account"}</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initialNotice?: string; onAuthenticated: (profile: UserProfile) => void; onGuest: (destination?: "hub" | "treasure") => void }) {
   const savedProfiles = loadProfiles();
   const emptyProfile: UserProfile = {
@@ -647,7 +843,7 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
   const authenticate = async (nextProfile: UserProfile) => {
     const authenticatedProfile: UserProfile = {
       ...nextProfile,
-      authProvider: nextProfile.authProvider === "google" ? "google" : "password"
+      authProvider: nextProfile.authProvider === "google" || nextProfile.authProvider === "apple" ? nextProfile.authProvider : "password"
     };
     saveProfile(authenticatedProfile);
     if (Platform.OS !== "web") {
@@ -699,6 +895,43 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
     }
   };
 
+  const handleAppleSignIn = async () => {
+    setError("");
+    setLoginNotice("");
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL
+        ]
+      });
+      const savedAppleProfile = loadProfiles().find(
+        (item) => item.authProvider === "apple" && item.appleUserIdentifier === credential.user
+      );
+      const suppliedEmail = credential.email?.trim().toLowerCase() || "";
+      const normalizedEmail = suppliedEmail || savedAppleProfile?.email || `apple-${credential.user.replace(/[^a-z0-9]/gi, "").toLowerCase()}@users.intuisity.com`;
+      const backendProfile = normalizedEmail ? await fetchSavedProfile(normalizedEmail) : null;
+      const savedProfile = backendProfile ? normalizeLoadedProfile(backendProfile) : savedAppleProfile;
+      const appleName = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean).join(" ");
+      const nextProfile: UserProfile = {
+        ...emptyProfile,
+        ...savedProfile,
+        appleUserIdentifier: credential.user,
+        authProvider: "apple",
+        email: normalizedEmail,
+        name: savedProfile?.name || appleName || "Intuisity member",
+        timeZone: savedProfile?.timeZone || detectTimeZone(),
+        currentCountry: savedProfile?.currentCountry || detectLocaleCountry(),
+        reminderTime: savedProfile?.reminderTime || "9:00 AM"
+      };
+      await syncProfile(nextProfile);
+      await authenticate(nextProfile);
+    } catch (appleError: any) {
+      if (appleError?.code === "ERR_REQUEST_CANCELED") return;
+      setError(appleError instanceof Error ? appleError.message : "Sign in with Apple could not complete.");
+    }
+  };
+
   if (mode === "welcome") {
     return (
       <SafeAreaView style={styles.accountFormScreen}>
@@ -730,6 +963,7 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
           <Text style={styles.primaryButtonText}>Create my account</Text>
         </Pressable>
         {initialNotice ? <Text style={styles.accountGateNotice}>{initialNotice}</Text> : null}
+        {Platform.OS === "ios" ? <AppleSignInButton onPress={handleAppleSignIn} /> : null}
         <GoogleSignInButton onPress={handleGoogleSignIn} />
         <Pressable
           onPress={() => {
@@ -744,7 +978,7 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
         </Pressable>
         {!initialNotice ? (
           <Pressable onPress={() => onGuest("hub")} style={styles.accountSecondaryButton}>
-            <Text style={styles.accountSecondaryText}>Try two games before signing up</Text>
+            <Text style={styles.accountSecondaryText}>Continue as guest · All daily games are available</Text>
           </Pressable>
         ) : null}
         {error ? <Text style={styles.accountError}>{error}</Text> : null}
@@ -771,6 +1005,7 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
           <Ionicons color="#b87908" name="sparkles-outline" size={17} />
           <Text style={styles.loginFreePlayText}>Free to play. Premium extras are optional.</Text>
         </View>
+        {Platform.OS === "ios" ? <AppleSignInButton onPress={handleAppleSignIn} /> : null}
         <GoogleSignInButton onPress={handleGoogleSignIn} />
         <View style={styles.loginDivider}>
           <View style={styles.loginDividerLine} />
@@ -946,7 +1181,8 @@ function AccountAccess({ initialNotice = "", onAuthenticated, onGuest }: { initi
           style={styles.signupBanner}
         />
         <Text style={styles.accountTitle}>Create your Intuisity profile</Text>
-        <Text style={styles.accountSubtitle}>Use Google for the fastest setup, or create an email and password account below.</Text>
+        <Text style={styles.accountSubtitle}>Use Apple or Google for fast setup, or create an email and password account below.</Text>
+        {Platform.OS === "ios" ? <AppleSignInButton onPress={handleAppleSignIn} /> : null}
         <GoogleSignInButton onPress={handleGoogleSignIn} />
         <View style={styles.loginDivider}>
           <View style={styles.loginDividerLine} />
@@ -1123,6 +1359,19 @@ function GoogleSignInButton({ onPress }: { onPress: () => void }) {
       </View>
       <Text style={styles.googleButtonText}>Continue with Google</Text>
     </Pressable>
+  );
+}
+
+function AppleSignInButton({ onPress }: { onPress: () => void }) {
+  return (
+    <AppleAuthentication.AppleAuthenticationButton
+      accessibilityLabel="Continue with Apple"
+      buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+      buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+      cornerRadius={8}
+      onPress={onPress}
+      style={styles.appleButton}
+    />
   );
 }
 
@@ -1988,7 +2237,7 @@ function AdminDashboard() {
   const [thisIsOwnerTestDevice, setThisIsOwnerTestDevice] = useState(isOwnerTestDevice);
   const localReport = loadAdminAnalyticsReport(reportStartDate, reportEndDate);
   const report = backendReport || localReport;
-  const geographicAreas = report.geographicAreas || { cities: [], countries: [], states: [], totalUsers: report.totalUsers, usersWithLocation: 0 };
+  const audienceGeographicAreas = report.visitorGeographicAreas || { cities: [], countries: [], states: [], totalVisitors: report.audienceUniqueVisitors ?? report.uniqueVisitors, usersWithLocation: 0 };
   const recentBackendSaves = useMemo(loadBackendSyncLog, [backendLogRefresh]);
   const hasActivity = report.totalUsers > 0 || report.totalVisits > 0 || report.feedbackCount > 0;
   const visitorTrendMax = Math.max(1, ...(report.visitorTrend || []).map((day) => day.uniqueVisitors));
@@ -2018,6 +2267,18 @@ function AdminDashboard() {
     { icon: "flash-outline" as const, label: "Active time", value: formatDuration(report.totalActiveTimeMs || report.totalTimeMs) },
     { icon: "time-outline" as const, label: "Page time", value: formatDuration(report.totalTimeMs) }
   ];
+
+  useEffect(() => {
+    let active = true;
+    loadAdminSecretFromDevice().then((savedSecret) => {
+      if (!active || !savedSecret || savedSecret === adminSecret) return;
+      setAdminSecret(savedSecret);
+      setAdminSecretSavedAt("Saved on this device");
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
   const downloadUserInsights = () => {
     const opener = (globalThis as unknown as { open?: (url: string, target?: string) => void }).open;
     if (opener) {
@@ -2192,6 +2453,36 @@ function AdminDashboard() {
             </View>
           ))}
         </View>
+
+        {(report.ownerTestGeographicAreas?.usersWithLocation || 0) > 0 && (
+          <View>
+            <Text style={styles.adminSectionTitle}>Admin/test geography</Text>
+            <Text style={styles.adminSectionHint}>
+              Kept separate from audience locations so administrator and testing activity does not affect genuine visitor geography.
+            </Text>
+            <View style={styles.adminGeographyGrid}>
+              {[
+                { icon: "globe-outline" as const, items: report.ownerTestGeographicAreas?.countries || [], title: "Admin countries" },
+                { icon: "map-outline" as const, items: report.ownerTestGeographicAreas?.states || [], title: "Admin states and regions" },
+                { icon: "location-outline" as const, items: report.ownerTestGeographicAreas?.cities || [], title: "Admin cities" }
+              ].map((group) => (
+                <View key={group.title} style={styles.adminGeographyCard}>
+                  <View style={styles.adminGeographyTitleRow}>
+                    <Ionicons color="#b87908" name={group.icon} size={22} />
+                    <Text style={styles.adminStartTitle}>{group.title}</Text>
+                  </View>
+                  {group.items.slice(0, 8).map((area, index) => (
+                    <View key={area.label} style={styles.adminGeographyRow}>
+                      <Text style={styles.adminGeographyRank}>{index + 1}</Text>
+                      <Text style={styles.adminGeographyLabel}>{area.label}</Text>
+                      <Text style={styles.adminGeographyCount}>{area.count}</Text>
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
       </View>
     );
   }
@@ -2516,13 +2807,13 @@ function AdminDashboard() {
 
       <Text style={styles.adminSectionTitle}>Strongest geographic areas</Text>
       <Text style={styles.adminSectionHint}>
-        Based on the current city, state or region, and country saved by {geographicAreas.usersWithLocation} of {geographicAreas.totalUsers} registered users. No background GPS tracking is used.
+        Approximate location is available for {audienceGeographicAreas.usersWithLocation} of {audienceGeographicAreas.totalVisitors} audience visitors in the selected range. It comes from the hosting network or a saved profile; admin/test activity is kept separate and no IP address or GPS location is stored.
       </Text>
       <View style={styles.adminGeographyGrid}>
         {[
-          { icon: "globe-outline" as const, items: geographicAreas.countries, title: "Countries" },
-          { icon: "map-outline" as const, items: geographicAreas.states, title: "States and regions" },
-          { icon: "location-outline" as const, items: geographicAreas.cities, title: "Cities" }
+          { icon: "globe-outline" as const, items: audienceGeographicAreas.countries, title: "Countries" },
+          { icon: "map-outline" as const, items: audienceGeographicAreas.states, title: "States and regions" },
+          { icon: "location-outline" as const, items: audienceGeographicAreas.cities, title: "Cities" }
         ].map((group) => (
           <View key={group.title} style={styles.adminGeographyCard}>
             <View style={styles.adminGeographyTitleRow}>
@@ -2877,11 +3168,15 @@ function updateWebMetadata() {
   const documentRef = (globalThis as any).document;
   if (!documentRef) return;
 
-  documentRef.title = "Intuisity | Intuition Training, Remote Viewing, and Inner Knowing";
-  setMetaTag("description", seoDescription);
+  const homepageTitle = "Intuisity: Daily Intuition Training & Mindfulness";
+  const homepageDescription = "Build intuition through daily challenges, remote viewing practice, mindfulness exercises, astrology insights, and Treasure Chest games with friends.";
+  documentRef.title = homepageTitle;
+  setMetaTag("description", homepageDescription);
   setMetaTag("keywords", seoKeywords.join(", "));
-  setMetaTag("og:title", "Intuisity | Awaken Your Intuition. Expand Your Awareness.", "property");
-  setMetaTag("og:description", seoDescription, "property");
+  setMetaTag("og:title", homepageTitle, "property");
+  setMetaTag("og:description", homepageDescription, "property");
+  setMetaTag("twitter:title", homepageTitle);
+  setMetaTag("twitter:description", homepageDescription);
 }
 
 function setMetaTag(name: string, content: string, attribute = "name") {
@@ -2915,6 +3210,7 @@ const styles = StyleSheet.create({
   loginFreePlayNote: { alignItems: "center", alignSelf: "flex-start", backgroundColor: "#fffaf0", borderColor: "#f0dca0", borderRadius: 999, borderWidth: 1, flexDirection: "row", gap: 7, marginBottom: 16, marginTop: -8, paddingHorizontal: 12, paddingVertical: 8 },
   loginFreePlayText: { color: "#b87908", fontSize: 12, fontWeight: "900" },
   googleButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#e2dff0", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 10, justifyContent: "center", marginBottom: 12, minHeight: 48, padding: 12 },
+  appleButton: { height: 48, marginBottom: 12, width: "100%" },
   googleIconCircle: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#E7E3F2", borderRadius: 999, borderWidth: 1, height: 26, justifyContent: "center", width: 26 },
   googleIconText: { color: "#4285F4", fontSize: 16, fontWeight: "900" },
   googleButtonText: { color: "#30264C", fontSize: 15, fontWeight: "900" },
@@ -2972,24 +3268,47 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     flex: 1
   },
+  accountManagementCard: { backgroundColor: "#FFFFFF", borderColor: "#e2dff0", borderRadius: 10, borderWidth: 1, marginBottom: 92, marginTop: 18, padding: 16 },
+  accountManagementHeading: { alignItems: "center", flexDirection: "row", gap: 8, marginBottom: 7 },
+  accountManagementTitle: { color: "#30264C", fontSize: 16, fontWeight: "900" },
+  accountManagementName: { color: "#30264C", fontSize: 20, fontWeight: "900", marginTop: 8 },
+  accountManagementEmail: { color: "#706982", fontSize: 14, marginBottom: 16, marginTop: 3 },
+  accountManagementText: { color: "#706982", fontSize: 13, lineHeight: 19, marginBottom: 12 },
+  accountLogoutButton: { alignItems: "center", alignSelf: "flex-start", borderColor: "#cfc8df", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 7, minHeight: 44, paddingHorizontal: 14, paddingVertical: 9 },
+  accountLogoutButtonText: { color: "#6537c7", fontSize: 13, fontWeight: "900" },
+  accountDangerSection: { borderTopColor: "#e2dff0", borderTopWidth: 1, marginTop: 22, paddingTop: 18 },
+  accountSettingsIntro: { color: "#5F5870", fontSize: 14, lineHeight: 20, marginBottom: 18 },
+  accountSettingsSectionTitle: { color: "#6537c7", fontSize: 18, fontWeight: "900", marginBottom: 10, marginTop: 16 },
+  accountSettingsHelp: { color: "#6B647A", fontSize: 13, lineHeight: 19, marginBottom: 12 },
+  accountReadOnlyField: { backgroundColor: "#F7F5FC", borderColor: "#DDD6ED", borderRadius: 8, borderWidth: 1, marginBottom: 14, padding: 12 },
+  accountReadOnlyValue: { color: "#30264C", fontSize: 15, fontWeight: "800" },
+  accountReadOnlyHint: { color: "#6B647A", fontSize: 12, lineHeight: 17, marginTop: 5 },
+  accountTimeZoneText: { color: "#6B647A", fontSize: 13, marginBottom: 4, marginTop: -4 },
+  accountSavedMessage: { color: "#287A53", fontSize: 13, fontWeight: "800", marginBottom: 10 },
+  accountDangerTitle: { color: "#30264C", fontSize: 16, fontWeight: "900", marginBottom: 6 },
+  deleteAccountButton: { alignItems: "center", alignSelf: "flex-start", borderColor: "#D99CA2", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 7, minHeight: 44, paddingHorizontal: 14, paddingVertical: 9 },
+  deleteAccountButtonPressed: { opacity: 0.62 },
+  deleteAccountButtonText: { color: "#A72F3A", fontSize: 13, fontWeight: "900" },
   floatingScore: {
     alignItems: "center",
     flexDirection: "row",
     gap: 8,
     justifyContent: "space-between",
     paddingHorizontal: 18,
-    paddingTop: 8,
-    zIndex: 30,
-    elevation: 8
+    paddingTop: Platform.OS === "android" ? (NativeStatusBar.currentHeight || 24) + 8 : 8,
+    position: "relative",
+    zIndex: 100,
+    elevation: 40
   },
   profileBadge: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 6, minHeight: 42, paddingHorizontal: 12, paddingVertical: 8 },
   profileBadgeText: { color: "#fff4cf", flexShrink: 1, fontSize: 13, fontWeight: "800" },
-  topRightActions: { alignItems: "center", flexDirection: "row", gap: 8 },
+  topRightActions: { alignItems: "center", elevation: Platform.OS === "android" ? 43 : 0, flexDirection: "row", gap: 8, zIndex: 103 },
   languageButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 3, height: 42, justifyContent: "center", paddingHorizontal: 8 },
   languageButtonText: { color: "#fff4cf", fontSize: 10, fontWeight: "900" },
   logoutIconButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 6, height: 42, justifyContent: "center", paddingHorizontal: 10 },
   logoutIconText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
-  languageMenu: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, elevation: 12, left: 18, padding: 6, position: "absolute", right: 18, shadowColor: "#30264C", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, top: 58, zIndex: 20 },
+  nativeTopAction: { elevation: 42, zIndex: 102 },
+  languageMenu: { backgroundColor: "#FFFFFF", borderColor: "#f0dca0", borderRadius: 8, borderWidth: 1, elevation: 50, left: 18, padding: 6, position: "absolute", right: 18, shadowColor: "#30264C", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, top: Platform.OS === "android" ? (NativeStatusBar.currentHeight || 24) + 58 : 58, zIndex: 110 },
   languageMenuOption: { alignItems: "center", borderRadius: 7, flexDirection: "row", justifyContent: "space-between", minHeight: 38, paddingHorizontal: 10, paddingVertical: 6 },
   languageMenuOptionSelected: { backgroundColor: "#b87908" },
   languageMenuNative: { color: "#30264C", fontSize: 13, fontWeight: "900" },

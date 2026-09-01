@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex,follow" /><title>Delete Your Intuisity Account</title>
+  <link rel="icon" type="image/png" href="/intuisity-favicon.png?v=20260829" />
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#fffaf0;color:#30264c;font-family:Arial,sans-serif;line-height:1.6}main{max-width:700px;margin:auto;padding:36px 18px 64px}.hero{background:#6537c7;color:#fff;border:2px solid #f3c64d;border-radius:12px;padding:28px;margin-bottom:20px}.mark{color:#f3c64d;font-family:Georgia,serif;font-size:42px;font-weight:bold;line-height:1}h1{margin:8px 0;font-size:32px;line-height:1.2}.card{background:#fff;border:1px solid #e2dff0;border-radius:12px;padding:24px}label{display:block;font-size:14px;font-weight:800;margin:18px 0 6px}input{border:1px solid #cfc8df;border-radius:8px;font:inherit;padding:12px 14px;width:100%}button{background:#a72f3a;border:0;border-radius:8px;color:#fff;cursor:pointer;font-size:15px;font-weight:800;margin-top:18px;min-height:48px;padding:12px 18px}button:disabled{cursor:wait;opacity:.6}.notice{border-radius:8px;display:none;font-weight:700;margin-top:16px;padding:12px}.success{background:#eff9ef;border:1px solid #8bc48b;color:#245c2b}.error{background:#fff1f2;border:1px solid #d99ca2;color:#8c2530}a{color:#6537c7;font-weight:800}li{margin-bottom:5px}
+  </style>
+</head>
+<body><main>
+  <section class="hero"><div class="mark">I</div><h1>Delete your Intuisity account</h1><p>You may permanently delete your Intuisity account and its associated data at any time.</p></section>
+  <section class="card">
+    <h2>What will be deleted</h2>
+    <ul><li>Your Intuisity profile and saved account information</li><li>Your saved answers, scores, results, and feedback</li><li>Your account analytics and saved friend records</li><li>Treasure Chest challenges associated with your account</li></ul>
+    <p>This action is permanent and cannot be undone. Enter the email address used for your Intuisity account. We will send a secure confirmation link that expires after 24 hours.</p>
+    <form id="deletion-form"><label for="email">Intuisity account email</label><input id="email" name="email" type="email" autocomplete="email" required placeholder="you@example.com" /><button id="submit-button" type="submit">Email my secure deletion link</button></form>
+    <div id="success" class="notice success" role="status"></div><div id="error" class="notice error" role="alert"></div>
+    <p><a href="/privacy.html">Privacy Policy</a> · <a href="/">Return to Intuisity</a></p>
+  </section>
+</main><script>
+const form=document.getElementById("deletion-form"),button=document.getElementById("submit-button"),success=document.getElementById("success"),error=document.getElementById("error");
+form.addEventListener("submit",async event=>{event.preventDefault();button.disabled=true;button.textContent="Sending secure link...";success.style.display="none";error.style.display="none";try{const response=await fetch("/api/account-deletion",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:document.getElementById("email").value})});const payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.message||payload.error||"The deletion request could not be sent.");success.textContent=payload.message||"Check your email for the secure deletion link.";success.style.display="block";form.reset()}catch(requestError){error.textContent=requestError.message||"Please check your connection and try again.";error.style.display="block"}finally{button.disabled=false;button.textContent="Email my secure deletion link"}});
+</script></body></html>

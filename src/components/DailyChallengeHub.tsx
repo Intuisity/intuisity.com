@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Contacts from "expo-contacts";
+import * as Clipboard from "expo-clipboard";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Animated, Easing, Image, ImageBackground, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Animated, Easing, Image, ImageBackground, Keyboard, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { getAstrologyReading, getBirthLocationSuggestions, getKnownBirthLocation } from "../data/astrologyTips";
 import { getDailyChallenges } from "../data/mockData";
@@ -89,6 +90,7 @@ type Props = {
   isPremium: boolean;
   onDrawingChange?: (active: boolean) => void;
   onLogout: () => void;
+  onPageChange?: (page: string) => void;
   onRequireAccount: () => void;
   onUpdateProfile: (profile: UserProfile) => void;
   setAnswers: React.Dispatch<React.SetStateAction<Answers>>;
@@ -96,8 +98,8 @@ type Props = {
 };
 
 const personChoiceLimit = 3;
-const personMaximumScore = 3;
 const guestPlayLimit = 3;
+const personMaximumScore = 3;
 const personPortraitSearchLimit = 100;
 const personPortraitFetchAttemptLimit = 8;
 const portraitCache = new Map<string, string | null>();
@@ -552,7 +554,7 @@ const personImages: Record<string, any> = {
   mei: require("../../assets/person-mei.png")
 };
 
-export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeRequestId = 0, treasureEntryRequestId = 0, isPremium, onDrawingChange, onLogout, onRequireAccount, onUpdateProfile, setAnswers, userProfile }: Props) {
+export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeRequestId = 0, treasureEntryRequestId = 0, isPremium, onDrawingChange, onLogout, onPageChange, onRequireAccount, onUpdateProfile, setAnswers, userProfile }: Props) {
   const savedPersonChallengeRef = useRef(loadTodaysPersonChallenge(userProfile.email));
   const savedPersonChallenge = savedPersonChallengeRef.current;
   const savedPersonProfile = savedPersonChallenge
@@ -561,7 +563,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const initialPersonProfile = savedPersonProfile && isPhotographicPersonProfile(savedPersonProfile)
     ? savedPersonProfile
     : pickBalancedPersonProfile(userProfile.email);
-  const [page, setPage] = useState("hub");
+  const [page, setPage] = useState(() => getRequestedPlayPage() || "hub");
   const webPageHistoryReadyRef = useRef(false);
   const webPagePopRef = useRef(false);
   const lastWebPageRef = useRef("hub");
@@ -679,6 +681,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   const [predictedPowerWord, setPredictedPowerWord] = useState<string | null>(null);
   const [computerPowerWord, setComputerPowerWord] = useState<string | null>(null);
   const [learningChallenge, setLearningChallenge] = useState("");
+  const [selectedLearningIdeaIndex, setSelectedLearningIdeaIndex] = useState<number | null>(null);
   const [learningTaskSaved, setLearningTaskSaved] = useState(false);
   const [priorLearningEntry, setPriorLearningEntry] = useState<LearningJournalEntry | null>(null);
   const [learningResponse, setLearningResponse] = useState("");
@@ -708,7 +711,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     if (Platform.OS !== "web") return;
     const browserWindow = (globalThis as any).window;
     if (!browserWindow?.history) return;
-    const initialPage = String(browserWindow.history.state?.intuisityPage || "hub");
+    const initialPage = String(browserWindow.history.state?.intuisityPage || getRequestedPlayPage() || "hub");
     lastWebPageRef.current = initialPage;
     if (initialPage !== page) {
       webPagePopRef.current = true;
@@ -750,13 +753,23 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   }, [page]);
 
   useEffect(() => {
+    if (page !== "remote-viewing-test") onDrawingChange?.(false);
+  }, [onDrawingChange, page]);
+
+  useEffect(() => {
+    onPageChange?.(page);
+  }, [onPageChange, page]);
+
+  useEffect(() => {
     if (page !== "social-prediction" || Platform.OS !== "web") return;
     const browserWindow = (globalThis as any).window;
     browserWindow?.requestAnimationFrame?.(() => browserWindow.scrollTo({ behavior: "smooth", left: 0, top: 0 }));
   }, [page, treasureFlowStep]);
 
   useEffect(() => {
-    if (userProfile.authProvider !== "guest" || getCompletedGuestPlayCount(answers) < guestPlayLimit || guestAccountPromptShownRef.current) return;
+    // Apple requires non-account gameplay to remain freely accessible on iOS.
+    // Keep the existing registration invitation on web and Android only.
+    if (Platform.OS === "ios" || userProfile.authProvider !== "guest" || getCompletedGuestPlayCount(answers) < guestPlayLimit || guestAccountPromptShownRef.current) return;
     guestAccountPromptShownRef.current = true;
     const message = "Glad you're enjoying Intuisity! Log in or create your free account for always-free play and to track your intuition progress.";
     if (Platform.OS === "web") {
@@ -1002,7 +1015,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   };
 
   const openChallenge = (challengeId: string) => {
-    if (userProfile.authProvider === "guest" && getCompletedGuestPlayCount(answers) >= guestPlayLimit) {
+    if (Platform.OS !== "ios" && userProfile.authProvider === "guest" && getCompletedGuestPlayCount(answers) >= guestPlayLimit) {
       onRequireAccount();
       return;
     }
@@ -1288,6 +1301,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       .reverse()
       .find((entry) => entry.date < today && !entry.response);
     setLearningChallenge(todayLearning?.challenge || "");
+    setSelectedLearningIdeaIndex(null);
     setLearningTaskSaved(Boolean(todayLearning));
     setPriorLearningEntry(priorLearning || null);
     setLearningResponse(priorLearning?.response || "");
@@ -1424,7 +1438,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
 
   if (page === "remote-viewing-arena") {
     const lessonChoices = getDailyPositivityChoices(userProfile.email, getDateKey());
-    const selectedLesson = lessonChoices.find((lesson) => learningChallenge === lesson.practice);
+    const selectedLesson = selectedLearningIdeaIndex === null ? undefined : lessonChoices[selectedLearningIdeaIndex];
     const visibleHistory = isPremium ? learningHistory : learningHistory.slice(0, 1);
     return (
       <View>
@@ -1489,13 +1503,13 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         </View>
         <View style={styles.learningChoiceGrid}>
           {lessonChoices.map((lesson, index) => {
-            const selected = learningChallenge === lesson.practice;
+            const selected = selectedLearningIdeaIndex === index;
             return (
               <Pressable
                 accessibilityLabel={`Choose positivity idea ${index + 1}`}
                 disabled={learningTaskSaved}
                 key={`${lesson.title}-${index}`}
-                onPress={() => setLearningChallenge(lesson.practice)}
+                onPress={() => setSelectedLearningIdeaIndex(index)}
                 style={[styles.learningIdeaChoice, selected && styles.learningIdeaChoiceSelected, learningTaskSaved && styles.learningIdeaChoiceLocked]}
               >
                 <View style={styles.learningIdeaHeader}>
@@ -1514,22 +1528,22 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         <View style={[styles.learningChallengeCard, styles.learningChallengeCardCompact]}>
           <Text style={styles.practiceLabel}>Your task for today</Text>
           <Text style={styles.practiceText}>
-            Choose one idea above, or write a small positivity task of your own.
+            Choose one idea above, then fill in your own answer or action below. The box is intentionally blank for your words.
           </Text>
+          {selectedLesson && !learningTaskSaved && (
+            <Text style={styles.journalHint}>Your selected idea: {selectedLesson.practice}</Text>
+          )}
           <TextInput
             accessibilityLabel="Today's positivity task"
             editable={!learningTaskSaved}
             multiline
             onChangeText={setLearningChallenge}
-            placeholder="Example: I will guess who calls next, or invite someone to lunch."
+            placeholder="Write your answer or action here."
             placeholderTextColor="#9A93AA"
             style={[styles.journalInput, styles.learningJournalInputCompact, learningTaskSaved && styles.journalInputLocked]}
             textAlignVertical="top"
             value={learningChallenge}
           />
-          {selectedLesson && !learningTaskSaved && (
-            <Text style={styles.journalHint}>Selected: {selectedLesson.title}</Text>
-          )}
           {learningTaskSaved && (
             <View style={styles.savedTaskBanner}>
               <Ionicons color="#239963" name="lock-closed-outline" size={18} />
@@ -1629,15 +1643,17 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           {personPortraitSource && !personPortraitUnavailable ? <Image
             accessibilityLabel="Portrait for the Read the Person challenge"
             onError={async () => {
-              if ((!personPracticeMode && savedPersonChallengeRef.current) || showPersonResults) {
+              if (showPersonResults) {
                 setPersonPortraitLoading(false);
                 setPersonPortraitUnavailable(true);
                 return;
               }
               setPersonPortraitLoading(true);
               setPersonPortraitUnavailable(false);
-                for (let attempt = 0; attempt < Math.min(personProfiles.length, personPortraitFetchAttemptLimit); attempt += 1) {
+              portraitCache.delete((person.wikipediaTitle || person.name).trim().toLowerCase());
+              for (let attempt = 0; attempt < Math.min(personProfiles.length, personPortraitFetchAttemptLimit); attempt += 1) {
                 const candidate = pickBalancedPersonProfile(userProfile.email, attempt + 1);
+                if (candidate.id === person.id && attempt < personPortraitFetchAttemptLimit - 1) continue;
                 const portraitUri = candidate.portraitUri || await resolveWikipediaPortrait(candidate.wikipediaTitle || candidate.name);
                 if (portraitUri) {
                   setPerson(candidate);
@@ -2174,6 +2190,8 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       treasureLost && styles.treasureSceneLost
     ];
     const chooseTreasureMode = (mode: "friend" | "computer") => {
+      Keyboard.dismiss();
+      onDrawingChange?.(false);
       setOpponent(mode);
       setFriendPhoneError("");
       setFriendInviteStatus("");
@@ -2211,7 +2229,9 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       friendKeys = selectedFriendPhones,
       friendList = savedFriends
     ) => {
-      if (userProfile.authProvider === "guest" && getCompletedGuestPlayCount(answers) >= guestPlayLimit) {
+      Keyboard.dismiss();
+      onDrawingChange?.(false);
+      if (Platform.OS !== "ios" && userProfile.authProvider === "guest" && getCompletedGuestPlayCount(answers) >= guestPlayLimit) {
         onRequireAccount();
         return;
       }
@@ -2406,18 +2426,18 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             const next = [...created, ...sentTreasureChallenges.filter((existing) => !created.some((item) => item.id === existing.id))];
             setSentTreasureChallenges(next);
             saveSentTreasureChallenges(userProfile.email, next);
-            const deliveryProblems = created.filter((challenge) => challenge.emailError);
+            const deliveryProblems = created.filter((challenge) => challenge.emailError || isEmailDeliveryProblem(challenge.emailDeliveryStatus || ""));
             const emailCount = selectedFriends.filter((friend) => friend.email).length;
             const phoneOnlyCount = selectedFriends.filter((friend) => friend.phone && !friend.email).length;
             const inviteMessage = deliveryProblems.length
               ? `The Treasure Chest was saved, but the email was not sent. ${deliveryProblems[0].emailError}`
               : phoneOnlyCount && emailCount
-                ? `The email ${emailCount === 1 ? "invite was" : "invites were"} sent. ${phoneOnlyCount} text ${phoneOnlyCount === 1 ? "invite is" : "invites are"} ready below—open Messages and press Send.`
+                ? `${emailCount === 1 ? "One email invitation was" : `${emailCount} email invitations were`} submitted to the email service; delivery is not yet confirmed. ${phoneOnlyCount} text ${phoneOnlyCount === 1 ? "invite is" : "invites are"} ready below—open Messages and press Send.`
                 : phoneOnlyCount
                   ? `Your challenge ${phoneOnlyCount === 1 ? "link is" : "links are"} ready below. Open Messages and press Send to deliver ${phoneOnlyCount === 1 ? "it" : "each one"}.`
-                  : `Your invite has been sent to ${emailCount} ${emailCount === 1 ? "friend" : "friends"}. Resend accepted the email and its delivery status will appear on this page.`;
+                  : `${emailCount === 1 ? "The email invitation was" : `${emailCount} email invitations were`} submitted to the email service. Delivery is not yet confirmed; the latest status will appear under Your sent chests.`;
             setFriendInviteStatus(inviteMessage);
-            Alert.alert(deliveryProblems.length ? "Email invitation not sent" : phoneOnlyCount ? "Challenge ready to text" : "Your invite has been sent", inviteMessage);
+            Alert.alert(deliveryProblems.length ? "Email invitation not sent" : phoneOnlyCount ? "Challenge ready to text" : "Email invitation submitted", inviteMessage);
             if (Platform.OS === "web") {
               const browserWindow = (globalThis as any).window;
               browserWindow?.requestAnimationFrame?.(() => browserWindow.scrollTo({ behavior: "smooth", left: 0, top: 0 }));
@@ -2493,34 +2513,73 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         });
       });
     };
-    const shareTreasureResult = async () => {
+    const getTreasureShareContent = () => {
       const resultLine = treasureWon
         ? `I opened the Intuisity Treasure Chest in ${treasureTriesUsed} ${treasureTriesUsed === 1 ? "try" : "tries"}—can you beat me?`
         : "The Intuisity Treasure Chest stayed locked this time. Can you open it in four tries?";
       const url = "https://www.intuisity.com/treasure-chest.html";
+      return { message: `${resultLine}\n${url}`, resultLine, url };
+    };
+    const shareTreasureResult = async () => {
+      const { message, resultLine, url } = getTreasureShareContent();
       try {
-        const navigatorRef = (globalThis as any).navigator;
-        if (navigatorRef?.share) {
-          await navigatorRef.share({ title: "Intuisity Treasure Chest", text: resultLine, url });
+        if (Platform.OS !== "web") {
+          await Share.share({ message, title: "Intuisity Treasure Chest", url });
         } else {
-          await Share.share({ message: `${resultLine}\n${url}`, title: "Intuisity Treasure Chest", url });
+          const navigatorRef = (globalThis as any).navigator;
+          if (!navigatorRef?.share) throw new Error("Browser sharing is unavailable");
+          await navigatorRef.share({ title: "Intuisity Treasure Chest", text: resultLine, url });
         }
-        setTreasureShareStatus("Your Treasure Chest result is ready to share.");
+        setTreasureShareStatus(Platform.OS === "android" ? "Android sharing options opened." : "Sharing options opened.");
       } catch (error) {
         if ((error as any)?.name !== "AbortError") {
           setTreasureShareStatus("Sharing did not open. You can copy intuisity.com/treasure-chest.html instead.");
         }
       }
     };
-    const copyTreasureChallengeLink = async () => {
-      const url = "https://www.intuisity.com/treasure-chest.html";
-      const resultLine = treasureWon
-        ? `I opened the Intuisity Treasure Chest in ${treasureTriesUsed} ${treasureTriesUsed === 1 ? "try" : "tries"}—can you beat me?`
-        : "The Intuisity Treasure Chest stayed locked this time. Can you open it in four tries?";
+    const shareTreasureToSocial = async (destination: "facebook" | "instagram" | "tiktok") => {
+      const { message, resultLine, url } = getTreasureShareContent();
       try {
-        const clipboard = (globalThis as any).navigator?.clipboard;
-        if (!clipboard?.writeText) throw new Error("Clipboard is unavailable");
-        await clipboard.writeText(`${resultLine}\n${url}`);
+        if (destination === "facebook") {
+          if (Platform.OS === "web") {
+            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(resultLine)}`;
+            await Linking.openURL(facebookUrl);
+            setTreasureShareStatus("Facebook opened with the Treasure Chest link ready to share.");
+            return;
+          }
+          await Clipboard.setStringAsync(message);
+          try {
+            await Linking.openURL("fb://feed");
+            setTreasureShareStatus("Facebook opened. Your result and link were copied—paste them into your post.");
+          } catch {
+            const unavailableMessage = "Facebook is not installed on this Android device. Your Treasure Chest result and link were copied; install or open Facebook on a phone, then paste them into a post.";
+            setTreasureShareStatus(unavailableMessage);
+            Alert.alert("Facebook is unavailable", unavailableMessage);
+          }
+          return;
+        }
+
+        await Clipboard.setStringAsync(message);
+        const appUrl = destination === "instagram" ? "instagram://app" : "snssdk1233://";
+        const webUrl = destination === "instagram" ? "https://www.instagram.com/" : "https://www.tiktok.com/";
+        const canOpenApp = await Linking.canOpenURL(appUrl).catch(() => false);
+        await Linking.openURL(canOpenApp ? appUrl : webUrl);
+        const label = destination === "instagram" ? "Instagram" : "TikTok";
+        setTreasureShareStatus(`${label} opened. The result and link were copied—paste them into your caption or message.`);
+      } catch {
+        setTreasureShareStatus(`Could not open ${destination === "instagram" ? "Instagram" : "TikTok"}. Use Share my result and select it from the Android share menu.`);
+      }
+    };
+    const copyTreasureChallengeLink = async () => {
+      const { message, url } = getTreasureShareContent();
+      try {
+        if (Platform.OS === "web") {
+          const clipboard = (globalThis as any).navigator?.clipboard;
+          if (!clipboard?.writeText) throw new Error("Clipboard is unavailable");
+          await clipboard.writeText(message);
+        } else {
+          await Clipboard.setStringAsync(message);
+        }
         setTreasureShareStatus("Result and challenge link copied. Paste it into a text, email, or social post.");
       } catch {
         setTreasureShareStatus(`Copy this challenge link: ${url}`);
@@ -2568,7 +2627,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       if (!treasureWon) return null;
       if (typeof (globalThis as any).document === "undefined") {
         return (
-          <View style={styles.treasureInspirationLayer}>
+          <View pointerEvents="none" style={styles.treasureInspirationLayer}>
             {treasureInspirationWords.map((word, index) => (
               <Text key={`${word}-${index}`} style={styles.treasureInspirationWord}>
                 {word}
@@ -3072,7 +3131,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         {treasureFriendSubmitted && friendInviteStatus && friendInviteStatus !== "Sending friend challenge invite..." ? (
           <View style={styles.treasureResultShareCard}>
             <Ionicons color={friendInviteStatus.includes("rejected") || friendInviteStatus.includes("could not") ? "#B33A3A" : "#43A86B"} name={friendInviteStatus.includes("rejected") || friendInviteStatus.includes("could not") ? "alert-circle-outline" : "checkmark-circle-outline"} size={30} />
-            <Text style={styles.treasureResultShareTitle}>{friendInviteStatus.startsWith("Your invite has been sent") ? "Your invite has been sent" : friendInviteStatus.includes("ready") ? "Your challenge is ready" : "Treasure Chest invitation update"}</Text>
+            <Text style={styles.treasureResultShareTitle}>{friendInviteStatus.includes("submitted to the email service") ? "Email invitation submitted" : friendInviteStatus.includes("ready") ? "Your challenge is ready" : "Treasure Chest invitation update"}</Text>
             <Text style={styles.treasureResultShareText}>{friendInviteStatus}</Text>
             {sentTreasureChallenges.slice(0, 5).map((challenge) => (
               <Text
@@ -3156,10 +3215,11 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               </View>
             ) : null}
             <Text style={styles.inputLabel}>Friend connection</Text>
+            <Text style={styles.savedFriendsLabel}>Enter your friend's information below. Contacts is optional.</Text>
             {Platform.OS !== "web" ? (
-              <Pressable accessibilityLabel="Choose friend from contacts" onPress={chooseFriendFromContacts} style={styles.contactPickerButton}>
+              <Pressable accessibilityLabel="Optionally choose friend from contacts" onPress={chooseFriendFromContacts} style={styles.contactPickerButton}>
                 <Ionicons color="#6537c7" name="people-outline" size={20} />
-                <Text style={styles.contactPickerButtonText}>Choose from Contacts</Text>
+                <Text style={styles.contactPickerButtonText}>Optional: Fill from Contacts</Text>
               </Pressable>
             ) : null}
             <TextInput
@@ -3209,7 +3269,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               style={[styles.primaryButton, (!friendName.trim() || (!friendPhone.replace(/\D/g, "") && !friendEmail.trim()) || (userProfile.authProvider === "guest" && (!treasureGuestSenderName.trim() || !validEmailAddress(treasureGuestSenderEmail)))) && styles.disabledButton]}
             >
               <Ionicons color="#f3c64d" name="person-add-outline" size={18} />
-              <Text style={styles.primaryButtonText}>Save this friend</Text>
+              <Text style={styles.primaryButtonText}>Continue with this friend</Text>
             </Pressable>
             {pendingTreasureFriend && (
               <View style={styles.friendPlayConfirmation}>
@@ -3398,7 +3458,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             {treasureFriendSubmitted && treasureSentChallengeUrl ? (
               <View style={styles.treasureResultShareCard}>
                 <Ionicons color="#6537c7" name="paper-plane-outline" size={28} />
-                <Text style={styles.treasureResultShareTitle}>{treasureTextInvites.length ? "Your challenge is ready" : "Your invite has been sent"}</Text>
+                <Text style={styles.treasureResultShareTitle}>{treasureTextInvites.length ? "Your challenge is ready" : "Email invitation submitted"}</Text>
                 <Text style={styles.treasureResultShareText}>{friendInviteStatus || "Your invitation is ready. Email sends automatically; phone invitations open in Messages for you to review and send."}</Text>
                 {treasureTextInvites.length ? treasureTextInvites.map((invite) => (
                   <Pressable key={`${invite.phone}-${invite.url}`} accessibilityLabel={`Text Treasure Chest challenge link to ${invite.name}`} onPress={() => textTreasureChallengeLink(invite)} style={styles.treasureShareButton}>
@@ -3423,22 +3483,36 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
                 <Text style={styles.treasureResultShareText}>
                   Share your result so a friend can try Treasure Chest and see if they can beat your score.
                 </Text>
-                <Pressable accessibilityLabel="Share my Treasure Chest result" onPress={shareTreasureResult} style={styles.treasureShareButton}>
+                <View style={styles.treasureSocialShareRow}>
+                  <TouchableOpacity activeOpacity={0.65} accessibilityLabel="Share Treasure Chest result on Facebook" onPress={() => shareTreasureToSocial("facebook")} style={styles.treasureSocialShareButton}>
+                    <Ionicons color="#6537c7" name="logo-facebook" size={21} />
+                    <Text style={styles.treasureSocialShareText}>Facebook</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity activeOpacity={0.65} accessibilityLabel="Share Treasure Chest result on Instagram" onPress={() => shareTreasureToSocial("instagram")} style={styles.treasureSocialShareButton}>
+                    <Ionicons color="#6537c7" name="logo-instagram" size={21} />
+                    <Text style={styles.treasureSocialShareText}>Instagram</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity activeOpacity={0.65} accessibilityLabel="Share Treasure Chest result on TikTok" onPress={() => shareTreasureToSocial("tiktok")} style={styles.treasureSocialShareButton}>
+                    <Ionicons color="#6537c7" name="logo-tiktok" size={21} />
+                    <Text style={styles.treasureSocialShareText}>TikTok</Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity activeOpacity={0.65} accessibilityLabel="Show more Android sharing options" onPress={shareTreasureResult} style={styles.treasureShareButton}>
                   <Ionicons color="#f3c64d" name="share-social-outline" size={18} />
-                  <Text style={styles.primaryButtonText}>Share my result</Text>
-                </Pressable>
-                <Pressable accessibilityLabel="Copy Treasure Chest challenge link" onPress={copyTreasureChallengeLink} style={styles.treasureCopyLinkButton}>
+                  <Text style={styles.primaryButtonText}>More sharing options</Text>
+                </TouchableOpacity>
+                <TouchableOpacity activeOpacity={0.65} accessibilityLabel="Copy Treasure Chest challenge link" onPress={copyTreasureChallengeLink} style={styles.treasureCopyLinkButton}>
                   <Ionicons color="#6537c7" name="copy-outline" size={18} />
                   <Text style={styles.treasureCopyLinkButtonText}>Copy challenge link</Text>
-                </Pressable>
-                <Pressable accessibilityLabel="Text Treasure Chest challenge link" onPress={() => textTreasureChallengeLink()} style={styles.treasureCopyLinkButton}>
+                </TouchableOpacity>
+                <TouchableOpacity activeOpacity={0.65} accessibilityLabel="Text Treasure Chest challenge link" onPress={() => textTreasureChallengeLink()} style={styles.treasureCopyLinkButton}>
                   <Ionicons color="#6537c7" name="chatbubble-outline" size={18} />
                   <Text style={styles.treasureCopyLinkButtonText}>{treasureCanOpenMessages ? "Open Messages to Text" : "Copy Link for Text"}</Text>
-                </Pressable>
-                <Pressable onPress={() => setPage("hub")} style={styles.treasureExploreButton}>
+                </TouchableOpacity>
+                <TouchableOpacity activeOpacity={0.65} onPress={() => { Keyboard.dismiss(); onDrawingChange?.(false); setTreasureShareStatus(""); setPage("hub"); }} style={styles.treasureExploreButton}>
                   <Ionicons color="#6537c7" name="grid-outline" size={18} />
                   <Text style={styles.treasureExploreButtonText}>Explore more intuition activities</Text>
-                </Pressable>
+                </TouchableOpacity>
                 {treasureShareStatus ? <Text style={styles.treasureShareStatus}>{treasureShareStatus}</Text> : null}
               </View>
             )}
@@ -4335,9 +4409,13 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         <View style={styles.guestPlayNotice}>
           <Ionicons color="#b87908" name="gift-outline" size={20} />
           <View style={styles.guestPlayNoticeCopy}>
-            <Text style={styles.guestPlayNoticeTitle}>Explore Intuisity</Text>
+            <Text style={styles.guestPlayNoticeTitle}>
+              {Platform.OS === "ios" ? "Guest play · All challenges available" : "Explore Intuisity"}
+            </Text>
             <Text style={styles.guestPlayNoticeText}>
-              Enjoy three plays before signing in. Create a free account afterward for always-free play and to save and track your progress.
+              {Platform.OS === "ios"
+                ? "Play every daily challenge without signing in. Creating a free account is optional and lets you save and track your progress."
+                : "Enjoy three plays before signing in. Create a free account afterward for always-free play and to save and track your progress."}
             </Text>
           </View>
         </View>
@@ -4508,6 +4586,9 @@ function BirthTimePicker({ onChange, value }: { onChange: (value: string) => voi
   ) => (
     <View style={styles.birthTimeWheelColumn}>
       <ScrollView
+        decelerationRate="fast"
+        keyboardShouldPersistTaps="always"
+        nestedScrollEnabled={Platform.OS === "android"}
         persistentScrollbar
         showsVerticalScrollIndicator
         snapToInterval={34}
@@ -5080,28 +5161,73 @@ function getCompletedGuestPlayCount(answers: Answers) {
 
 async function resolveWikipediaPortrait(title: string): Promise<string | null> {
   const cacheKey = title.trim().toLowerCase();
-  if (portraitCache.has(cacheKey)) return portraitCache.get(cacheKey) || null;
+  const cachedPortrait = portraitCache.get(cacheKey);
+  if (cachedPortrait) return cachedPortrait;
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3000);
-  try {
-    const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, {
-      signal: controller.signal
-    });
-    if (!response.ok) {
-      portraitCache.set(cacheKey, null);
-      return null;
+  if (Platform.OS !== "web") {
+    const portraitUri = `https://www.intuisity.com/api/person-portrait?title=${encodeURIComponent(title)}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    try {
+      const response = await fetch(portraitUri, {
+        headers: { Accept: "image/*" },
+        signal: controller.signal
+      });
+      const contentType = response.headers.get("content-type") || "";
+      if (response.ok && contentType.startsWith("image/")) {
+        portraitCache.set(cacheKey, portraitUri);
+        return portraitUri;
+      }
+    } catch {
+      // Fall through to Wikipedia's public image metadata below.
+    } finally {
+      clearTimeout(timeout);
     }
-    const summary = await response.json();
-    const portraitUri = summary?.thumbnail?.source || summary?.originalimage?.source || null;
-    portraitCache.set(cacheKey, portraitUri);
-    return portraitUri;
-  } catch {
-    portraitCache.set(cacheKey, null);
-    return null;
-  } finally {
-    clearTimeout(timeout);
   }
+
+  const requestTimeout = Platform.OS === "web" ? 6000 : 12000;
+  const requestJson = async (url: string) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), requestTimeout);
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+        signal: controller.signal
+      });
+      return response.ok ? await response.json() : null;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+
+  const summary = await requestJson(
+    `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`
+  );
+  let portraitUri = summary?.thumbnail?.source || summary?.originalimage?.source || null;
+
+  if (!portraitUri) {
+    const query = new URLSearchParams({
+      action: "query",
+      format: "json",
+      origin: "*",
+      piprop: "thumbnail|original",
+      pithumbsize: "900",
+      prop: "pageimages",
+      redirects: "1",
+      titles: title
+    });
+    const mediaWikiResult = await requestJson(`https://en.wikipedia.org/w/api.php?${query.toString()}`);
+    const page = Object.values(mediaWikiResult?.query?.pages || {})[0] as any;
+    portraitUri = page?.thumbnail?.source || page?.original?.source || null;
+  }
+
+  if (typeof portraitUri === "string" && portraitUri.startsWith("//")) {
+    portraitUri = `https:${portraitUri}`;
+  }
+  if (portraitUri) portraitCache.set(cacheKey, portraitUri);
+  return portraitUri;
 }
 
 function getCommunityResults() {
@@ -5334,6 +5460,23 @@ function getAppOrigin() {
   return browserWindow?.location?.origin || "https://intuisity.com";
 }
 
+function getRequestedPlayPage() {
+  if (Platform.OS !== "web") return null;
+  try {
+    const play = new URLSearchParams((globalThis as any).location?.search || "").get("play");
+    return ({
+      astrology: "psychic-potential-score",
+      knowing: "knowing",
+      person: "third-eye-activation",
+      positivity: "remote-viewing-arena",
+      "remote-viewing": "remote-viewing-test",
+      treasure: "social-prediction"
+    } as Record<string, string>)[String(play || "").toLowerCase()] || null;
+  } catch {
+    return null;
+  }
+}
+
 function getTreasureInviteUrl(icons: Array<string | null>, note: string, senderName: string) {
   const params = new URLSearchParams();
   params.set("treasureInvite", "1");
@@ -5404,6 +5547,7 @@ function formatEmailDeliveryStatus(status: string) {
   if (normalized === "suppressed") return "Email blocked by suppression list";
   if (normalized === "delivery_delayed") return "Email delivery delayed";
   if (normalized === "failed") return "Email delivery failed";
+  if (normalized === "accepted") return "Email accepted—delivery not yet confirmed";
   return "Email sent—awaiting delivery";
 }
 
@@ -5548,11 +5692,11 @@ function PageHeader({
     </View>
   );
   return (
-    <View style={[styles.header, compact && styles.headerCompact, { backgroundColor: theme.background, borderColor: theme.border }]}>
+    <View style={[styles.header, compact && styles.headerCompact, Platform.OS === "android" && styles.headerAndroid, { backgroundColor: theme.background, borderColor: theme.border }]}>
       {Platform.OS !== "web" && (onHome || onBack || onNext) && (
-        <View style={styles.nativeHeaderNavigation}>
+        <View style={[styles.nativeHeaderNavigation, Platform.OS === "android" && styles.nativeHeaderNavigationAndroid]}>
           {onHome ? (
-            <TouchableOpacity accessibilityLabel="Return home" accessibilityRole="button" activeOpacity={0.65} hitSlop={14} onPress={() => runNativeNavigation(onHome)} style={[styles.headerNavButton, styles.nativeHeaderButton]}>
+            <TouchableOpacity accessibilityLabel="Return home" accessibilityRole="button" activeOpacity={0.65} hitSlop={14} onPress={() => runNativeNavigation(onHome)} style={[styles.headerNavButton, styles.nativeHeaderButton, Platform.OS === "android" && styles.nativeHeaderButtonAndroid]}>
               <Ionicons color="#f3c64d" name="home-outline" size={20} />
               <Text style={styles.headerHomeText}>Home</Text>
             </TouchableOpacity>
@@ -5561,13 +5705,13 @@ function PageHeader({
           )}
           <View style={styles.headerDirectionButtons}>
             {onBack && (
-              <TouchableOpacity accessibilityLabel="Go back" accessibilityRole="button" activeOpacity={0.65} hitSlop={14} onPress={() => runNativeNavigation(onBack)} style={[styles.headerDirectionButton, styles.nativeHeaderButton]}>
+              <TouchableOpacity accessibilityLabel="Go back" accessibilityRole="button" activeOpacity={0.65} hitSlop={14} onPress={() => runNativeNavigation(onBack)} style={[styles.headerDirectionButton, styles.nativeHeaderButton, Platform.OS === "android" && styles.nativeHeaderButtonAndroid]}>
                 <Ionicons color="#f3c64d" name="arrow-back-outline" size={19} />
                 <Text style={styles.headerNextText}>Back</Text>
               </TouchableOpacity>
             )}
             {onNext && (
-              <TouchableOpacity accessibilityLabel="Go to next module" accessibilityRole="button" activeOpacity={0.65} hitSlop={14} onPress={() => runNativeNavigation(onNext)} style={[styles.headerDirectionButton, styles.nativeHeaderButton]}>
+              <TouchableOpacity accessibilityLabel="Go to next module" accessibilityRole="button" activeOpacity={0.65} hitSlop={14} onPress={() => runNativeNavigation(onNext)} style={[styles.headerDirectionButton, styles.nativeHeaderButton, Platform.OS === "android" && styles.nativeHeaderButtonAndroid]}>
                 <Text style={styles.headerNextText}>Next</Text>
                 <Ionicons color="#f3c64d" name="arrow-forward-outline" size={19} />
               </TouchableOpacity>
@@ -5575,7 +5719,7 @@ function PageHeader({
           </View>
         </View>
       )}
-      <View style={[styles.headerShade, compact && styles.headerShadeCompact]}>
+      <View style={[styles.headerShade, compact && styles.headerShadeCompact, Platform.OS === "android" && styles.headerShadeAndroid]}>
         {Platform.OS === "web" && (onHome || onBack || onNext) && (
           <View style={styles.headerNavigation}>
             {onHome ? (
@@ -5876,7 +6020,7 @@ function DrawingPad({
         onMoveShouldSetResponderCapture={() => true}
         onMoveShouldSetResponder={() => true}
         onResponderGrant={(event) => { onDrawingChange?.(true); addNativePoint(event, true); }}
-        onResponderMove={(event) => addNativePoint(event)}
+        onResponderMove={(event) => { onDrawingChange?.(true); addNativePoint(event); }}
         onResponderRelease={() => { lastPointRef.current = null; onDrawingChange?.(false); }}
         onResponderTerminate={() => { lastPointRef.current = null; onDrawingChange?.(false); }}
         onResponderTerminationRequest={() => false}
@@ -6043,14 +6187,18 @@ const styles = StyleSheet.create({
   skillFocusExplanation: { color: "#5D536A", fontSize: 12, fontWeight: "700", lineHeight: 18, marginTop: 5 },
   header: { borderRadius: 8, borderWidth: 2, marginBottom: 12, minHeight: 150, overflow: "hidden" },
   headerCompact: { marginBottom: 8, minHeight: 116 },
+  headerAndroid: { minHeight: 0 },
   headerShade: { backgroundColor: "rgba(19, 15, 35, 0.08)", flex: 1, justifyContent: "flex-end", minHeight: 150, padding: 14, paddingTop: 58 },
   headerShadeCompact: { minHeight: 116, padding: 10, paddingTop: 50 },
+  headerShadeAndroid: { flex: 0, justifyContent: "flex-start", minHeight: 0, padding: 11, paddingTop: 10 },
   headerNavigation: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", left: 12, position: "absolute", right: 12, top: 12, zIndex: 10 },
   nativeHeaderNavigation: { alignItems: "center", backgroundColor: "#5126ad", borderBottomColor: "#f3c64d", borderBottomWidth: 1, flexDirection: "row", justifyContent: "space-between", minHeight: 62, paddingHorizontal: 14, paddingVertical: 8, width: "100%", zIndex: 20 },
+  nativeHeaderNavigationAndroid: { minHeight: 50, paddingHorizontal: 10, paddingVertical: 5 },
   headerNavButton: { alignItems: "center", backgroundColor: "#6537c7", borderRadius: 8, flexDirection: "row", gap: 5, height: 42, justifyContent: "center", minWidth: 82, paddingHorizontal: 10, shadowColor: "#5126ad", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.18, shadowRadius: 4 },
   headerDirectionButtons: { flexDirection: "row", gap: 8, zIndex: 21 },
   headerDirectionButton: { alignItems: "center", backgroundColor: "#6537c7", borderColor: "#f3c64d", borderRadius: 10, borderWidth: 1, elevation: 4, flexDirection: "row", gap: 5, justifyContent: "center", minHeight: 48, minWidth: 82, paddingHorizontal: 12, zIndex: 22 },
   nativeHeaderButton: { minHeight: 52, minWidth: 88 },
+  nativeHeaderButtonAndroid: { height: 40, minHeight: 40, minWidth: 76, paddingHorizontal: 9 },
   headerHomeText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
   headerNextText: { color: "#fff4cf", fontSize: 12, fontWeight: "900" },
   headerTopRow: { alignItems: "center", flexDirection: "row", gap: 10 },
@@ -6429,6 +6577,9 @@ const styles = StyleSheet.create({
   treasureResultShareTitle: { color: "#30264C", fontSize: 18, fontWeight: "900", textAlign: "center" },
   treasureResultShareText: { color: "#5D536A", fontSize: 13, fontWeight: "700", lineHeight: 19, textAlign: "center" },
   treasureShareButton: { alignItems: "center", alignSelf: "stretch", backgroundColor: "#6537c7", borderRadius: 8, flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 48, paddingHorizontal: 14, paddingVertical: 12 },
+  treasureSocialShareRow: { alignSelf: "stretch", flexDirection: "row", gap: 7 },
+  treasureSocialShareButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#BFADE8", borderRadius: 8, borderWidth: 1, flex: 1, gap: 3, justifyContent: "center", minHeight: 58, paddingHorizontal: 4, paddingVertical: 7 },
+  treasureSocialShareText: { color: "#6537c7", fontSize: 10, fontWeight: "900", textAlign: "center" },
   treasureCopyLinkButton: { alignItems: "center", alignSelf: "stretch", backgroundColor: "#FFFFFF", borderColor: "#BFADE8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 44, paddingHorizontal: 14, paddingVertical: 10 },
   treasureCopyLinkButtonText: { color: "#6537c7", fontSize: 14, fontWeight: "900" },
   treasureExploreButton: { alignItems: "center", alignSelf: "stretch", backgroundColor: "#FFFFFF", borderColor: "#BFADE8", borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 46, paddingHorizontal: 12, paddingVertical: 10 },
