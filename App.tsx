@@ -188,7 +188,7 @@ export default function App() {
   const sessionActivityPersistedRef = useRef(0);
   const userIsAdmin = isAdminUser(userProfile);
   const visibleTabs = useMemo(
-    () => tabs.filter((tab) => (tab.key !== "admin" || userIsAdmin) && (tab.key !== "account" || userProfile?.authProvider !== "guest")),
+    () => tabs.filter((tab) => (tab.key !== "admin" || (userIsAdmin && Platform.OS !== "ios")) && (tab.key !== "account" || userProfile?.authProvider !== "guest")),
     [userIsAdmin, userProfile?.authProvider]
   );
 
@@ -727,14 +727,14 @@ function AccountSettings({ profile, deletionPending, onDelete, onLogout, onSave 
       setSaveError("Please add your name before saving.");
       return;
     }
-    if (draft.birthdate.trim() && !validBirthdate(draft.birthdate)) {
+    if (Platform.OS !== "ios" && draft.birthdate.trim() && !validBirthdate(draft.birthdate)) {
       setSaveError("Please enter the birthdate as MM/DD/YYYY using a real calendar date.");
       return;
     }
-    const birthplaceChanged = ["birthCity", "birthState", "birthCountry"].some(
+    const birthplaceChanged = Platform.OS !== "ios" && ["birthCity", "birthState", "birthCountry"].some(
       (field) => String(draft[field as keyof UserProfile] || "").trim() !== String(profile[field as keyof UserProfile] || "").trim()
     );
-    const astrologyChanged = birthplaceChanged || draft.birthdate.trim() !== profile.birthdate.trim() || draft.birthTime.trim() !== profile.birthTime.trim();
+    const astrologyChanged = Platform.OS !== "ios" && (birthplaceChanged || draft.birthdate.trim() !== profile.birthdate.trim() || draft.birthTime.trim() !== profile.birthTime.trim());
     const nextProfile: UserProfile = {
       ...draft,
       name: draft.name.trim(),
@@ -754,7 +754,7 @@ function AccountSettings({ profile, deletionPending, onDelete, onLogout, onSave 
     onSave(nextProfile);
     setDraft(nextProfile);
     setSaved(true);
-    Alert.alert("Account updated", "Your profile, reminder, location, and astrology information were saved.");
+    Alert.alert("Account updated", Platform.OS === "ios" ? "Your profile, reminder, and location information were saved." : "Your profile, reminder, location, and astrology information were saved.");
   };
 
   return (
@@ -783,13 +783,17 @@ function AccountSettings({ profile, deletionPending, onDelete, onLogout, onSave 
       <ProfileInput label="Current state or region" suggestions={usStates} value={draft.currentState} onChangeText={(value) => update("currentState", value)} />
       <ProfileInput label="Current country" value={draft.currentCountry} onChangeText={(value) => update("currentCountry", value)} />
 
-      <Text style={styles.accountSettingsSectionTitle}>Astrology information</Text>
-      <Text style={styles.accountSettingsHelp}>Birth time is optional. A complete birthplace helps Intuisity calculate the most detailed available chart.</Text>
-      <ProfileInput label="Birthdate" placeholder="MM/DD/YYYY" value={draft.birthdate} onChangeText={(value) => update("birthdate", value)} />
-      <ProfileInput label="Birth time (optional)" placeholder="7:30 PM" value={draft.birthTime} onChangeText={(value) => update("birthTime", value)} />
-      <ProfileInput label="Birth city" value={draft.birthCity} onChangeText={(value) => update("birthCity", value)} />
-      <ProfileInput label="Birth state or region" value={draft.birthState} onChangeText={(value) => update("birthState", value)} />
-      <ProfileInput label="Birth country" value={draft.birthCountry} onChangeText={(value) => update("birthCountry", value)} />
+      {Platform.OS !== "ios" ? (
+        <>
+          <Text style={styles.accountSettingsSectionTitle}>Astrology information</Text>
+          <Text style={styles.accountSettingsHelp}>Birth time is optional. A complete birthplace helps Intuisity calculate the most detailed available chart.</Text>
+          <ProfileInput label="Birthdate" placeholder="MM/DD/YYYY" value={draft.birthdate} onChangeText={(value) => update("birthdate", value)} />
+          <ProfileInput label="Birth time (optional)" placeholder="7:30 PM" value={draft.birthTime} onChangeText={(value) => update("birthTime", value)} />
+          <ProfileInput label="Birth city" value={draft.birthCity} onChangeText={(value) => update("birthCity", value)} />
+          <ProfileInput label="Birth state or region" value={draft.birthState} onChangeText={(value) => update("birthState", value)} />
+          <ProfileInput label="Birth country" value={draft.birthCountry} onChangeText={(value) => update("birthCountry", value)} />
+        </>
+      ) : null}
 
       {saveError ? <Text style={styles.accountError}>{saveError}</Text> : null}
       {saved ? <Text style={styles.accountSavedMessage}>Your latest changes are saved.</Text> : null}

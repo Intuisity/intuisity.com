@@ -800,6 +800,10 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   }, [homeRequestId]);
 
   useEffect(() => {
+    if (Platform.OS === "ios" && page === "psychic-potential-score") setPage("hub");
+  }, [page]);
+
+  useEffect(() => {
     if (!treasureEntryRequestId) return;
     setPage("social-prediction");
     setOpponent("computer");
@@ -1015,6 +1019,10 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
   };
 
   const openChallenge = (challengeId: string) => {
+    if (Platform.OS === "ios" && challengeId === "psychic-potential-score") {
+      setPage("hub");
+      return;
+    }
     if (Platform.OS !== "ios" && userProfile.authProvider === "guest" && getCompletedGuestPlayCount(answers) >= guestPlayLimit) {
       onRequireAccount();
       return;
@@ -1087,9 +1095,13 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     }
   };
 
-  const previousPage = getPreviousModulePage(page);
-  const nextPage = getNextModulePage(page);
-  const homeChallenges = getDailyChallenges();
+  const previousPage = getPreviousModulePage(page, Platform.OS === "ios");
+  const nextPage = getNextModulePage(page, Platform.OS === "ios");
+  const homeChallenges = getDailyChallenges()
+    .filter((challenge) => Platform.OS !== "ios" || challenge.id !== "psychic-potential-score")
+    .map((challenge) => Platform.OS === "ios" && challenge.id === "remote-viewing-test"
+      ? { ...challenge, title: "Challenge 5: Remote Viewing Challenge" }
+      : challenge);
   const ChallengePageHeader = (props: {
     eyebrow: string;
     title: string;
@@ -1845,7 +1857,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               <Text style={styles.secondaryButtonText}>Play another person</Text>
             </Pressable>
             <Pressable
-              onPress={() => setPage("psychic-potential-score")}
+              onPress={() => Platform.OS === "ios" ? resetRemoteViewing() : setPage("psychic-potential-score")}
               style={styles.primaryButton}
             >
               <Text style={styles.primaryButtonText}>Carry this insight forward</Text>
@@ -1860,7 +1872,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     );
   }
 
-  if (page === "psychic-potential-score") {
+  if (Platform.OS !== "ios" && page === "psychic-potential-score") {
     return (
       <View>
         <ChallengePageHeader
@@ -3879,7 +3891,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     return (
       <View>
         <ChallengePageHeader
-          eyebrow={`Challenge 6 · Test ${remoteRound + 1} of 3`}
+          eyebrow={`Challenge ${Platform.OS === "ios" ? "5" : "6"} · Test ${remoteRound + 1} of 3`}
           title="Remote Viewing Challenge"
           compact={remotePhase !== "sense"}
           subtitle={
@@ -4002,7 +4014,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
     const learningFollowupScore = Number(answers["learning-followup-score"] || 0);
     const learningScore = learningCommitmentScore + learningFollowupScore;
     const personScore = Number(answers["person-score"] || 0);
-    const astrologyScore = answers["psychic-potential-score"] === "Completed" ? 1 : 0;
+    const astrologyScore = Platform.OS !== "ios" && answers["psychic-potential-score"] === "Completed" ? 1 : 0;
     const friendScore = Number(answers["friend-score"] || 0);
     const friendMaximum = Number(answers["friend-maximum"] || 1);
     const friendPoints = Number(answers["friend-points"] || calculateModulePoints(friendScore, friendMaximum, dailyPointWeights.friend));
@@ -4017,13 +4029,13 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         Object.prototype.hasOwnProperty.call(answers, "learning-commitment-score") ||
         Object.prototype.hasOwnProperty.call(answers, "learning-followup-score"),
       Object.prototype.hasOwnProperty.call(answers, "person-score"),
-      answers["psychic-potential-score"] === "Completed",
+      Platform.OS !== "ios" && answers["psychic-potential-score"] === "Completed",
       Object.prototype.hasOwnProperty.call(answers, "remote-viewing-score")
     ].filter(Boolean).length;
     const dailyCreditEarned = completedChallengeCount > 0;
     const personalTotal =
       knowingScore + learningScore + personScore + astrologyScore + friendScore + remoteViewingScore;
-    const maximumScore = 16 + friendMaximum;
+    const maximumScore = (Platform.OS === "ios" ? 15 : 16) + friendMaximum;
     const scoreRows = [
       {
         label: "Challenge 1: Treasure Chest",
@@ -4062,15 +4074,15 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         possiblePoints: dailyPointWeights.astrology
       },
       {
-        label: "Challenge 6: Remote Viewing Challenge",
+        label: Platform.OS === "ios" ? "Challenge 5: Remote Viewing Challenge" : "Challenge 6: Remote Viewing Challenge",
         score: remoteViewingScore,
         maximum: 3,
         points: calculateModulePoints(remoteViewingScore, 3, dailyPointWeights.remoteViewing),
         possiblePoints: dailyPointWeights.remoteViewing
       }
-    ];
+    ].filter((row) => Platform.OS !== "ios" || row.label !== "Challenge 5: Daily Astrology Tips");
     const totalPoints = scoreRows.reduce((sum, row) => sum + (row.pending ? 0 : row.points), 0);
-    const maximumPoints = Object.values(dailyPointWeights).reduce((sum, points) => sum + points, 0);
+    const maximumPoints = scoreRows.reduce((sum, row) => sum + row.possiblePoints, 0);
     const community = getCommunityResults();
     const progress = saveAndSummarizeDailyResults(
       userProfile.email,
@@ -4079,7 +4091,8 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       maximumScore,
       dailyCreditEarned
     );
-    const strongestArea = progress.strongest || {
+    const visibleProgressModules = progress.modules.filter((module) => Platform.OS !== "ios" || !module.label.toLowerCase().includes("astrology"));
+    const strongestArea = [...visibleProgressModules].sort((first, second) => second.percent - first.percent)[0] || {
       label: "Complete one challenge",
       percent: 0
     };
@@ -4088,7 +4101,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       "today"
     );
     const longTermStrengths = summarizeApparentStrengths(
-      progress.modules.map((module) => ({
+      visibleProgressModules.map((module) => ({
         label: module.label,
         score: module.totalScore,
         maximum: module.totalMaximum
@@ -4116,7 +4129,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           </View>
           <Text style={styles.finalCreditText}>
             {dailyCreditEarned
-              ? `Daily practice credit earned · ${completedChallengeCount} of 6 challenges completed`
+              ? `Daily practice credit earned · ${completedChallengeCount} of ${Platform.OS === "ios" ? "5" : "6"} challenges completed`
               : "Complete any one challenge to earn today's practice credit"}
           </Text>
         </View>
@@ -4187,7 +4200,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             <Text style={styles.cumulativeLabel}>Overall average</Text>
           </View>
         </View>
-        {progress.modules.map((module) => (
+        {visibleProgressModules.map((module) => (
           <View key={module.label} style={styles.strengthRow}>
             <View style={styles.strengthRowTop}>
               <Text style={styles.strengthRowLabel}>{module.label}</Text>
@@ -4203,7 +4216,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
         ))}
 
         <Text style={styles.resultsSectionTitle}>Your saved daily answers</Text>
-        <Text style={styles.feedbackIntro}>Open either journal to review the answers and updates you have saved over time.</Text>
+        <Text style={styles.feedbackIntro}>{Platform.OS === "ios" ? "Open your journal to review the answers and updates you have saved over time." : "Open either journal to review the answers and updates you have saved over time."}</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ expanded: resultsJournalOpen.positivity }}
@@ -4237,6 +4250,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           </View>
         )}
 
+        {Platform.OS !== "ios" ? <>
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ expanded: resultsJournalOpen.astrology }}
@@ -4270,6 +4284,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
             )) : <Text style={styles.resultsJournalEmpty}>Your saved Astrology answers will appear here.</Text>}
           </View>
         )}
+        </> : null}
 
         <Text style={styles.resultsSectionTitle}>Help improve your modules</Text>
         <Text style={styles.feedbackIntro}>
@@ -4403,7 +4418,9 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
       <ChallengePageHeader
         eyebrow="Today's practice"
         title="Choose a challenge"
-        subtitle="Explore awareness, synchronicity, inner knowing, astrological insights, remote viewing, and manifestation through daily intuition practice."
+        subtitle={Platform.OS === "ios"
+          ? "Explore awareness, first impressions, inner knowing, observation, and remote viewing through daily feedback-based practice."
+          : "Explore awareness, synchronicity, inner knowing, astrological insights, remote viewing, and manifestation through daily intuition practice."}
       />
       {userProfile.authProvider === "guest" ? (
         <View style={styles.guestPlayNotice}>
@@ -4427,7 +4444,8 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
           source={require("../../assets/intuisity-front-banner-v6.png")}
           style={styles.heroImage}
         />
-        <View style={styles.bannerIconLinks}>
+        {Platform.OS === "ios" ? <View pointerEvents="none" style={styles.iosAstrologyIconMask} /> : null}
+        {Platform.OS !== "ios" ? <View style={styles.bannerIconLinks}>
           {homeChallenges.map((challenge, index) => (
             <Pressable
               accessibilityLabel={`Open ${challenge.title} from banner`}
@@ -4441,7 +4459,7 @@ export function DailyChallengeHub({ answers, friendChallengeRequestId = 0, homeR
               ]}
             />
           ))}
-        </View>
+        </View> : null}
       </View>
       <View style={styles.moduleGrid}>
         {homeChallenges.map((challenge) => (
@@ -5584,24 +5602,24 @@ function getKnowingResultMessage(score: number) {
       detail: "Three correct choices show that your first impressions deserve attention."
     },
     {
-      title: "Psychic ability present",
+      title: "Strong intuitive awareness",
       detail: "Four correct choices reveal an impressive connection to your intuitive signals."
     },
     {
-      title: "Extraordinary psychic connection!",
+      title: "Extraordinary intuitive connection!",
       detail: "A perfect five out of five. Your intuitive knowing was exceptionally strong today."
     }
   ];
   return messages[Math.max(0, Math.min(5, score))];
 }
 
-function getNextModulePage(page: string) {
+function getNextModulePage(page: string, iosWithoutAstrology = false) {
   const nextPages: Record<string, string> = {
     "social-prediction": "knowing",
     knowing: "remote-viewing-arena",
     "knowing-results": "remote-viewing-arena",
     "remote-viewing-arena": "third-eye-activation",
-    "third-eye-activation": "psychic-potential-score",
+    "third-eye-activation": iosWithoutAstrology ? "remote-viewing-test" : "psychic-potential-score",
     "psychic-potential-score": "remote-viewing-test",
     "remote-viewing-test": "daily-results",
     "remote-viewing-results": "daily-results",
@@ -5610,7 +5628,7 @@ function getNextModulePage(page: string) {
   return nextPages[page];
 }
 
-function getPreviousModulePage(page: string) {
+function getPreviousModulePage(page: string, iosWithoutAstrology = false) {
   const previousPages: Record<string, string> = {
     "social-prediction": "hub",
     knowing: "social-prediction",
@@ -5618,7 +5636,7 @@ function getPreviousModulePage(page: string) {
     "remote-viewing-arena": "knowing",
     "third-eye-activation": "remote-viewing-arena",
     "psychic-potential-score": "third-eye-activation",
-    "remote-viewing-test": "psychic-potential-score",
+    "remote-viewing-test": iosWithoutAstrology ? "third-eye-activation" : "psychic-potential-score",
     "remote-viewing-results": "remote-viewing-test",
     "daily-results": "remote-viewing-results"
   };
@@ -6217,6 +6235,7 @@ const styles = StyleSheet.create({
   guestPlayNoticeTitle: { color: "#007982", fontSize: 14, fontWeight: "900" },
   hero: { aspectRatio: 1317 / 460, backgroundColor: "#F4F0E7", borderRadius: 8, marginBottom: 16, overflow: "hidden", width: "100%" },
   heroImage: { height: "100%", left: 0, position: "absolute", width: "100%" },
+  iosAstrologyIconMask: { backgroundColor: "rgba(255,255,255,0.97)", bottom: 0, height: "21%", left: "34.5%", position: "absolute", width: "8.5%" },
   bannerIconLinks: { bottom: "0%", flexDirection: "row", height: "20%", left: "2%", position: "absolute", width: "49%" },
   bannerIconLink: { borderRadius: 6, flex: 1 },
   bannerIconLinkPurple: {},
